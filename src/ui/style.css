@@ -1,9 +1,9 @@
 /* ============================================
-   Report v3 - Clean Light Theme Stylesheet
+   Report v3 - Premium Dark-Light Theme
    ============================================ */
 
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 /* ============================================
@@ -14,11 +14,14 @@
     --bg-primary: #F8FAFC;
     --bg-secondary: #FFFFFF;
     --bg-tertiary: #F1F5F9;
+    --bg-dark: #0F172A;
 
     /* Accent Colors */
     --accent-primary: #3B82F6;
     --accent-secondary: #60A5FA;
+    --accent-dark: #2563EB;
     --accent-gradient: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    --accent-gradient-hover: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
 
     /* Status Colors */
     --color-success: #10B981;
@@ -32,8 +35,9 @@
 
     /* Text Colors */
     --text-primary: #1E293B;
-    --text-secondary: #64748B;
+    --text-secondary: #475569;
     --text-muted: #94A3B8;
+    --text-white: #FFFFFF;
 
     /* Border Colors */
     --border-subtle: #E2E8F0;
@@ -43,15 +47,52 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
     /* Typography */
     --font-sans: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    /* Spacing */
+    /* Spacing & Radius */
     --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 16px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes pulse-warning {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+        border-color: #EF4444;
+    }
+    50% {
+        box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.2);
+        border-color: #F87171;
+    }
+}
+
+@keyframes blink-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
 
 /* ============================================
@@ -71,26 +112,27 @@ body,
 /* ============================================
    Typography
    ============================================ */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans) !important;
     font-weight: 700 !important;
     color: var(--text-primary) !important;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
 }
 
 h1 {
-    font-size: 2rem !important;
-    color: var(--text-primary) !important;
+    font-size: 1.875rem !important;
+    font-weight: 800 !important;
 }
 
-p,
-span,
-div {
+h2 {
+    font-size: 1.5rem !important;
+}
+
+h3 {
+    font-size: 1.25rem !important;
+}
+
+p, span, div {
     color: var(--text-secondary);
 }
 
@@ -107,7 +149,7 @@ div {
 }
 
 /* ============================================
-   Cards & Metrics
+   Cards & Metrics - Premium Style
    ============================================ */
 [data-testid="stMetric"] {
     background: var(--bg-secondary) !important;
@@ -115,88 +157,254 @@ div {
     border-radius: var(--radius-lg) !important;
     padding: 1.25rem !important;
     box-shadow: var(--shadow-sm) !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-testid="stMetric"]:hover {
-    box-shadow: var(--shadow-md) !important;
-    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-lg) !important;
+    transform: translateY(-3px) !important;
+    border-color: var(--accent-primary) !important;
 }
 
 [data-testid="stMetricLabel"] {
-    font-size: 0.875rem !important;
-    font-weight: 500 !important;
-    color: var(--text-secondary) !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }
 
 [data-testid="stMetricValue"] {
     font-size: 1.5rem !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
     color: var(--text-primary) !important;
 }
 
 /* ============================================
-   Tab Styling
+   Tab Styling - Premium
    ============================================ */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 8px !important;
-    background: transparent !important;
-    padding: 0 !important;
+    gap: 4px !important;
+    background: var(--bg-tertiary) !important;
+    padding: 4px !important;
+    border-radius: var(--radius-lg) !important;
     margin-bottom: 1.5rem !important;
 }
 
 .stTabs [data-baseweb="tab"] {
-    height: 40px !important;
+    height: 38px !important;
     padding: 0 16px !important;
-    background: var(--bg-secondary) !important;
+    background: transparent !important;
     border-radius: var(--radius-md) !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
+    font-size: 0.8125rem !important;
     color: var(--text-secondary) !important;
-    border: 1px solid var(--border-subtle) !important;
+    border: none !important;
     transition: all 0.2s ease !important;
 }
 
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--text-primary) !important;
+    background: rgba(255,255,255,0.7) !important;
+}
+
 .stTabs [aria-selected="true"] {
-    background: var(--accent-primary) !important;
-    color: white !important;
-    border-color: var(--accent-primary) !important;
+    background: var(--bg-secondary) !important;
+    color: var(--accent-primary) !important;
+    border: none !important;
+    box-shadow: var(--shadow-sm) !important;
+    font-weight: 700 !important;
+}
+
+/* Tab indicator line removal */
+.stTabs [data-baseweb="tab-highlight"] {
+    display: none !important;
 }
 
 /* ============================================
-   File Uploader (Main Area)
+   File Uploader - Premium
    ============================================ */
 [data-testid="stFileUploader"] {
     background: var(--bg-secondary) !important;
     border: 2px dashed var(--border-light) !important;
     border-radius: var(--radius-xl) !important;
-    padding: 2rem !important;
+    padding: 2.5rem !important;
     text-align: center !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-testid="stFileUploader"]:hover {
     border-color: var(--accent-primary) !important;
     background-color: var(--color-info-bg) !important;
+    transform: scale(1.01) !important;
 }
 
 /* ============================================
-   Buttons
+   Buttons - Premium with White Text
    ============================================ */
-.stButton>button {
-    background: var(--accent-primary) !important;
-    color: white !important;
+.stButton > button {
+    background: var(--accent-gradient) !important;
+    color: var(--text-white) !important;
     border: none !important;
     border-radius: var(--radius-md) !important;
-    padding: 0.625rem 1.25rem !important;
-    font-weight: 500 !important;
-    box-shadow: var(--shadow-sm) !important;
-    transition: all 0.2s ease !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    letter-spacing: 0.01em !important;
 }
 
-.stButton>button:hover {
-    background: var(--accent-secondary) !important;
+.stButton > button:hover {
+    background: var(--accent-gradient-hover) !important;
+    color: var(--text-white) !important;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Button text - ensure white */
+.stButton > button > div,
+.stButton > button > div > p,
+.stButton > button span,
+.stButton > button p {
+    color: var(--text-white) !important;
+}
+
+/* Secondary buttons */
+.stButton > button[kind="secondary"] {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--accent-primary) !important;
+    color: var(--accent-primary) !important;
     box-shadow: var(--shadow-md) !important;
-    transform: translateY(-1px) !important;
+}
+
+.stButton > button[kind="secondary"] > div,
+.stButton > button[kind="secondary"] > div > p,
+.stButton > button[kind="secondary"] span,
+.stButton > button[kind="secondary"] p {
+    color: var(--text-primary) !important;
+}
+
+/* Download button */
+.stDownloadButton > button {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+    color: var(--text-white) !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.stDownloadButton > button:hover {
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+.stDownloadButton > button > div,
+.stDownloadButton > button > div > p,
+.stDownloadButton > button span,
+.stDownloadButton > button p {
+    color: var(--text-white) !important;
+}
+
+/* ============================================
+   Warning Box - Animated Alert
+   ============================================ */
+.clinic-mismatch-warning {
+    background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%) !important;
+    border: 2px solid #EF4444 !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1rem 1.25rem !important;
+    margin-bottom: 1rem !important;
+    animation: pulse-warning 2s infinite !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.clinic-mismatch-warning::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -200%;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.05), transparent);
+    animation: shimmer 3s infinite;
+}
+
+.warning-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.warning-dot {
+    width: 10px;
+    height: 10px;
+    background: #EF4444;
+    border-radius: 50%;
+    animation: blink-dot 1s infinite;
+}
+
+.warning-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #DC2626;
+}
+
+.warning-content {
+    font-size: 0.8125rem;
+    color: #7F1D1D;
+    line-height: 1.6;
+    padding-left: 18px;
+}
+
+.warning-content strong {
+    color: #DC2626;
+    font-weight: 700;
+}
+
+/* Streamlit native warning override */
+[data-testid="stAlert"] {
+    border-radius: var(--radius-md) !important;
+    border-left-width: 4px !important;
+}
+
+/* ============================================
+   Expander - Premium
+   ============================================ */
+[data-testid="stExpander"] {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-sm) !important;
+    transition: all 0.2s ease !important;
+    margin-bottom: 0.5rem !important;
+}
+
+[data-testid="stExpander"]:hover {
+    box-shadow: var(--shadow-md) !important;
+    border-color: var(--accent-secondary) !important;
+}
+
+[data-testid="stExpander"] summary {
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    padding: 0.875rem 1rem !important;
 }
 
 /* ============================================
@@ -230,6 +438,11 @@ div {
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-subtle);
+    transition: all 0.2s ease;
+}
+
+.month-column:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .month-title {
@@ -250,15 +463,22 @@ div {
     background: var(--bg-primary);
     border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.metric-item:hover {
+    border-color: var(--accent-primary);
+    background: var(--color-info-bg);
 }
 
 .metric-icon {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     margin-right: 1rem;
     font-size: 1.25rem;
 }
@@ -283,14 +503,15 @@ div {
 }
 
 .metric-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
     margin-bottom: 0.25rem;
+    font-weight: 500;
 }
 
 .metric-value {
-    font-size: 1.125rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
     color: var(--text-primary);
 }
 
@@ -315,12 +536,13 @@ div {
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     text-align: center;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .upload-card:hover {
     border-color: var(--accent-primary);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
 }
 
 .upload-icon {
@@ -355,4 +577,58 @@ div {
     background: var(--bg-secondary) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-lg) !important;
+}
+
+/* ============================================
+   Divider - Subtle
+   ============================================ */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: var(--border-subtle) !important;
+    margin: 1.5rem 0 !important;
+}
+
+/* ============================================
+   Scrollbar - Premium
+   ============================================ */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ============================================
+   Number Input - Clean
+   ============================================ */
+[data-testid="stNumberInput"] input {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-subtle) !important;
+    font-weight: 500 !important;
+}
+
+[data-testid="stNumberInput"] input:focus {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* ============================================
+   Toast & Success Messages
+   ============================================ */
+[data-testid="stToast"] {
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-lg) !important;
 }

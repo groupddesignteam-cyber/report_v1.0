@@ -536,16 +536,21 @@ def render_dashboard():
     # 거래처명 불일치 경고 체크
     detected_names, source_names = check_clinic_name_mismatch()
     if len(detected_names) > 1:
-        st.warning(f"""
-        ⚠️ **거래처명 불일치 감지**
-
-        데이터 파일에서 서로 다른 거래처명이 감지되었습니다:
-        {', '.join([f'**{name}**' for name in detected_names])}
-
-        각 데이터 출처: {', '.join([f'{src}: {name}' for src, name in source_names.items()])}
-
-        올바른 거래처의 데이터인지 확인해주세요.
-        """)
+        names_html = ', '.join([f'<strong>{name}</strong>' for name in detected_names])
+        sources_html = ' / '.join([f'{src}: <strong>{name}</strong>' for src, name in source_names.items()])
+        st.markdown(f"""
+        <div class="clinic-mismatch-warning">
+            <div class="warning-header">
+                <div class="warning-dot"></div>
+                <span class="warning-title">거래처명 불일치 감지</span>
+            </div>
+            <div class="warning-content">
+                데이터 파일에서 서로 다른 거래처명이 감지되었습니다: {names_html}<br>
+                출처: {sources_html}<br>
+                올바른 거래처의 데이터인지 확인해주세요.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # Header with clinic name
     col1, col2, col3 = st.columns([2, 1, 1])
