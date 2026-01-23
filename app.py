@@ -337,9 +337,10 @@ def render_department_card(dept_key: str, label: str, data: dict):
     else:
         render_read_metrics(dept_key, data)
 
-    # Show treatment TOP5 for reservation
+    # Show treatment TOP5 and how_found TOP5 for reservation
     if dept_key == 'reservation':
         render_treatment_top5(data)
+        render_how_found_top5(data)
 
     st.markdown("<hr style='border:none; border-top:1px solid #f1f5f9; margin:0.75rem 0;'>", unsafe_allow_html=True)
 
@@ -420,6 +421,42 @@ def render_treatment_top5(data: dict):
             st.caption("당월")
             for i, item in enumerate(curr_treatment[:5], 1):
                 name = item.get('treatment', '')
+                count = item.get('count', 0)
+                st.markdown(f"<span style='font-size:0.72rem; color:#1e293b;'>{i}. {name} <b>{count}건</b></span>", unsafe_allow_html=True)
+        else:
+            st.caption("당월: 데이터 없음")
+
+
+def render_how_found_top5(data: dict):
+    """Show how_found TOP5 breakdown for reservation data."""
+    tables = data.get('tables', {})
+    curr_how_found = tables.get('how_found_top5', [])
+    prev_how_found = tables.get('prev_how_found_top5', [])
+
+    if not curr_how_found and not prev_how_found:
+        return
+
+    st.markdown("""
+    <div style="margin-top:0.75rem; margin-bottom:0.25rem;">
+        <span style="font-size:0.75rem; font-weight:700; color:#475569;">🔍 어떻게 알게 되었나요? TOP5</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_prev, col_curr = st.columns(2)
+    with col_prev:
+        if prev_how_found:
+            st.caption("전월")
+            for i, item in enumerate(prev_how_found[:5], 1):
+                name = item.get('how_found', '')
+                count = item.get('count', 0)
+                st.markdown(f"<span style='font-size:0.72rem; color:#64748b;'>{i}. {name} <b>{count}건</b></span>", unsafe_allow_html=True)
+        else:
+            st.caption("전월: 데이터 없음")
+    with col_curr:
+        if curr_how_found:
+            st.caption("당월")
+            for i, item in enumerate(curr_how_found[:5], 1):
+                name = item.get('how_found', '')
                 count = item.get('count', 0)
                 st.markdown(f"<span style='font-size:0.72rem; color:#1e293b;'>{i}. {name} <b>{count}건</b></span>", unsafe_allow_html=True)
         else:

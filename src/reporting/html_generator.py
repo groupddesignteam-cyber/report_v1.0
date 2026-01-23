@@ -3,7 +3,6 @@ HTML Report Generator using Jinja2 & Tailwind CSS
 Enhanced design matching the Streamlit dashboard style
 """
 
-import json
 from datetime import datetime
 from typing import Dict, Any, List
 from jinja2 import Template
@@ -17,7 +16,6 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ report_title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -67,35 +65,17 @@ HTML_TEMPLATE = """
         </header>
 
         <!-- 2. Executive Summary -->
-        {% if health_scores %}
+        {% if best_metric or worst_metric or manager_comment %}
         <div class="card p-6 md:p-8 fade-in delay-1">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
-                    <div class="bg-gradient-to-br from-indigo-100 to-purple-100 p-2.5 rounded-xl shadow-sm"><i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i></div>
+                    <div class="bg-gradient-to-br from-indigo-100 to-purple-100 p-2.5 rounded-xl shadow-sm"><i data-lucide="bar-chart-2" class="w-5 h-5 text-indigo-600"></i></div>
                     <div>
-                        <h2 class="text-lg font-bold text-slate-800">Marketing Health Overview</h2>
-                        <p class="text-[10px] text-slate-400 font-medium">5축 마케팅 건강도 분석</p>
+                        <h2 class="text-lg font-bold text-slate-800">Performance Overview</h2>
+                        <p class="text-[10px] text-slate-400 font-medium">전월 대비 핵심 성과 변동</p>
                     </div>
                 </div>
                 <span class="section-badge bg-indigo-50 text-indigo-600 border border-indigo-100">Executive Summary</span>
-            </div>
-
-            <!-- Radar + Score Bars -->
-            <div class="flex flex-col md:flex-row items-center gap-8 mb-6">
-                <div class="w-64 h-64 shrink-0">
-                    <canvas id="healthRadar"></canvas>
-                </div>
-                <div class="flex-1 space-y-3 w-full">
-                    {% for axis, score in health_scores.items() %}
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-bold text-slate-600 w-14">{{ axis }}</span>
-                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all" style="width: {{ score }}%; background: {% if score >= 70 %}#22c55e{% elif score >= 40 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
-                        </div>
-                        <span class="text-sm font-bold text-slate-800 w-8 text-right">{{ score }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
             </div>
 
             <!-- Best & Worst -->
@@ -128,46 +108,6 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
         </div>
-
-        <!-- Radar Chart Script -->
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var ctx = document.getElementById('healthRadar');
-            if (ctx) {
-                new Chart(ctx.getContext('2d'), {
-                    type: 'radar',
-                    data: {
-                        labels: {{ health_labels_json }},
-                        datasets: [{
-                            data: {{ health_values_json }},
-                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                            borderColor: 'rgba(99, 102, 241, 0.8)',
-                            borderWidth: 2,
-                            pointBackgroundColor: 'rgba(99, 102, 241, 1)',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 1,
-                            pointRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        animation: { duration: 0 },
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            r: {
-                                beginAtZero: true, max: 100,
-                                ticks: { stepSize: 20, font: { size: 9 }, backdropColor: 'transparent' },
-                                pointLabels: { font: { size: 11, weight: '600', family: 'Noto Sans KR' }, color: '#475569' },
-                                grid: { color: 'rgba(0,0,0,0.06)' },
-                                angleLines: { color: 'rgba(0,0,0,0.06)' }
-                            }
-                        }
-                    }
-                });
-            }
-        });
-        </script>
         {% endif %}
 
         <!-- 3. Department Sections -->
@@ -319,9 +259,14 @@ HTML_TEMPLATE = """
             <!-- TOP5 Sections -->
             {% if dept.top5_sections %}
             {% for section in dept.top5_sections %}
+            {% if not loop.first %}
+            <div class="border-t border-slate-100 my-5"></div>
+            {% endif %}
             <div class="mb-6">
                 <div class="flex items-center gap-2 mb-3">
-                    <span class="text-base">{{ section.icon }}</span>
+                    <div class="flex items-center justify-center w-7 h-7 rounded-lg" style="background: {% if section.bar_color == 'red' %}#fef2f2{% elif section.bar_color == 'green' %}#f0fdf4{% elif section.bar_color == 'purple' %}#faf5ff{% elif section.bar_color == 'amber' %}#fffbeb{% else %}#eff6ff{% endif %};">
+                        <span class="text-sm">{{ section.icon }}</span>
+                    </div>
                     <h3 class="text-sm font-bold text-slate-700">{{ section.title }}</h3>
                 </div>
                 <div class="grid md:grid-cols-2 gap-4">
@@ -338,7 +283,7 @@ HTML_TEMPLATE = """
                             {% endif %}
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
                             <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full bg-slate-400" style="width: {{ item.pct }}%;"></div>
+                                <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#f87171{% elif section.bar_color == 'green' %}#6ee7b7{% elif section.bar_color == 'purple' %}#c4b5fd{% elif section.bar_color == 'amber' %}#fcd34d{% elif section.bar_color == 'blue' %}#93c5fd{% else %}#94a3b8{% endif %};"></div>
                             </div>
                             <span class="text-[10px] font-bold text-slate-600 w-14 text-right">{{ item.value_display }}</span>
                         </div>
@@ -348,21 +293,21 @@ HTML_TEMPLATE = """
                         {% endif %}
                     </div>
                     <!-- Current Month TOP5 -->
-                    <div class="bg-blue-50/30 p-4 rounded-xl border border-blue-100">
-                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">{{ dept.curr_month }}</p>
+                    <div class="p-4 rounded-xl border" style="background: {% if section.bar_color == 'red' %}#fef2f2{% elif section.bar_color == 'green' %}#f0fdf4{% elif section.bar_color == 'purple' %}#faf5ff{% elif section.bar_color == 'amber' %}#fffbeb{% else %}#eff6ff80{% endif %}; border-color: {% if section.bar_color == 'red' %}#fecaca{% elif section.bar_color == 'green' %}#bbf7d0{% elif section.bar_color == 'purple' %}#e9d5ff{% elif section.bar_color == 'amber' %}#fde68a{% else %}#bfdbfe{% endif %};">
+                        <p class="text-xs font-bold uppercase mb-3" style="color: {% if section.bar_color == 'red' %}#ef4444{% elif section.bar_color == 'green' %}#22c55e{% elif section.bar_color == 'purple' %}#8b5cf6{% elif section.bar_color == 'amber' %}#d97706{% else %}#3b82f6{% endif %};">{{ dept.curr_month }}</p>
                         {% if section.curr_items %}
                         {% for item in section.curr_items %}
-                        <div class="flex items-center gap-2 py-1.5 {% if not loop.last %}border-b border-blue-50{% endif %}">
+                        <div class="flex items-center gap-2 py-1.5 {% if not loop.last %}border-b{% endif %}" style="{% if not loop.last %}border-color: {% if section.bar_color == 'red' %}#fee2e2{% elif section.bar_color == 'green' %}#dcfce7{% elif section.bar_color == 'purple' %}#f3e8ff{% elif section.bar_color == 'amber' %}#fef3c7{% else %}#dbeafe{% endif %};{% endif %}">
                             {% if item.icon %}
                             <span class="text-xs">{{ item.icon }}</span>
                             {% else %}
-                            <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
+                            <span class="text-[10px] font-bold w-4" style="color: {% if section.bar_color == 'red' %}#f87171{% elif section.bar_color == 'green' %}#4ade80{% elif section.bar_color == 'purple' %}#a78bfa{% elif section.bar_color == 'amber' %}#fbbf24{% else %}#60a5fa{% endif %};">{{ loop.index }}</span>
                             {% endif %}
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
-                            <div class="w-16 h-1.5 bg-blue-100 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full bg-blue-500" style="width: {{ item.pct }}%;"></div>
+                            <div class="w-16 h-1.5 rounded-full overflow-hidden" style="background: {% if section.bar_color == 'red' %}#fee2e2{% elif section.bar_color == 'green' %}#dcfce7{% elif section.bar_color == 'purple' %}#f3e8ff{% elif section.bar_color == 'amber' %}#fef3c7{% else %}#dbeafe{% endif %};">
+                                <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#ef4444{% elif section.bar_color == 'green' %}#22c55e{% elif section.bar_color == 'purple' %}#8b5cf6{% elif section.bar_color == 'amber' %}#f59e0b{% else %}#3b82f6{% endif %};"></div>
                             </div>
-                            <span class="text-[10px] font-bold text-blue-700 w-14 text-right">{{ item.value_display }}</span>
+                            <span class="text-[10px] font-bold w-14 text-right" style="color: {% if section.bar_color == 'red' %}#b91c1c{% elif section.bar_color == 'green' %}#15803d{% elif section.bar_color == 'purple' %}#6d28d9{% elif section.bar_color == 'amber' %}#92400e{% else %}#1d4ed8{% endif %};">{{ item.value_display }}</span>
                         </div>
                         {% endfor %}
                         {% else %}
@@ -725,20 +670,105 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
 
-            <!-- Setting: Workplan Achievement -->
-            {% if dept.id == 'setting' and dept.channel_completion %}
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
-                {% for ch in dept.channel_completion %}
-                <div class="flex items-center gap-3 px-4 py-2.5">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}"></span>
-                    <span class="text-xs text-slate-600 font-medium w-24 truncate">{{ ch.channel }}</span>
-                    <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
-                    </div>
-                    <span class="text-xs font-bold w-10 text-right {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</span>
+            <!-- Setting: KPI Summary -->
+            {% if dept.id == 'setting' %}
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
+                    <p class="text-[10px] font-bold text-indigo-500 uppercase mb-1">평균 달성률</p>
+                    <p class="text-2xl font-black text-indigo-700">{{ dept.avg_progress_rate }}%</p>
                 </div>
-                {% endfor %}
+                <div class="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
+                    <p class="text-[10px] font-bold text-green-500 uppercase mb-1">세팅 완료</p>
+                    <p class="text-2xl font-black text-green-700">{{ dept.completed_clinics }}<span class="text-sm text-green-400 ml-0.5">/{{ dept.total_clinics }}</span></p>
+                </div>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100 text-center">
+                    <p class="text-[10px] font-bold text-red-500 uppercase mb-1">리스크</p>
+                    <p class="text-2xl font-black text-red-700">{{ dept.risk_clinics }}<span class="text-sm text-red-400 ml-0.5">개</span></p>
+                </div>
             </div>
+            {% endif %}
+
+            <!-- Setting: Workplan Achievement - 플랫폼별 상세 -->
+            {% if dept.id == 'setting' and dept.channel_completion %}
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-4 h-4 text-slate-400"></i> 플랫폼별 진행 현황
+                </h3>
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- Header -->
+                    <div class="grid grid-cols-12 gap-0 bg-slate-50 px-4 py-2 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                        <span class="col-span-3">플랫폼</span>
+                        <span class="col-span-2 text-center">달성률</span>
+                        <span class="col-span-2 text-center">완료</span>
+                        <span class="col-span-2 text-center">진행중</span>
+                        <span class="col-span-3">종류</span>
+                    </div>
+                    <!-- Body -->
+                    <div class="divide-y divide-slate-100">
+                        {% for ch in dept.channel_completion %}
+                        <div class="grid grid-cols-12 gap-0 px-4 py-2.5 items-center">
+                            <div class="col-span-3 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background: {% if ch.completion_rate >= 80 %}#22c55e{% elif ch.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></span>
+                                <span class="text-xs text-slate-700 font-medium truncate">{{ ch.channel }}</span>
+                            </div>
+                            <div class="col-span-2 flex items-center justify-center gap-1.5">
+                                <div class="w-10 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width: {{ ch.completion_rate }}%; background: {% if ch.completion_rate >= 80 %}#22c55e{% elif ch.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+                                </div>
+                                <span class="text-[10px] font-bold" style="color: {% if ch.completion_rate >= 80 %}#16a34a{% elif ch.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ ch.completion_rate|int }}%</span>
+                            </div>
+                            <span class="col-span-2 text-xs text-center text-green-600 font-medium">{{ ch.completed }}/{{ ch.total }}</span>
+                            <span class="col-span-2 text-xs text-center text-amber-600 font-medium">{{ ch.in_progress }}</span>
+                            <div class="col-span-3">
+                                {% if ch.types %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for t in ch.types[:3] %}
+                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{{ t.name }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="text-[10px] text-slate-400">-</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Setting: 병원별 상세 진행 -->
+            {% if dept.clinic_progress %}
+            <div>
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i> 병원별 진행 현황
+                </h3>
+                <div class="space-y-2">
+                    {% for clinic in dept.clinic_progress %}
+                    <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-700">{{ clinic.clinic }}</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width: {{ clinic.progress_rate }}%; background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+                                </div>
+                                <span class="text-[10px] font-bold" style="color: {% if clinic.progress_rate >= 80 %}#16a34a{% elif clinic.progress_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ clinic.progress_rate|int }}%</span>
+                            </div>
+                        </div>
+                        {% if clinic.channels %}
+                        <div class="flex flex-wrap gap-1.5">
+                            {% for ch in clinic.channels %}
+                            <span class="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border {% if ch.status == 'completed' %}bg-green-50 border-green-200 text-green-700{% elif ch.status == 'in_progress' %}bg-amber-50 border-amber-200 text-amber-700{% else %}bg-slate-100 border-slate-200 text-slate-400{% endif %}">
+                                {% if ch.status == 'completed' %}✓{% elif ch.status == 'in_progress' %}◐{% else %}○{% endif %}
+                                {{ ch.channel }}{% if ch.type %}<span class="opacity-70">({{ ch.type }})</span>{% endif %}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
             {% endif %}
 
         </div>
@@ -801,7 +831,7 @@ HTML_TEMPLATE = """
                     </h3>
                     <div class="grid md:grid-cols-2 gap-3">
                         {% for item in summary.action_plan %}
-                        <div class="strategy-card bg-slate-800 p-4 rounded-xl border-l-{% if loop.index == 1 %}yellow{% elif loop.index == 2 %}green{% elif loop.index == 3 %}blue{% else %}purple{% endif %}-400">
+                        <div class="strategy-card bg-slate-800 p-4 rounded-xl" style="border-left-color: {% if loop.index == 1 %}#fbbf24{% elif loop.index == 2 %}#4ade80{% elif loop.index == 3 %}#60a5fa{% else %}#a78bfa{% endif %};">
                             <p class="text-xs font-bold text-slate-400 uppercase mb-1">{{ item.agenda|safe }}</p>
                             <p class="text-sm text-slate-300">{{ item.plan|safe }}</p>
                         </div>
@@ -907,13 +937,10 @@ def prepare_reservation_data(result: Dict[str, Any]) -> Dict[str, Any]:
         prev_max = max((t.get('count', 0) for t in prev_treatment), default=1) or 1
         curr_max = max((t.get('count', 0) for t in curr_treatment), default=1) or 1
 
-        # Treatment color mapping
-        treatment_colors = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
-
         top5_sections.append({
             'title': '주요 희망 진료 TOP5',
             'icon': '🦷',
-            'bar_color': 'multi',
+            'bar_color': 'blue',
             'prev_items': [{'label': t.get('treatment', ''), 'value_display': f"{t.get('count', 0)}건", 'pct': (t.get('count', 0) / prev_max) * 100} for t in prev_treatment[:5]],
             'curr_items': [{'label': t.get('treatment', ''), 'value_display': f"{t.get('count', 0)}건", 'pct': (t.get('count', 0) / curr_max) * 100} for t in curr_treatment[:5]],
         })
@@ -1572,63 +1599,6 @@ def prepare_department_data(name: str, dept_id: str, result: Dict[str, Any]) -> 
     }
 
 
-def calculate_marketing_health(results: Dict[str, Any]) -> Dict[str, float]:
-    """Calculate 5-axis marketing health scores (0~100)."""
-    res_kpi = results.get('reservation', {}).get('kpi', {})
-    ads_kpi = results.get('ads', {}).get('kpi', {})
-    blog_kpi = results.get('blog', {}).get('kpi', {})
-    yt_kpi = results.get('youtube', {}).get('kpi', {})
-
-    if not any([res_kpi, ads_kpi, blog_kpi, yt_kpi]):
-        return {}
-
-    # 노출력: 전체 노출/조회수 기반
-    exposure_raw = (
-        (ads_kpi.get('total_impressions', 0) / 50000) * 40 +
-        (blog_kpi.get('total_views', 0) / 10000) * 30 +
-        (yt_kpi.get('total_impressions', 0) / 30000) * 30
-    )
-
-    # 전환력: 예약전환율 + CTR
-    conversion_raw = (
-        min(res_kpi.get('completion_rate', 0), 100) * 0.5 +
-        min(ads_kpi.get('avg_ctr', 0) * 10, 30) +
-        min(res_kpi.get('actual_reservations', 0) / 50 * 20, 20)
-    )
-
-    # 효율성: CPA 역비례 + 완료율
-    cpa = ads_kpi.get('cpa', 999999) or 999999
-    efficiency_raw = (
-        min(50000 / max(cpa, 1), 50) +
-        blog_kpi.get('publish_completion_rate', 0) * 0.25 +
-        yt_kpi.get('completion_rate', 0) * 0.25
-    )
-
-    # 확산성: 구독자 + CTR
-    spread_raw = (
-        min(yt_kpi.get('new_subscribers', 0) / 100 * 50, 50) +
-        min(yt_kpi.get('avg_ctr', 0) * 5, 30) +
-        min(abs(blog_kpi.get('views_mom_growth', 0)) * 0.2, 20)
-    )
-
-    # 성장성: MoM 성장률 평균
-    growths = [
-        res_kpi.get('mom_growth', 0),
-        ads_kpi.get('impressions_mom_growth', 0),
-        yt_kpi.get('views_mom_growth', 0)
-    ]
-    valid_growths = [g for g in growths if g != 0]
-    avg_growth = sum(valid_growths) / len(valid_growths) if valid_growths else 0
-    growth_raw = 50 + min(max(avg_growth * 0.5, -50), 50)
-
-    return {
-        '노출력': min(round(exposure_raw, 1), 100),
-        '전환력': min(round(conversion_raw, 1), 100),
-        '효율성': min(round(efficiency_raw, 1), 100),
-        '확산성': min(round(spread_raw, 1), 100),
-        '성장성': min(round(growth_raw, 1), 100)
-    }
-
 
 def calculate_best_worst(results: Dict[str, Any]) -> tuple:
     """Find best and worst performing metrics by MoM growth rate."""
@@ -1695,9 +1665,6 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         departments.append(dept_data)
 
     # Calculate executive summary data
-    health_scores = calculate_marketing_health(results)
-    health_labels = list(health_scores.keys()) if health_scores else []
-    health_values = list(health_scores.values()) if health_scores else []
     best_metric, worst_metric = calculate_best_worst(results)
 
     # Generate summary
@@ -1710,9 +1677,6 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         clinic_name=clinic_name,
         departments=departments,
         summary=summary,
-        health_scores=health_scores,
-        health_labels_json=json.dumps(health_labels, ensure_ascii=False),
-        health_values_json=json.dumps(health_values),
         best_metric=best_metric,
         worst_metric=worst_metric,
         manager_comment=manager_comment or ''

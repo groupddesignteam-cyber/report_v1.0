@@ -247,24 +247,37 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                 if pd.isna(col):
                     continue
                 col_str = str(col).strip()
+                # 이미 매핑된 '유입경로' 컬럼은 제외
+                if col == col_mapping.get('inflow'):
+                    continue
 
-                # Priority 3: 명확한 "어떻게 알게" 패턴
+                # Priority 5: 명확한 "어떻게 알게" 패턴
                 if '어떻게' in col_str and '알게' in col_str:
+                    if 5 > how_found_priority:
+                        best_how_found_col = col
+                        how_found_priority = 5
+                # Priority 4: "어떻게" + ("방문", "오셨", "오게", "찾")
+                elif '어떻게' in col_str and any(kw in col_str for kw in ['방문', '오셨', '오게', '찾', '내원']):
+                    if 4 > how_found_priority:
+                        best_how_found_col = col
+                        how_found_priority = 4
+                # Priority 3: "어떻게" 단독 (설문 형태)
+                elif '어떻게' in col_str and ('일시' not in col_str and '상태' not in col_str):
                     if 3 > how_found_priority:
                         best_how_found_col = col
                         how_found_priority = 3
-                # Priority 2: "방문 경로" 또는 "내원 경로" 패턴
-                elif ('방문' in col_str or '내원' in col_str) and '경로' in col_str:
+                # Priority 2: "방문 경로/계기/이유/동기" 또는 "내원 경로/계기"
+                elif ('방문' in col_str or '내원' in col_str) and any(kw in col_str for kw in ['경로', '계기', '이유', '동기']):
                     if 2 > how_found_priority:
                         best_how_found_col = col
                         how_found_priority = 2
                 # Priority 1: "알게 된 경로/계기" 패턴
-                elif '알게' in col_str and ('경로' in col_str or '계기' in col_str):
+                elif '알게' in col_str:
                     if 1 > how_found_priority:
                         best_how_found_col = col
                         how_found_priority = 1
-                # Priority 0: "유입 경로" (설문 형태) - 기본 유입경로와 다른 설문 컬럼
-                elif '유입' in col_str and '경로' in col_str and '추가정보' in col_str:
+                # Priority 0: "유입 경로" (설문 형태 - 추가정보 포함) 또는 "인지 경로"
+                elif ('유입' in col_str and '경로' in col_str and col_str != '유입경로') or ('인지' in col_str and '경로' in col_str):
                     if 0 > how_found_priority:
                         best_how_found_col = col
                         how_found_priority = 0
@@ -272,6 +285,20 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
             if best_how_found_col:
                 col_mapping['how_found'] = best_how_found_col
                 print(f"[DEBUG] 어떻게 알게 되었나요 컬럼 발견: '{best_how_found_col}' (Priority {how_found_priority})")
+            else:
+                # Aggressive fallback: 매핑되지 않은 컬럼 중 설문 형태 컬럼 탐색
+                mapped_cols = set(col_mapping.values())
+                for col in df.columns:
+                    if pd.isna(col) or col in mapped_cols:
+                        continue
+                    col_str = str(col).strip()
+                    if not col_str or col_str == '유입경로':
+                        continue
+                    # 컬럼명에 물음표가 있거나 설문 형태로 보이는 컬럼
+                    if any(kw in col_str for kw in ['경위', '동기', '계기', '알고']) and '취소' not in col_str:
+                        col_mapping['how_found'] = col
+                        print(f"[DEBUG] 어떻게 알게 되었나요 컬럼 (fallback): '{col}'")
+                        break
 
             # Treatment Column Priority Selection
             # Find the best column for 'treatment' among candidates

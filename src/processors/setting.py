@@ -161,14 +161,26 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                             has_any_content = True
                             break
 
-                    # 상태: 'completed', 'in_progress', 'not_started'
+                        # 상태: 'completed', 'in_progress', 'not_started'
+                    status_label = ''
                     if is_completed:
-                        channel_status[channel_name] = 'completed'
+                        status_label = 'completed'
                         completed_channels += 1
                     elif has_any_content:
-                        channel_status[channel_name] = 'in_progress'
+                        status_label = 'in_progress'
                     else:
-                        channel_status[channel_name] = 'not_started'
+                        status_label = 'not_started'
+
+                    # 종류 값 정리
+                    type_str = str(type_value).strip() if type_value is not None and pd.notna(type_value) and str(type_value).strip() not in ['', 'nan', 'NaN'] else ''
+                    # 상태 원본 텍스트
+                    status_raw = str(status_value).strip() if status_value is not None and pd.notna(status_value) and str(status_value).strip() not in ['', 'nan', 'NaN'] else ''
+
+                    channel_status[channel_name] = {
+                        'status': status_label,
+                        'type': type_str,
+                        'status_raw': status_raw
+                    }
 
                 progress_rate = (completed_channels / total_channels * 100) if total_channels > 0 else 0
 
@@ -210,17 +222,46 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
     risk_clinics = len(clinic_df[clinic_df['progress_rate'] < 40])  # < 40%
     total_clinics = len(clinic_df)
 
-    # Clinic progress table (sorted desc by progress_rate)
-    clinic_progress = clinic_df[['clinic', 'total_channels', 'completed_channels', 'progress_rate']].sort_values(
-        'progress_rate', ascending=False
-    ).to_dict('records')
+    # Clinic progress table (sorted desc by progress_rate) with channel details
+    clinic_progress = []
+    for _, row in clinic_df.sort_values('progress_rate', ascending=False).iterrows():
+        channels_detail = []
+        for ch_name, ch_info in row['channel_status'].items():
+            if isinstance(ch_info, dict):
+                channels_detail.append({
+                    'channel': ch_name,
+                    'status': ch_info['status'],
+                    'type': ch_info.get('type', ''),
+                    'status_raw': ch_info.get('status_raw', '')
+                })
+            else:
+                channels_detail.append({
+                    'channel': ch_name,
+                    'status': ch_info,
+                    'type': '',
+                    'status_raw': ''
+                })
+        clinic_progress.append({
+            'clinic': row['clinic'],
+            'total_channels': row['total_channels'],
+            'completed_channels': row['completed_channels'],
+            'progress_rate': row['progress_rate'],
+            'channels': channels_detail
+        })
 
-    # Channel completion rate (3-state: completed, in_progress, not_started)
+    # Channel completion rate (3-state: completed, in_progress, not_started) + 종류 집계
     all_channel_statuses = {}
+    channel_types = {}  # {channel: {type: count}}
     for _, row in clinic_df.iterrows():
-        for channel, status in row['channel_status'].items():
+        for channel, ch_info in row['channel_status'].items():
             if channel not in all_channel_statuses:
                 all_channel_statuses[channel] = {'completed': 0, 'in_progress': 0, 'not_started': 0, 'total': 0}
+            if channel not in channel_types:
+                channel_types[channel] = {}
+
+            status = ch_info['status'] if isinstance(ch_info, dict) else ch_info
+            ch_type = ch_info.get('type', '') if isinstance(ch_info, dict) else ''
+
             all_channel_statuses[channel]['total'] += 1
             if status == 'completed':
                 all_channel_statuses[channel]['completed'] += 1
@@ -229,16 +270,24 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
             else:
                 all_channel_statuses[channel]['not_started'] += 1
 
+            # 종류 집계
+            if ch_type:
+                channel_types[channel][ch_type] = channel_types[channel].get(ch_type, 0) + 1
+
     channel_completion_rate = []
     for channel, counts in all_channel_statuses.items():
         rate = (counts['completed'] / counts['total'] * 100) if counts['total'] > 0 else 0
+        # 종류별 빈도 정렬
+        types = channel_types.get(channel, {})
+        types_sorted = sorted(types.items(), key=lambda x: x[1], reverse=True)
         channel_completion_rate.append({
             'channel': channel,
             'completed': counts['completed'],
             'in_progress': counts['in_progress'],
             'not_started': counts['not_started'],
             'total': counts['total'],
-            'completion_rate': round(rate, 2)
+            'completion_rate': round(rate, 2),
+            'types': [{'name': t[0], 'count': t[1]} for t in types_sorted]
         })
 
     channel_completion_rate = sorted(channel_completion_rate, key=lambda x: x['completion_rate'], reverse=True)
