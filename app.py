@@ -353,14 +353,14 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_data = res_data.get('prev_month', {})
+                prev_data = res_data.get('prev_month') or {}
                 prev_total = st.number_input("전월 총 예약건", value=safe_int(prev_data.get('total_reservations', 0)), key="edit_res_prev_total")
                 prev_new = st.number_input("전월 신규 예약", value=safe_int(prev_data.get('new_reservations', 0)), key="edit_res_prev_new")
                 prev_revisit = st.number_input("전월 재진 예약", value=safe_int(prev_data.get('revisit_reservations', 0)), key="edit_res_prev_revisit")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_data = res_data.get('current_month', {})
+                curr_data = res_data.get('current_month') or {}
                 curr_total = st.number_input("당월 총 예약건", value=safe_int(curr_data.get('total_reservations', 0)), key="edit_res_curr_total")
                 curr_new = st.number_input("당월 신규 예약", value=safe_int(curr_data.get('new_reservations', 0)), key="edit_res_curr_new")
                 curr_revisit = st.number_input("당월 재진 예약", value=safe_int(curr_data.get('revisit_reservations', 0)), key="edit_res_curr_revisit")
@@ -385,14 +385,14 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_ads = ads_data.get('prev_month', {})
+                prev_ads = ads_data.get('prev_month') or {}
                 prev_spend = st.number_input("전월 광고비", value=safe_int(prev_ads.get('total_spend', 0)), key="edit_ads_prev_spend")
                 prev_imp = st.number_input("전월 노출수", value=safe_int(prev_ads.get('total_impressions', 0)), key="edit_ads_prev_imp")
                 prev_clicks = st.number_input("전월 클릭수", value=safe_int(prev_ads.get('total_clicks', 0)), key="edit_ads_prev_clicks")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_ads = ads_data.get('current_month', {})
+                curr_ads = ads_data.get('current_month') or {}
                 curr_spend = st.number_input("당월 광고비", value=safe_int(curr_ads.get('total_spend', 0)), key="edit_ads_curr_spend")
                 curr_imp = st.number_input("당월 노출수", value=safe_int(curr_ads.get('total_impressions', 0)), key="edit_ads_curr_imp")
                 curr_clicks = st.number_input("당월 클릭수", value=safe_int(curr_ads.get('total_clicks', 0)), key="edit_ads_curr_clicks")
@@ -417,13 +417,13 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_blog = blog_data.get('prev_month', {})
+                prev_blog = blog_data.get('prev_month') or {}
                 prev_posts = st.number_input("전월 포스팅 수", value=safe_int(prev_blog.get('total_posts', 0)), key="edit_blog_prev_posts")
                 prev_views = st.number_input("전월 조회수", value=safe_int(prev_blog.get('total_views', 0)), key="edit_blog_prev_views")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_blog = blog_data.get('current_month', {})
+                curr_blog = blog_data.get('current_month') or {}
                 curr_posts = st.number_input("당월 포스팅 수", value=safe_int(curr_blog.get('total_posts', 0)), key="edit_blog_curr_posts")
                 curr_views = st.number_input("당월 조회수", value=safe_int(curr_blog.get('total_views', 0)), key="edit_blog_curr_views")
 
@@ -445,13 +445,13 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_yt = yt_data.get('prev_month', {})
+                prev_yt = yt_data.get('prev_month') or {}
                 prev_videos = st.number_input("전월 영상 수", value=safe_int(prev_yt.get('total_videos', 0)), key="edit_yt_prev_videos")
                 prev_yt_views = st.number_input("전월 조회수", value=safe_int(prev_yt.get('total_views', 0)), key="edit_yt_prev_views")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_yt = yt_data.get('current_month', {})
+                curr_yt = yt_data.get('current_month') or {}
                 curr_videos = st.number_input("당월 영상 수", value=safe_int(curr_yt.get('total_videos', 0)), key="edit_yt_curr_videos")
                 curr_yt_views = st.number_input("당월 조회수", value=safe_int(curr_yt.get('total_views', 0)), key="edit_yt_curr_views")
 
