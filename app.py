@@ -47,6 +47,11 @@ def load_css():
 
 load_css()
 
+# App metadata
+APP_VERSION = "v1.0"
+APP_TITLE = "주식회사 그룹디 전략 보고서"
+APP_CREATOR = "전략기획팀 이종광팀장"
+
 # Category metadata for file classification display
 CATEGORY_META = {
     'reservation': {'label': '예약', 'color': '#3b82f6'},
@@ -142,11 +147,11 @@ def process_uploaded_files(uploaded_files):
 
 def render_upload_section():
     """Render compact upload section with file classification preview."""
-    # Minimal header
-    st.markdown("""
-    <div style="text-align: center; padding: 1rem 0 0.75rem;">
-        <h1 style="font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.025em;">월간 마케팅 리포트</h1>
-        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">파일 업로드 → 자동 분석 → HTML 보고서 생성</p>
+    # Header with app info
+    st.markdown(f"""
+    <div style="text-align: center; padding: 1.5rem 0 1rem;">
+        <h1 style="font-size: 1.4rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.025em;">{APP_TITLE}</h1>
+        <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.5rem;">{APP_CREATOR} &middot; {APP_VERSION}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -172,12 +177,20 @@ def render_upload_section():
         if report_date != st.session_state.report_settings['report_date']:
             st.session_state.report_settings['report_date'] = report_date
 
-    # File uploader
+    # File type description (above uploader)
+    st.markdown("""
+    <p style="font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 0.5rem;">
+        예약 / 블로그 / 광고 / 유튜브 / 디자인 / 세팅 파일을 모두 선택하세요 (자동 분류)
+    </p>
+    """, unsafe_allow_html=True)
+
+    # File uploader (label hidden, drop zone only)
     uploaded_files = st.file_uploader(
-        "예약/블로그/광고/유튜브/디자인/세팅 파일을 모두 선택하세요 (자동 분류)",
+        "파일 업로드",
         type=['xlsx', 'csv'],
         accept_multiple_files=True,
-        key="unified_upload"
+        key="unified_upload",
+        label_visibility="collapsed"
     )
 
     # Classification preview + action button

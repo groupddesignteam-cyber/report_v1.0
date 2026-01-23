@@ -253,6 +253,11 @@ p, span, div {
 
 [data-testid="stFileUploader"] section {
     padding: 0.5rem !important;
+    width: 100% !important;
+}
+
+[data-testid="stFileUploader"] section > div {
+    width: 100% !important;
 }
 
 [data-testid="stFileUploader"] small {
