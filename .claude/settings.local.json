@@ -15,7 +15,8 @@
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
       "Bash(start /B streamlit run:*)",
-      "Bash(chcp:*)"
+      "Bash(chcp:*)",
+      "Bash(if exist new_template.html del new_template.html)"
     ]
   }
 }

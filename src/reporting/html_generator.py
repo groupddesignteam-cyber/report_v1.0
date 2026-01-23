@@ -22,18 +22,27 @@ HTML_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #334155 100%); }
-        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); overflow: hidden; }
-        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; transform: translateY(8px); }
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -2px rgba(0,0,0,0.04); overflow: hidden; transition: box-shadow 0.3s ease; }
+        .card:hover { box-shadow: 0 20px 40px -8px rgba(0,0,0,0.12), 0 8px 16px -4px rgba(0,0,0,0.06); }
+        .fade-in { animation: fadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; transform: translateY(12px); }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
-        .strategy-card { border-left: 4px solid; transition: transform 0.2s; }
-        .strategy-card:hover { transform: translateY(-2px); }
+        .delay-1 { animation-delay: 0.15s; }
+        .delay-2 { animation-delay: 0.3s; }
+        .delay-3 { animation-delay: 0.45s; }
+        .delay-4 { animation-delay: 0.6s; }
+        .strategy-card { border-left: 4px solid; transition: transform 0.2s, box-shadow 0.2s; }
+        .strategy-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+        .section-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0.625rem; border-radius: 9999px; }
+        .metric-highlight { position: relative; }
+        .metric-highlight::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; border-radius: 2px; background: currentColor; opacity: 0.2; }
+        .glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
         @media print {
             .fade-in { opacity: 1 !important; transform: none !important; animation: none !important; }
             .card { box-shadow: none !important; border: 1px solid #e2e8f0; }
+            .card:hover { box-shadow: none !important; }
             body { background: white !important; }
         }
     </style>
@@ -43,24 +52,32 @@ HTML_TEMPLATE = """
     <div class="max-w-5xl mx-auto space-y-6">
 
         <!-- 1. Header -->
-        <header class="gradient-bg text-white p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden fade-in">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+        <header class="gradient-bg text-white p-8 md:p-12 rounded-3xl shadow-2xl relative overflow-hidden fade-in">
+            <div class="absolute top-0 right-0 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/10 rounded-full blur-2xl -ml-12 -mb-12"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-indigo-600/5 to-cyan-400/5 rounded-full blur-3xl"></div>
             <div class="relative z-10">
-                <div class="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-bold mb-3 border border-white/10">
-                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <div class="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-xs font-bold mb-4 border border-white/10 backdrop-blur-sm">
+                    <span class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></span>
                     MARKETING REPORT
                 </div>
-                <h1 class="text-2xl md:text-4xl font-black tracking-tight mb-2">{{ report_title }}</h1>
-                <p class="text-slate-300 font-light">{{ clinic_name }} | {{ report_date }}</p>
+                <h1 class="text-3xl md:text-4xl font-black tracking-tight mb-2 bg-clip-text">{{ report_title }}</h1>
+                <p class="text-slate-300 font-light text-sm md:text-base">{{ clinic_name }} | {{ report_date }}</p>
             </div>
         </header>
 
         <!-- 2. Executive Summary -->
         {% if health_scores %}
         <div class="card p-6 md:p-8 fade-in delay-1">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="bg-indigo-100 p-2 rounded-lg"><i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i></div>
-                <h2 class="text-xl font-bold">Marketing Health Overview</h2>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-indigo-100 to-purple-100 p-2.5 rounded-xl shadow-sm"><i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i></div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Marketing Health Overview</h2>
+                        <p class="text-[10px] text-slate-400 font-medium">5축 마케팅 건강도 분석</p>
+                    </div>
+                </div>
+                <span class="section-badge bg-indigo-50 text-indigo-600 border border-indigo-100">Executive Summary</span>
             </div>
 
             <!-- Radar + Score Bars -->
@@ -158,11 +175,19 @@ HTML_TEMPLATE = """
         {% if dept.has_data %}
         <div class="card p-6 md:p-8 fade-in delay-2">
             <!-- Section Header -->
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-2 rounded-lg" style="background: {{ dept.color_bg }};">
-                    <span class="text-lg">{{ dept.icon }}</span>
+            <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-xl shadow-sm" style="background: {{ dept.color_bg }};">
+                        <span class="text-lg">{{ dept.icon }}</span>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">{{ dept.name }}</h2>
+                        <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Performance Analysis</p>
+                    </div>
                 </div>
-                <h2 class="text-xl font-bold text-slate-800">{{ dept.name }} 성과 분석</h2>
+                {% if dept.prev_month and dept.curr_month %}
+                <span class="section-badge bg-slate-100 text-slate-500 border border-slate-200">{{ dept.prev_month }} → {{ dept.curr_month }}</span>
+                {% endif %}
             </div>
 
             <!-- CPA Banner (Ads only) -->
@@ -178,6 +203,40 @@ HTML_TEMPLATE = """
                 <div class="text-right">
                     <p class="text-xs opacity-80 uppercase font-bold">실 예약</p>
                     <p class="text-2xl font-bold mt-1">{{ dept.cpa_banner.actual_reservations }}건</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Ads: Impressions & Clicks Metrics -->
+            {% if dept.id == 'ads' and dept.prev_metrics and dept.curr_metrics %}
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-500 mb-3 pb-2 border-b border-slate-200">{{ dept.prev_month }}</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for metric in dept.prev_metrics %}
+                        <div class="bg-white p-3 rounded-lg border border-slate-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase">{{ metric.label }}</span>
+                            </div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200">
+                    <h4 class="text-sm font-bold text-blue-600 mb-3 pb-2 border-b border-blue-200">{{ dept.curr_month }} <span class="text-[10px] text-blue-400">(당월)</span></h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        {% for metric in dept.curr_metrics %}
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
+                            </div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -583,6 +642,33 @@ HTML_TEMPLATE = """
             {% endif %}
             {% endif %}
 
+            <!-- Design: Aggregated Tasks Summary -->
+            {% if dept.id == 'design' and dept.design_tasks %}
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="layers" class="w-4 h-4 text-slate-400"></i> 업무 유형별 요약
+                </h3>
+                <div class="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-xl overflow-hidden">
+                    <div class="grid grid-cols-4 gap-0 bg-pink-100/50 px-4 py-2 text-[10px] font-bold text-slate-500 uppercase border-b border-pink-200">
+                        <span>업무 유형</span>
+                        <span class="text-center">평균 수정</span>
+                        <span class="text-center">전월</span>
+                        <span class="text-center">당월</span>
+                    </div>
+                    <div class="divide-y divide-pink-100">
+                        {% for task in dept.design_tasks %}
+                        <div class="grid grid-cols-4 gap-0 px-4 py-2.5 items-center">
+                            <span class="text-xs font-medium text-slate-700 truncate">{{ task.name }}</span>
+                            <span class="text-xs text-slate-500 text-center">{{ task.avg_rev }}회</span>
+                            <span class="text-xs text-slate-500 text-center">{{ task.prev }}건</span>
+                            <span class="text-xs font-bold text-blue-600 text-center">{{ task.curr }}건</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Design: Task Tables -->
             {% if dept.id == 'design' %}
             <div class="grid md:grid-cols-2 gap-4">
@@ -590,11 +676,11 @@ HTML_TEMPLATE = """
                 <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                     <div class="bg-slate-100 px-4 py-2 flex justify-between items-center">
                         <p class="text-[10px] font-bold text-slate-500 uppercase">{{ dept.prev_month }}</p>
-                        {% if dept.tables.prev_task_list %}
+                        {% if dept.tables and dept.tables.prev_task_list %}
                         <p class="text-[10px] text-slate-400">{{ dept.tables.prev_task_list|length }}건 / {{ dept.tables.prev_task_list|sum(attribute='pages') }}p</p>
                         {% endif %}
                     </div>
-                    {% if dept.tables.prev_task_list %}
+                    {% if dept.tables and dept.tables.prev_task_list %}
                     <div class="divide-y divide-slate-100">
                         {% for task in dept.tables.prev_task_list %}
                         <div class="px-4 py-2 flex items-center justify-between">
@@ -614,11 +700,11 @@ HTML_TEMPLATE = """
                 <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
                     <div class="bg-blue-50 px-4 py-2 flex justify-between items-center">
                         <p class="text-[10px] font-bold text-blue-500 uppercase">{{ dept.curr_month|default(dept.month) }}</p>
-                        {% if dept.tables.curr_task_list %}
+                        {% if dept.tables and dept.tables.curr_task_list %}
                         <p class="text-[10px] text-blue-400">{{ dept.tables.curr_task_list|length }}건 / {{ dept.tables.curr_task_list|sum(attribute='pages') }}p</p>
                         {% endif %}
                     </div>
-                    {% if dept.tables.curr_task_list %}
+                    {% if dept.tables and dept.tables.curr_task_list %}
                     <div class="divide-y divide-blue-50">
                         {% for task in dept.tables.curr_task_list %}
                         <div class="px-4 py-2 flex items-center justify-between">
@@ -643,12 +729,18 @@ HTML_TEMPLATE = """
 
         <!-- 4. Summary & Action Plan -->
         {% if summary %}
-        <div class="card p-6 md:p-8 bg-slate-900 text-white relative overflow-hidden fade-in delay-3">
-            <div class="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="card p-6 md:p-10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden fade-in delay-3">
+            <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl -mr-24 -mt-24"></div>
+            <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16"></div>
             <div class="relative z-10">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="bg-white/10 p-2 rounded-lg"><i data-lucide="compass" class="w-6 h-6 text-yellow-400"></i></div>
-                    <h2 class="text-xl font-bold text-white">{{ summary.title|default('종합 분석 및 전략') }}</h2>
+                <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-gradient-to-br from-yellow-400/20 to-amber-500/20 p-2.5 rounded-xl border border-yellow-400/20"><i data-lucide="compass" class="w-6 h-6 text-yellow-400"></i></div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">{{ summary.title|default('종합 분석 및 전략') }}</h2>
+                            <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">Strategic Analysis & Action Plan</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Summary Content -->
@@ -714,8 +806,11 @@ HTML_TEMPLATE = """
         {% endif %}
 
         <!-- 5. Footer -->
-        <footer class="text-center text-slate-400 text-xs py-4">
-            <p>Generated by Marketing Analytics System | Powered by (주)그룹디</p>
+        <footer class="text-center py-8 fade-in delay-4">
+            <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-sm border border-slate-200">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <p class="text-xs text-slate-500 font-medium">Generated by Marketing Analytics System | Powered by <span class="font-bold text-slate-600">(주)그룹디</span></p>
+            </div>
         </footer>
 
     </div>

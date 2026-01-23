@@ -36,7 +36,7 @@ from src.reporting.html_generator import generate_html_report, get_report_filena
 
 # Page configuration
 st.set_page_config(
-    page_title="일일 리포트 생성기",
+    page_title="월간 마케팅 리포트",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -134,195 +134,50 @@ def process_uploaded_files(uploaded_files):
 
 
 def render_upload_section():
-    """Render the centralized upload section with individual category uploaders."""
-    # Custom CSS for bigger button and clean UI
+    """Render compact upload section - everything visible at once."""
+    # Minimal header
     st.markdown("""
-    <style>
-        /* Main Button Styling */
-        div.stButton > button {
-            width: 100%;
-            border-radius: 12px;
-            font-weight: 700 !important;
-            transition: all 0.2s ease-in-out;
-        }
-        
-        /* Primary Button (Start Analysis) specific */
-        div.stButton > button[kind="primary"] {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            border: none;
-            padding: 1rem 2rem;
-            font-size: 1.5rem !important;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
-        }
-        div.stButton > button[kind="primary"]:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.15);
-        }
-
-        /* Upload Card Styling */
-        .upload-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 1.5rem;
-            text-align: center;
-            height: 100%;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-            transition: all 0.2s;
-        }
-        .upload-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .step-header {
-            background: #f1f5f9;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            display: inline-block;
-            margin-bottom: 1rem;
-            font-weight: 600;
-            color: #475569;
-        }
-    </style>
-    
-    <div style="text-align: center; margin-bottom: 3rem; padding: 2rem 0;">
-        <h1 style="font-size: 2.5rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem;">🚀 일일 리포트 생성기</h1>
-        <p style="font-size: 1.1rem; color: #64748b;">쉽고 빠르게 병원 성과 데이터를 분석하세요.</p>
+    <div style="text-align: center; padding: 1rem 0 0.75rem;">
+        <h1 style="font-size: 1.5rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.025em;">월간 마케팅 리포트</h1>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">파일 업로드 → 자동 분석 → HTML 보고서 생성</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Step 1: Settings
-    st.markdown('<div class="step-header">STEP 1. 기본 정보 설정</div>', unsafe_allow_html=True)
-    with st.container():
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            clinic_name = st.text_input(
-                "🏥 치과명",
-                value=st.session_state.report_settings['clinic_name'],
-                placeholder="예: 서울리멤버치과",
-                key="main_clinic_name"
-            )
-            if clinic_name != st.session_state.report_settings['clinic_name']:
-                st.session_state.report_settings['clinic_name'] = clinic_name
-        with col2:
-            report_date = st.text_input(
-                "📅 보고서 작성일",
-                value=st.session_state.report_settings['report_date'],
-                key="main_report_date"
-            )
-            if report_date != st.session_state.report_settings['report_date']:
-                st.session_state.report_settings['report_date'] = report_date
+    # Settings + Upload in one view
+    col_name, col_date = st.columns([3, 2])
+    with col_name:
+        clinic_name = st.text_input(
+            "치과명",
+            value=st.session_state.report_settings['clinic_name'],
+            placeholder="서울리멤버치과",
+            key="main_clinic_name",
+            label_visibility="collapsed"
+        )
+        if clinic_name != st.session_state.report_settings['clinic_name']:
+            st.session_state.report_settings['clinic_name'] = clinic_name
+    with col_date:
+        report_date = st.text_input(
+            "작성일",
+            value=st.session_state.report_settings['report_date'],
+            key="main_report_date",
+            label_visibility="collapsed"
+        )
+        if report_date != st.session_state.report_settings['report_date']:
+            st.session_state.report_settings['report_date'] = report_date
 
-    st.markdown("---")
+    # File uploader - direct, no extra decoration
+    uploaded_files = st.file_uploader(
+        "예약/블로그/광고/유튜브/디자인/세팅 파일을 모두 선택하세요 (자동 분류)",
+        type=['xlsx', 'csv'],
+        accept_multiple_files=True,
+        key="unified_upload"
+    )
 
-    # Step 2: Upload Files
-    st.markdown('<div class="step-header">STEP 2. 데이터 파일 업로드</div>', unsafe_allow_html=True)
-    
-    # Category configurations
-    categories = [
-        {"key": "reservation", "icon": "📅", "title": "네이버 예약", "desc": "예약자 관리 엑셀 업로드"},
-        {"key": "blog", "icon": "📝", "title": "블로그", "desc": "블로그 통계/유입 분석"},
-        {"key": "youtube", "icon": "🎬", "title": "유튜브", "desc": "영상 콘텐츠 조회수/DB"},
-        {"key": "design", "icon": "🎨", "title": "디자인", "desc": "디자인 업무 협조 요청서"},
-        {"key": "ads", "icon": "📊", "title": "네이버 광고", "desc": "소진 내역/캠페인 보고서"},
-        {"key": "setting", "icon": "⚙️", "title": "초기 세팅", "desc": "세팅 현황 파일"},
-    ]
+    # Action button
+    if uploaded_files:
+        if st.button(f"  {len(uploaded_files)}개 파일 분석 시작  ", type="primary", use_container_width=True):
+            process_uploaded_files(uploaded_files)
 
-    all_uploaded_files = []
-    
-    # Grid Layout for Uploads
-    row1 = st.columns(3)
-    row2 = st.columns(3)
-    
-    for idx, cat in enumerate(categories):
-        target_col = row1[idx] if idx < 3 else row2[idx-3]
-        
-        with target_col:
-            st.markdown(f"""
-            <div class="upload-card">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{cat['icon']}</div>
-                <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 0.25rem;">{cat['title']}</div>
-                <div style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 1rem;">{cat['desc']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            uploaded = st.file_uploader(
-                f"{cat['title']}",
-                type=['xlsx', 'csv'],
-                accept_multiple_files=True,
-                key=f"upload_{cat['key']}",
-                label_visibility="collapsed"
-            )
-            
-            if uploaded:
-                all_uploaded_files.extend(uploaded)
-                st.markdown(f"""
-                <div style="text-align: center; color: #22c55e; font-size: 0.875rem; font-weight: 600; margin-top: 0.5rem;">
-                    ✅ {len(uploaded)}개 파일 준비됨
-                </div>
-                """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # Step 3: Action Button
-    st.markdown('<div class="step-header">STEP 3. 분석 시작</div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        total_files = len(all_uploaded_files)
-        if total_files > 0:
-            st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 1rem; color: #3b82f6; font-weight: 600;">
-                총 {total_files}개의 파일이 선택되었습니다.
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Big Primary Button
-            if st.button("🚀 데이터 분석 시작하기", type="primary", use_container_width=True):
-                process_uploaded_files(all_uploaded_files)
-        else:
-            st.button("🚀 파일을 먼저 업로드해주세요", type="primary", use_container_width=True, disabled=True)
-
-
-def render_report_settings():
-    """Render report settings panel (clinic name, date, etc.)."""
-    settings = st.session_state.report_settings
-
-    with st.expander("⚙️ 보고서 설정", expanded=st.session_state.edit_mode):
-        col1, col2, col3 = st.columns([2, 2, 1])
-
-        with col1:
-            new_clinic_name = st.text_input(
-                "치과명",
-                value=settings['clinic_name'],
-                key="input_clinic_name"
-            )
-
-        with col2:
-            new_report_date = st.text_input(
-                "보고서 작성일",
-                value=settings['report_date'],
-                key="input_report_date"
-            )
-
-        with col3:
-            st.write("")  # Spacer
-            st.write("")
-            if st.button("💾 저장", type="primary", use_container_width=True):
-                st.session_state.report_settings['clinic_name'] = new_clinic_name
-                st.session_state.report_settings['report_date'] = new_report_date
-                st.session_state.edit_mode = False
-                st.success("설정이 저장되었습니다!")
-                st.rerun()
-
-        # Display current settings
-        st.markdown(f"""
-        <div style="background: #f8fafc; border-radius: 8px; padding: 12px; margin-top: 8px;">
-            <span style="color: #64748b; font-size: 14px;">
-                현재 설정: <strong>{settings['clinic_name']}</strong> | {settings['report_date']}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
 
 
 def safe_int(value, default=0):
@@ -552,64 +407,24 @@ def render_dashboard():
         </div>
         """, unsafe_allow_html=True)
 
-    # Header with clinic name
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col1:
+    # Compact header
+    col_title, col_actions = st.columns([3, 1])
+    with col_title:
         st.markdown(f"""
-        <div>
-            <h1 style="margin-bottom: 0;">{settings['clinic_name']} 통합 성과 리포트</h1>
-            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">{settings['report_date']} 발행</p>
+        <div style="margin-bottom: 0.5rem;">
+            <h1 style="margin-bottom: 0; font-size: 1.5rem;">{settings['clinic_name']}</h1>
+            <p style="color: #64748b; font-size: 0.8rem; margin-top: 2px;">{settings['report_date']} | 월간 마케팅 분석 보고서</p>
         </div>
         """, unsafe_allow_html=True)
-    with col2:
-        if st.button("✏️ 설정 수정", use_container_width=True):
-            st.session_state.edit_mode = not st.session_state.edit_mode
-            st.rerun()
-    with col3:
-        if st.button("🔄 재시작", use_container_width=True):
+    with col_actions:
+        if st.button("새로 시작", use_container_width=True):
             st.session_state.files_uploaded = False
             st.session_state.processed_results = {}
             st.session_state.all_loaded_files = []
             st.session_state.edit_mode = False
             st.rerun()
 
-    # Report settings panel
-    render_report_settings()
-
-    # 뷰 모드 선택 (데이터 편집 / 미리보기)
-    if 'view_mode' not in st.session_state:
-        st.session_state.view_mode = 'data'  # 'data' or 'preview'
-
-    st.markdown("---")
-    view_col1, view_col2, view_col3 = st.columns([1, 1, 1])
-    with view_col1:
-        if st.button("📊 데이터 보기", use_container_width=True,
-                     type="primary" if st.session_state.view_mode == 'data' else "secondary"):
-            st.session_state.view_mode = 'data'
-            st.rerun()
-    with view_col2:
-        if st.button("✏️ 데이터 편집", use_container_width=True,
-                     type="primary" if st.session_state.view_mode == 'edit' else "secondary"):
-            st.session_state.view_mode = 'edit'
-            st.rerun()
-    with view_col3:
-        if st.button("👁️ 보고서 미리보기", use_container_width=True,
-                     type="primary" if st.session_state.view_mode == 'preview' else "secondary"):
-            st.session_state.view_mode = 'preview'
-            st.rerun()
-
-    # Manager's comment input
-    with st.expander("💬 담당자 코멘트 (보고서에 포함)", expanded=False):
-        manager_comment = st.text_area(
-            "보고서 상단에 표시될 담당자 브리핑을 입력하세요",
-            value=st.session_state.get('manager_comment', ''),
-            height=100,
-            placeholder="예: 이번 달은 광고 예산 증액으로 노출이 크게 증가했으며, 예약 전환율 개선이 필요합니다.",
-            key="manager_comment_input"
-        )
-        st.session_state['manager_comment'] = manager_comment
-
-    # Generate HTML report for preview and download
+    # Generate HTML report
     html_report = generate_html_report(
         st.session_state.processed_results,
         clinic_name=settings['clinic_name'],
@@ -618,53 +433,75 @@ def render_dashboard():
     )
     filename = get_report_filename(settings['clinic_name'])
 
-    if st.session_state.view_mode == 'data':
-        # 기존 탭 뷰
-        tab_reservation, tab_blog, tab_ads, tab_design, tab_youtube, tab_setting = st.tabs([
-            "📅 예약", "📝 블로그", "📊 광고", "🎨 디자인", "🎬 유튜브", "⚙️ 초기세팅"
-        ])
-
-        results = st.session_state.processed_results
-
-        with tab_reservation:
-            render_reservation_tab(results.get('reservation', {}))
-
-        with tab_blog:
-            render_blog_tab(results.get('blog', {}))
-
-        with tab_ads:
-            render_ads_tab(results.get('ads', {}))
-
-        with tab_design:
-            render_design_tab(results.get('design', {}))
-
-        with tab_youtube:
-            render_youtube_tab(results.get('youtube', {}))
-
-        with tab_setting:
-            render_setting_tab(results.get('setting', {}))
-
-    elif st.session_state.view_mode == 'edit':
-        # 데이터 편집 모드
-        render_data_editor()
-
-    elif st.session_state.view_mode == 'preview':
-        # HTML 보고서 미리보기
-        st.markdown("### 👁️ HTML 보고서 미리보기")
-        st.caption("아래는 다운로드될 HTML 보고서의 실제 모습입니다.")
-        render_html_preview(html_report)
-
-    # Download Section
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
+    # Primary action: Download
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 3, 1])
     with col2:
         st.download_button(
-            label="📥 HTML 보고서 다운로드",
+            label="보고서 다운로드 (HTML)",
             data=html_report.encode('utf-8'),
             file_name=filename,
             mime="text/html",
             use_container_width=True
         )
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
+    # Tabs: Preview / Data / Edit / Settings
+    tab_preview, tab_data, tab_edit, tab_settings = st.tabs([
+        "보고서 미리보기", "데이터 확인", "데이터 편집", "설정"
+    ])
+
+    with tab_preview:
+        render_html_preview(html_report)
+
+    with tab_data:
+        results = st.session_state.processed_results
+        dept_tabs = st.tabs(["예약", "블로그", "광고", "디자인", "유튜브", "세팅"])
+
+        with dept_tabs[0]:
+            render_reservation_tab(results.get('reservation', {}))
+        with dept_tabs[1]:
+            render_blog_tab(results.get('blog', {}))
+        with dept_tabs[2]:
+            render_ads_tab(results.get('ads', {}))
+        with dept_tabs[3]:
+            render_design_tab(results.get('design', {}))
+        with dept_tabs[4]:
+            render_youtube_tab(results.get('youtube', {}))
+        with dept_tabs[5]:
+            render_setting_tab(results.get('setting', {}))
+
+    with tab_edit:
+        render_data_editor()
+
+    with tab_settings:
+        # Clinic name & date
+        col1, col2 = st.columns(2)
+        with col1:
+            new_clinic_name = st.text_input("치과명", value=settings['clinic_name'], key="settings_clinic_name")
+        with col2:
+            new_report_date = st.text_input("보고서 작성일", value=settings['report_date'], key="settings_report_date")
+
+        if new_clinic_name != settings['clinic_name'] or new_report_date != settings['report_date']:
+            if st.button("설정 저장", type="primary"):
+                st.session_state.report_settings['clinic_name'] = new_clinic_name
+                st.session_state.report_settings['report_date'] = new_report_date
+                st.rerun()
+
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+
+        # Manager comment
+        st.markdown("**담당자 코멘트** (보고서 Executive Summary에 표시)")
+        manager_comment = st.text_area(
+            "담당자 코멘트",
+            value=st.session_state.get('manager_comment', ''),
+            height=80,
+            placeholder="예: 이번 달은 광고 예산 증액으로 노출이 크게 증가했으며...",
+            key="manager_comment_input",
+            label_visibility="collapsed"
+        )
+        st.session_state['manager_comment'] = manager_comment
 
 
 def main():

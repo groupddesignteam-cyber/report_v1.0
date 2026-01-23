@@ -222,13 +222,13 @@ p, span, div {
 }
 
 /* ============================================
-   File Uploader - Premium
+   File Uploader - Streamlined
    ============================================ */
 [data-testid="stFileUploader"] {
     background: var(--bg-secondary) !important;
     border: 2px dashed var(--border-light) !important;
-    border-radius: var(--radius-xl) !important;
-    padding: 2.5rem !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1.5rem !important;
     text-align: center !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
@@ -236,7 +236,15 @@ p, span, div {
 [data-testid="stFileUploader"]:hover {
     border-color: var(--accent-primary) !important;
     background-color: var(--color-info-bg) !important;
-    transform: scale(1.01) !important;
+}
+
+[data-testid="stFileUploader"] section {
+    padding: 0.5rem !important;
+}
+
+[data-testid="stFileUploader"] small {
+    color: var(--text-muted) !important;
+    font-size: 0.75rem !important;
 }
 
 /* ============================================
@@ -297,20 +305,26 @@ p, span, div {
     color: var(--text-primary) !important;
 }
 
-/* Download button */
+/* Download button - Premium & Prominent */
 .stDownloadButton > button {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%) !important;
     color: var(--text-white) !important;
     border: none !important;
-    border-radius: var(--radius-md) !important;
-    padding: 0.75rem 1.5rem !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 1rem 2rem !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
+    letter-spacing: 0.01em !important;
 }
 
 .stDownloadButton > button:hover {
-    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35) !important;
     transform: translateY(-2px) !important;
+}
+
+.stDownloadButton > button:active {
+    transform: translateY(0) !important;
 }
 
 .stDownloadButton > button > div,
@@ -612,17 +626,32 @@ hr {
 }
 
 /* ============================================
-   Number Input - Clean
+   Inputs - Clean & Consistent
    ============================================ */
-[data-testid="stNumberInput"] input {
+[data-testid="stNumberInput"] input,
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
     border-radius: var(--radius-md) !important;
     border: 1px solid var(--border-subtle) !important;
     font-weight: 500 !important;
+    font-family: var(--font-sans) !important;
+    transition: all 0.2s ease !important;
 }
 
-[data-testid="stNumberInput"] input:focus {
+[data-testid="stNumberInput"] input:focus,
+[data-testid="stTextInput"] input:focus,
+[data-testid="stTextArea"] textarea:focus {
     border-color: var(--accent-primary) !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Input labels */
+[data-testid="stWidgetLabel"] label {
+    font-weight: 600 !important;
+    font-size: 0.8125rem !important;
+    color: var(--text-secondary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
 }
 
 /* ============================================
