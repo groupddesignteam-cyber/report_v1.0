@@ -109,10 +109,10 @@ body,
     background-color: var(--bg-primary) !important;
 }
 
-/* Constrain content width */
+/* Constrain content width (~70%) */
 .block-container,
 [data-testid="stAppViewBlockContainer"] {
-    max-width: 920px !important;
+    max-width: 700px !important;
     margin: 0 auto !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important;
@@ -237,7 +237,11 @@ p, span, div {
     background: var(--bg-secondary) !important;
     border: 2px dashed var(--border-light) !important;
     border-radius: var(--radius-lg) !important;
-    padding: 1.5rem !important;
+    padding: 3rem 2rem !important;
+    min-height: 180px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     text-align: center !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
