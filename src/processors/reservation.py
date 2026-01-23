@@ -283,22 +283,26 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                 col_str = str(col).strip()
 
                 # Priority 5: Explicit Survey (User Request)
-                if '원하시는 진료' in col_str or '원하시는 시술' in col_str:
+                if '원하시는 진료' in col_str or '원하시는 시술' in col_str or '원하시는 치료' in col_str:
                     if 5 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 5
                 # Priority 4: Detail Selection
-                elif '선택시술(상세)' in col_str or '선택시술' in col_str:
+                elif '선택시술(상세)' in col_str or '선택시술' in col_str or '선택진료' in col_str:
                     if 4 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 4
-                # Priority 3: Generic Question with '진료' or '시술'
-                elif '어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str:
+                # Priority 3: Generic Question with '진료', '시술', or '치료'
+                elif ('어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str
+                      or '어떤 치료' in col_str or '치료를 원하' in col_str
+                      or '희망 진료' in col_str or '희망진료' in col_str or '희망 치료' in col_str or '희망치료' in col_str
+                      or '관심 진료' in col_str or '관심진료' in col_str or '관심 치료' in col_str
+                      or '방문 목적' in col_str or '방문목적' in col_str):
                     if 3 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 3
-                # Priority 2: Column containing '진료' or '시술' keyword
-                elif ('진료' in col_str or '시술' in col_str) and ('일시' not in col_str and '상태' not in col_str):
+                # Priority 2: Column containing '진료', '시술', or '치료' keyword
+                elif ('진료' in col_str or '시술' in col_str or '치료' in col_str) and ('일시' not in col_str and '상태' not in col_str and '알게' not in col_str and '어떻게' not in col_str):
                     if 2 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 2
@@ -320,6 +324,28 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
             if best_treatment_col:
                 col_mapping['treatment'] = best_treatment_col
                 print(f"[DEBUG] Selected Treatment Column: '{best_treatment_col}' (Priority {highest_priority})")
+            else:
+                # Aggressive fallback: look for unmapped columns with potential treatment data
+                mapped_cols = set(col_mapping.values())
+                unmapped_cols = []
+                for col in df.columns:
+                    if pd.isna(col) or col in mapped_cols:
+                        continue
+                    col_str = str(col).strip()
+                    if not col_str:
+                        continue
+                    # Skip known non-treatment columns
+                    if any(kw in col_str for kw in ['예약번호', '일시', '상태', '취소', '유입', '연락', '전화', '이름', '메모', '주소', '알게', '어떻게']):
+                        unmapped_cols.append(col_str)
+                        continue
+                    # Match columns with treatment-related keywords
+                    if any(kw in col_str for kw in ['항목', '종류', '유형', '원하', '선택', '상담', '치과', '증상']):
+                        col_mapping['treatment'] = col
+                        print(f"[DEBUG] Treatment Column (fallback): '{col}'")
+                        break
+                    unmapped_cols.append(col_str)
+                else:
+                    print(f"[DEBUG] ⚠ Treatment column NOT found. Unmapped columns: {unmapped_cols}")
 
             for _, row in df.iterrows():
                 request_dt = parse_korean_datetime(row.get(col_mapping.get('request_datetime', ''), ''))
