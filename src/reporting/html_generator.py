@@ -723,6 +723,76 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
 
+            <!-- Setting: Workplan Achievement -->
+            {% if dept.id == 'setting' and dept.channel_completion %}
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-500"></i>
+                    플랫폼별 세팅 달성률
+                </h3>
+
+                <!-- Overall Progress -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-xl mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs opacity-80 uppercase font-bold">전체 달성률</p>
+                        <p class="text-3xl font-black">{{ dept.avg_progress_rate }}%</p>
+                    </div>
+                    <div class="flex gap-4 text-right">
+                        <div>
+                            <p class="text-xs opacity-80">완료 병원</p>
+                            <p class="text-xl font-bold">{{ dept.completed_clinics }}개</p>
+                        </div>
+                        <div>
+                            <p class="text-xs opacity-80">주의 병원</p>
+                            <p class="text-xl font-bold text-red-200">{{ dept.risk_clinics }}개</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Progress Bars -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    {% for ch in dept.channel_completion %}
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-medium text-slate-700">{{ ch.channel }}</span>
+                            <span class="text-xs font-bold {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
+                        </div>
+                        <div class="flex justify-end mt-0.5">
+                            <span class="text-[10px] text-slate-400">{{ ch.completed }}/{{ ch.total }}개 완료</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Clinic Progress Table -->
+            {% if dept.clinic_progress %}
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-4 h-4 text-indigo-500"></i>
+                    병원별 진행 현황
+                </h3>
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="divide-y divide-slate-100">
+                        {% for clinic in dept.clinic_progress %}
+                        <div class="px-4 py-2.5 flex items-center gap-3">
+                            <span class="text-xs font-medium text-slate-700 flex-1 truncate">{{ clinic.clinic }}</span>
+                            <div class="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full {% if clinic.progress_rate >= 80 %}bg-green-500{% elif clinic.progress_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ clinic.progress_rate }}%"></div>
+                            </div>
+                            <span class="text-[10px] font-bold w-10 text-right {% if clinic.progress_rate >= 80 %}text-green-600{% elif clinic.progress_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ clinic.progress_rate|round(0)|int }}%</span>
+                            <span class="text-[10px] text-slate-400 w-12 text-right">{{ clinic.completed_channels }}/{{ clinic.total_channels }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
         </div>
         {% endif %}
         {% endfor %}
@@ -992,13 +1062,13 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
     # Metrics - Row 2 (이월 건수 추가) - 아이콘 박스 스타일
     prev_metrics_row2 = [
         {'icon': '✅', 'label': '발행 완료', 'value': prev_published, 'unit': '건', 'color_class': 'green', 'icon_box_class': 'green', 'bg_class': 'bg-gray'},
-        {'icon': '➡️', 'label': '이월(지난달 이월 건수)', 'value': prev_carryover, 'unit': '건', 'color_class': 'orange' if prev_carryover > 0 else '', 'icon_box_class': 'orange', 'bg_class': 'bg-gray'},
+        {'icon': '➡️', 'label': '이월', 'value': prev_carryover, 'unit': '건', 'color_class': 'orange' if prev_carryover > 0 else '', 'icon_box_class': 'orange', 'bg_class': 'bg-gray'},
     ]
     # 자료 미수신 건수가 있으면 note로 표시 (소명)
     curr_carryover_note = f"⏳ 병원 측 임상 자료 대기 중 ({pending_data_count}건)" if pending_data_count > 0 else None
     curr_metrics_row2 = [
         {'icon': '✅', 'label': '발행 완료', 'value': curr_published, 'unit': '건', 'color_class': 'green', 'icon_box_class': 'green', 'bg_class': 'bg-green', 'label_color': '#22c55e'},
-        {'icon': '➡️', 'label': '이월(지난달 이월 건수)', 'value': curr_carryover, 'unit': '건', 'color_class': 'orange' if curr_carryover > 0 else '', 'icon_box_class': 'orange', 'bg_class': '', 'note': curr_carryover_note},
+        {'icon': '➡️', 'label': '이월', 'value': curr_carryover, 'unit': '건', 'color_class': 'orange' if curr_carryover > 0 else '', 'icon_box_class': 'orange', 'bg_class': '', 'note': curr_carryover_note},
     ]
 
     # TOP5 sections
@@ -1026,7 +1096,7 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
         curr_max = max((t.get('ratio', 0) for t in traffic_top5), default=1) or 1
         prev_max = max((t.get('ratio', 0) for t in prev_traffic_top5), default=1) or 1
         top5_sections.append({
-            'title': '유입경로 TOP 키워드',
+            'title': '상세유입경로 TOP5',
             'icon': '🔍',
             'bar_color': 'green',
             'prev_items': [{'label': t.get('source', ''), 'value_display': f"{t.get('ratio', 0):.1f}%", 'pct': (t.get('ratio', 0) / prev_max) * 100} for t in prev_traffic_top5[:6]] if prev_traffic_top5 else [],
@@ -1194,19 +1264,9 @@ def prepare_ads_data(result: Dict[str, Any]) -> Dict[str, Any]:
     # Metrics - Ads Revisions (노출수, 클릭수 위주)
     # CPA, 광고비 제거 요청 반영
     
-    # Calculate Impressions properly
-    # If not directly available in kpi/metrics, sum from campaign or use what provided
-    curr_imp_val = 0
-    prev_imp_val = 0
-    
-    # Try to get from kpi or metrics if available
-    if 'total_impressions' in curr_data:
-        curr_imp_val = curr_data['total_impressions']
-    elif 'metrics' in kpi and 'impressions' in kpi['metrics']:
-        curr_imp_val = kpi['metrics']['impressions']
-    
-    if 'total_impressions' in prev_data:
-        prev_imp_val = prev_data['total_impressions']
+    # Impressions from KPI (aggregated from campaign data)
+    curr_imp_val = kpi.get('total_impressions', 0) or curr_data.get('campaign', {}).get('total_impressions', 0)
+    prev_imp_val = kpi.get('prev_total_impressions', 0) or prev_data.get('campaign', {}).get('total_impressions', 0)
 
     prev_metrics = [
         {'icon': '👁️', 'label': '노출수', 'value': f"{int(prev_imp_val):,}", 'unit': ' 회', 'icon_box_class': 'blue', 'bg_class': 'bg-gray'},
@@ -1345,6 +1405,34 @@ def prepare_design_data(result: Dict[str, Any]) -> Dict[str, Any]:
         'curr_metrics': [],
         'design_tasks': design_tasks,
         'tables': tables, # Added this line to fix UndefinedError
+    }
+
+
+def prepare_setting_data(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Prepare setting department data."""
+    kpi = result.get('kpi', {})
+    tables = result.get('tables', {})
+
+    avg_progress = kpi.get('avg_progress_rate', 0)
+    completed_clinics = kpi.get('completed_clinics', 0)
+    risk_clinics = kpi.get('risk_clinics', 0)
+    total_clinics = kpi.get('total_clinics', 0)
+
+    # Channel completion rates for progress bars
+    channel_completion = tables.get('channel_completion_rate', [])
+
+    # Clinic progress for table
+    clinic_progress = tables.get('clinic_progress', [])
+
+    return {
+        'avg_progress_rate': round(avg_progress, 1),
+        'completed_clinics': completed_clinics,
+        'risk_clinics': risk_clinics,
+        'total_clinics': total_clinics,
+        'channel_completion': channel_completion,
+        'clinic_progress': clinic_progress,
+        'prev_metrics': [],
+        'curr_metrics': [],
     }
 
 
@@ -1498,6 +1586,8 @@ def prepare_department_data(name: str, dept_id: str, result: Dict[str, Any]) -> 
         dept_data = prepare_design_data(result)
     elif dept_id == 'youtube':
         dept_data = prepare_youtube_data(result)
+    elif dept_id == 'setting':
+        dept_data = prepare_setting_data(result)
 
     return {
         'name': name,

@@ -497,28 +497,28 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
 
             # 실제 엑셀 구조 (유입분석_ 파일):
             # 헤더 행 (8행, 인덱스 7): ['유입경로', '비율', '상세유입경로', '비율']
-            # [0]열 (A열): 유입경로 (네이버 통합검색, 네이버 블로그 등) ★ 이 데이터 사용
-            # [1]열 (B열): 비율 (유입경로 비율) ★ 이 데이터 사용
-            # [2]열 (C열): 상세유입경로 (검색 키워드)
-            # [3]열 (D열): 비율 (키워드 비율)
+            # [0]열 (A열): 유입경로 (네이버 통합검색, 네이버 블로그 등)
+            # [1]열 (B열): 비율 (유입경로 비율)
+            # [2]열 (C열): 상세유입경로 (검색 키워드) ★ 이 데이터 사용
+            # [3]열 (D열): 비율 (키워드 비율) ★ 이 데이터 사용
 
             # 컬럼명 리스트
             col_names = [str(c).strip() if pd.notna(c) else '' for c in df.columns]
 
-            # A열(유입경로)과 B열(비율)을 사용
-            # 첫 번째 '유입경로' 컬럼 찾기
-            inflow_col_idx = 0  # A열: 유입경로
-            inflow_ratio_col_idx = 1  # B열: 비율
+            # C열(상세유입경로)과 D열(비율)을 사용
+            # '상세유입경로' 컬럼 찾기
+            inflow_col_idx = 2  # C열: 상세유입경로 (기본값)
+            inflow_ratio_col_idx = 3  # D열: 비율 (기본값)
 
             for i, col_name in enumerate(col_names):
-                if col_name == '유입경로':
+                if '상세유입경로' in col_name or '상세' in col_name:
                     inflow_col_idx = i
                     # 바로 다음 컬럼이 비율
                     if i + 1 < len(col_names):
                         inflow_ratio_col_idx = i + 1
                     break
 
-            # 데이터 추출 - A열(유입경로)과 B열(비율) 사용
+            # 데이터 추출 - C열(상세유입경로)과 D열(비율) 사용
             for _, row in df.iterrows():
                 if inflow_col_idx >= len(row) or inflow_ratio_col_idx >= len(row):
                     continue
@@ -526,11 +526,11 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
                 inflow_val = row.iloc[inflow_col_idx]
                 ratio_val = row.iloc[inflow_ratio_col_idx]
 
-                # 유입경로 값이 있는지 확인 (NaN, 빈 문자열 제외)
+                # 상세유입경로 값이 있는지 확인 (NaN, 빈 문자열 제외)
                 inflow_raw = str(inflow_val).strip() if pd.notna(inflow_val) else ''
                 ratio = pd.to_numeric(str(ratio_val).replace('%', ''), errors='coerce') or 0
 
-                # 유입경로에 값이 있고 비율도 있는 행만 추가
+                # 상세유입경로에 값이 있고 비율도 있는 행만 추가
                 if inflow_raw and inflow_raw.lower() != 'nan' and ratio > 0:
                     inflow_data.append({
                         'source': inflow_raw,

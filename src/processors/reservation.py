@@ -277,23 +277,28 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
             # Find the best column for 'treatment' among candidates
             best_treatment_col = None
             highest_priority = -1
-            
+
             for col in df.columns:
                 if pd.isna(col): continue
                 col_str = str(col).strip()
-                
-                # Priority 3: Explicit Survey (User Request)
-                if '원하시는 진료' in col_str:
+
+                # Priority 4: Explicit Survey (User Request)
+                if '원하시는 진료' in col_str or '원하시는 시술' in col_str:
+                    if 4 > highest_priority:
+                        best_treatment_col = col
+                        highest_priority = 4
+                # Priority 3: Detail Selection
+                elif '선택시술(상세)' in col_str or '선택시술' in col_str:
                     if 3 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 3
-                # Priority 2: Detail Selection
-                elif '선택시술(상세)' in col_str:
+                # Priority 2: Generic Question with '진료' or '시술'
+                elif '어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str:
                     if 2 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 2
-                # Priority 1: Generic Question
-                elif '어떤 진료' in col_str or '진료를 원하세요' in col_str:
+                # Priority 1: Column containing '진료' or '시술' keyword
+                elif ('진료' in col_str or '시술' in col_str) and ('일시' not in col_str and '상태' not in col_str):
                     if 1 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 1
@@ -439,12 +444,17 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
         # Treatment TOP5 - 수식어 제거된 실제 치료명만 추출
         treatment_list = []
         for t in df_target['treatment']:
-            if t and t != '기타':
-                for item in str(t).split(','):
+            if t and str(t).strip() and str(t).strip() != '기타' and str(t).lower() != 'nan':
+                # 다양한 구분자 처리 (콤마, 슬래시, 세미콜론, 개행)
+                import re
+                items = re.split(r'[,/;·\n]+', str(t))
+                for item in items:
                     item = item.strip()
-                    # 추가로 수식어 제거 적용 (이미 전처리됨)
+                    if not item or item == '기타' or item.lower() == 'nan':
+                        continue
+                    # 수식어 제거 적용
                     cleaned = extract_treatment_name(item)
-                    if cleaned and cleaned != '기타':
+                    if cleaned and cleaned != '기타' and len(cleaned) >= 2:
                         treatment_list.append(cleaned)
 
         if treatment_list:
