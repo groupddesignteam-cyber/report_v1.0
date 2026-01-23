@@ -89,9 +89,6 @@ def initialize_session_state():
             'report_title_prefix': '월간 분석 보고서'
         }
 
-    # Edit mode flag
-    if 'edit_mode' not in st.session_state:
-        st.session_state.edit_mode = False
 
 
 def process_uploaded_files(uploaded_files):
@@ -323,35 +320,19 @@ DEPT_FIELDS = {
 
 
 def render_department_card(dept_key: str, label: str, data: dict):
-    """Render a department card with read/edit toggle."""
-    edit_state_key = f"inline_edit_{dept_key}"
-    if edit_state_key not in st.session_state:
-        st.session_state[edit_state_key] = False
-
+    """Render a department card with direct inline editing."""
     meta = CATEGORY_META.get(dept_key, {'color': '#64748b'})
     is_editable = dept_key in DEPT_FIELDS
 
-    # Header with toggle button
-    col_label, col_btn = st.columns([5, 1])
-    with col_label:
-        st.markdown(f"""
-        <div style="display:flex; align-items:center; gap:8px; margin-top:0.5rem;">
-            <div style="width:4px; height:20px; background:{meta['color']}; border-radius:2px;"></div>
-            <span style="font-size:0.9rem; font-weight:700; color:#1e293b;">{label}</span>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_btn:
-        if is_editable:
-            if st.session_state[edit_state_key]:
-                if st.button("완료", key=f"done_{dept_key}", use_container_width=True):
-                    st.session_state[edit_state_key] = False
-                    st.rerun()
-            else:
-                if st.button("수정", key=f"edit_{dept_key}", use_container_width=True):
-                    st.session_state[edit_state_key] = True
-                    st.rerun()
+    # Header
+    st.markdown(f"""
+    <div style="display:flex; align-items:center; gap:8px; margin-top:0.5rem;">
+        <div style="width:4px; height:20px; background:{meta['color']}; border-radius:2px;"></div>
+        <span style="font-size:0.9rem; font-weight:700; color:#1e293b;">{label}</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if is_editable and st.session_state[edit_state_key]:
+    if is_editable:
         render_inline_edit(dept_key, data)
     else:
         render_read_metrics(dept_key, data)
@@ -447,7 +428,6 @@ def render_inline_edit(dept_key: str, data: dict):
         for field_key in edited_curr:
             results[dept_key][config['curr_key']][field_key] = edited_curr[field_key]
 
-        st.session_state[f"inline_edit_{dept_key}"] = False
         st.toast(f"{CATEGORY_META[dept_key]['label']} 데이터 저장됨")
         st.rerun()
 
@@ -607,7 +587,6 @@ def render_dashboard():
             st.session_state.files_uploaded = False
             st.session_state.processed_results = {}
             st.session_state.all_loaded_files = []
-            st.session_state.edit_mode = False
             st.session_state.clinic_name_confirmed = False
             st.session_state.show_additional_upload = False
             st.rerun()
