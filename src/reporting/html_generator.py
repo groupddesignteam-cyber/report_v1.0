@@ -671,7 +671,8 @@ HTML_TEMPLATE = """
 
             <!-- Design: Task Tables -->
             {% if dept.id == 'design' %}
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid {% if dept.prev_month %}md:grid-cols-2{% endif %} gap-4">
+                {% if dept.prev_month %}
                 <!-- Prev Month Tasks -->
                 <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                     <div class="bg-slate-100 px-4 py-2 flex justify-between items-center">
@@ -696,6 +697,7 @@ HTML_TEMPLATE = """
                     <p class="px-4 py-3 text-xs text-slate-400 italic">데이터 없음</p>
                     {% endif %}
                 </div>
+                {% endif %}
                 <!-- Curr Month Tasks -->
                 <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
                     <div class="bg-blue-50 px-4 py-2 flex justify-between items-center">
@@ -725,15 +727,15 @@ HTML_TEMPLATE = """
 
             <!-- Setting: Workplan Achievement -->
             {% if dept.id == 'setting' and dept.channel_completion %}
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
                 {% for ch in dept.channel_completion %}
-                <div class="relative bg-white p-3 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
-                        <div class="h-full {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
+                <div class="flex items-center gap-3 px-4 py-2.5">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}"></span>
+                    <span class="text-xs text-slate-600 font-medium w-24 truncate">{{ ch.channel }}</span>
+                    <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{{ ch.channel }}</p>
-                    <p class="text-lg font-black {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</p>
-                    <p class="text-[10px] text-slate-400"><span class="text-green-500">{{ ch.completed }}</span> · <span class="text-amber-500">{{ ch.in_progress }}</span> · <span class="text-red-400">{{ ch.not_started }}</span></p>
+                    <span class="text-xs font-bold w-10 text-right {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</span>
                 </div>
                 {% endfor %}
             </div>
@@ -1328,8 +1330,8 @@ def prepare_ads_data(result: Dict[str, Any]) -> Dict[str, Any]:
 
 def prepare_design_data(result: Dict[str, Any]) -> Dict[str, Any]:
     """Prepare design department data."""
-    curr_month = result.get('month', '-')
-    prev_month = result.get('prev_month', '-')
+    curr_month = result.get('month') or '-'
+    prev_month = result.get('prev_month') or None
     tables = result.get('tables', {})
 
     # Use aggregated_tasks from design.py
