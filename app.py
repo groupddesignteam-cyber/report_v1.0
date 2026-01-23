@@ -391,31 +391,73 @@ def render_dashboard():
 
     # 거래처명 자동 감지 및 불일치 체크
     detected_names, source_names = check_clinic_name_mismatch()
-    if len(detected_names) == 1:
+    source_to_dept = {'블로그': 'blog', '디자인': 'design', '유튜브': 'youtube'}
+
+    # 디자인 데이터 내 다수 거래처 체크
+    design_clinics = []
+    design_result = st.session_state.processed_results.get('design', {})
+    if design_result:
+        design_clinics = design_result.get('clean_data', {}).get('clinic_names', [])
+        # '미지정' 제외
+        design_clinics = [c for c in design_clinics if c and c != '미지정']
+
+    needs_selection = (len(detected_names) > 1 or len(design_clinics) > 1) and not st.session_state.get('clinic_name_confirmed')
+
+    if not needs_selection and len(detected_names) == 1:
         auto_name = list(detected_names)[0]
         if settings['clinic_name'] != auto_name and not st.session_state.get('clinic_name_confirmed'):
             st.session_state.report_settings['clinic_name'] = auto_name
             settings = st.session_state.report_settings
-    elif len(detected_names) > 1 and not st.session_state.get('clinic_name_confirmed'):
-        name_list = sorted(detected_names)
-        with st.container():
-            st.warning("데이터에서 서로 다른 거래처명이 감지되었습니다.")
-            sources_text = ' / '.join([f'{src}: **{name}**' for src, name in source_names.items()])
-            st.caption(sources_text)
-            col_select, col_btn = st.columns([3, 1])
-            with col_select:
-                selected_name = st.selectbox(
-                    "분석할 치과를 선택하세요",
-                    options=name_list,
-                    key="clinic_name_selector",
-                    label_visibility="collapsed"
+    elif needs_selection:
+        st.warning("여러 거래처가 감지되었습니다. 포함할 데이터를 선택하세요.")
+
+        # 소스별 체크박스 (블로그/유튜브 등 cross-source)
+        selections = {}
+        if len(detected_names) > 1:
+            for src, name in source_names.items():
+                if src == '디자인':
+                    continue  # 디자인은 아래 selectbox로 처리
+                selections[src] = st.checkbox(
+                    f"{src}: {name}",
+                    value=True,
+                    key=f"clinic_check_{src}"
                 )
-            with col_btn:
-                if st.button("설정", type="primary", use_container_width=True):
-                    st.session_state.report_settings['clinic_name'] = selected_name
-                    st.session_state.clinic_name_confirmed = True
-                    st.rerun()
-        return  # 선택 전에는 대시보드 표시하지 않음
+
+        # 디자인 거래처 선택 (selectbox)
+        selected_design_clinic = None
+        if len(design_clinics) > 1:
+            selected_design_clinic = st.selectbox(
+                "디자인 거래처 선택",
+                options=design_clinics,
+                key="design_clinic_selector"
+            )
+
+        if st.button("설정", type="primary", use_container_width=True):
+            # 체크 해제된 소스 데이터 제거
+            for src, checked in selections.items():
+                if not checked and src in source_to_dept:
+                    dept_key = source_to_dept[src]
+                    st.session_state.processed_results[dept_key] = {}
+
+            # 디자인 거래처 필터링 → 재처리
+            if selected_design_clinic and len(design_clinics) > 1:
+                routed = route_files(st.session_state.all_loaded_files)
+                if routed['design']:
+                    st.session_state.processed_results['design'] = process_design(
+                        routed['design'], filter_clinic=selected_design_clinic
+                    )
+
+            # 치과명 설정
+            if selected_design_clinic:
+                st.session_state.report_settings['clinic_name'] = selected_design_clinic
+            else:
+                selected_sources = [src for src, checked in selections.items() if checked]
+                if selected_sources:
+                    st.session_state.report_settings['clinic_name'] = source_names[selected_sources[0]]
+
+            st.session_state.clinic_name_confirmed = True
+            st.rerun()
+        return
 
     # Compact header
     col_title, col_actions = st.columns([3, 1])

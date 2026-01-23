@@ -52,7 +52,7 @@ def parse_year_month_from_date(date_value) -> str:
     return None
 
 
-def process_design(files: List[LoadedFile]) -> Dict[str, Any]:
+def process_design(files: List[LoadedFile], filter_clinic: str = None) -> Dict[str, Any]:
     """
     Main processor for design department.
 
@@ -60,6 +60,7 @@ def process_design(files: List[LoadedFile]) -> Dict[str, Any]:
 
     Args:
         files: List of LoadedFile objects
+        filter_clinic: Optional clinic name to filter tasks by
 
     Returns:
         dict with department, month, prev_month, current_month_data, prev_month_data,
@@ -177,6 +178,17 @@ def process_design(files: List[LoadedFile]) -> Dict[str, Any]:
         }
 
     tasks_df = pd.DataFrame(all_tasks)
+
+    # 거래처 필터링
+    if filter_clinic and 'clinic' in tasks_df.columns:
+        tasks_df = tasks_df[tasks_df['clinic'] == filter_clinic]
+        if tasks_df.empty:
+            return {
+                'department': '디자인팀', 'month': None, 'prev_month': None,
+                'current_month_data': {}, 'prev_month_data': {},
+                'growth_rate': {}, 'kpi': {}, 'tables': {}, 'charts': {},
+                'clean_data': {'clinic_names': [filter_clinic]}
+            }
 
     # Filter for valid year_month, but keep all if none valid
     valid_tasks = tasks_df[tasks_df['year_month'].notna()]
