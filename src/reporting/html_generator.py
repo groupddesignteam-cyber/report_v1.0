@@ -18,1352 +18,96 @@ HTML_TEMPLATE = """
     <title>{{ report_title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        /* ============================================
-           Design System - CSS Variables
-           ============================================ */
-        :root {
-            /* Primary Colors */
-            --color-primary: #3b82f6;
-            --color-primary-light: #60a5fa;
-            --color-primary-dark: #2563eb;
-            --color-primary-bg: #eff6ff;
-
-            /* Semantic Colors */
-            --color-success: #22c55e;
-            --color-success-bg: #f0fdf4;
-            --color-danger: #ef4444;
-            --color-danger-bg: #fef2f2;
-            --color-warning: #f59e0b;
-            --color-warning-bg: #fffbeb;
-            --color-purple: #8b5cf6;
-            --color-purple-bg: #faf5ff;
-            --color-orange: #f97316;
-            --color-orange-bg: #fff7ed;
-
-            /* Neutral Colors */
-            --color-text-primary: #1e293b;
-            --color-text-secondary: #475569;
-            --color-text-muted: #64748b;
-            --color-text-light: #94a3b8;
-            --color-border: #e2e8f0;
-            --color-border-light: #f1f5f9;
-            --color-bg-primary: #f8fafc;
-            --color-bg-white: #ffffff;
-
-            /* Typography Scale (8px base) */
-            --font-xs: 0.5625rem;    /* 9px */
-            --font-sm: 0.625rem;     /* 10px */
-            --font-base: 0.6875rem;  /* 11px */
-            --font-md: 0.75rem;      /* 12px */
-            --font-lg: 0.8125rem;    /* 13px */
-            --font-xl: 0.875rem;     /* 14px */
-            --font-2xl: 1rem;        /* 16px */
-            --font-3xl: 1.125rem;    /* 18px */
-
-            /* Spacing Scale (4px base) */
-            --space-1: 0.25rem;      /* 4px */
-            --space-2: 0.375rem;     /* 6px */
-            --space-3: 0.5rem;       /* 8px */
-            --space-4: 0.625rem;     /* 10px */
-            --space-5: 0.75rem;      /* 12px */
-            --space-6: 1rem;         /* 16px */
-            --space-8: 1.5rem;       /* 24px */
-
-            /* Border Radius */
-            --radius-sm: 4px;
-            --radius-md: 6px;
-            --radius-lg: 8px;
-            --radius-xl: 12px;
-
-            /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 2px 4px rgba(0,0,0,0.08);
-            --shadow-lg: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        * {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: var(--color-bg-primary);
-            color: var(--color-text-secondary);
-            line-height: 1.4;
-            font-size: var(--font-base);
-            margin: 0;
-            padding: 0;
-        }
-
-        .report-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: var(--space-3);
-        }
-
-        .report-section {
-            background: var(--color-bg-white);
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            margin-bottom: var(--space-3);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--color-border-light);
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            margin-bottom: var(--space-3);
-            padding-bottom: var(--space-2);
-            border-bottom: 2px solid var(--color-border);
-        }
-
-        .section-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: var(--font-md);
-        }
-
-        .section-title {
-            font-size: var(--font-xl);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            letter-spacing: -0.01em;
-        }
-
-        /* Month comparison layout */
-        .month-comparison {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-            margin-bottom: var(--space-3);
-        }
-
-        .month-column {
-            background: var(--color-bg-primary);
-            border-radius: var(--radius-md);
-            padding: var(--space-3);
-            min-width: 0;
-            flex: 1;
-            border: 1px solid var(--color-border);
-        }
-
-        .month-column.current {
-            background: var(--color-primary-bg);
-            border: 2px solid var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .month-title {
-            text-align: center;
-            font-size: var(--font-lg);
-            font-weight: 700;
-            margin-bottom: var(--space-2);
-            padding-bottom: var(--space-2);
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .month-title.prev { color: var(--color-text-secondary); }
-        .month-title.curr {
-            color: var(--color-primary);
-            position: relative;
-        }
-        .month-title.curr::after {
-            content: '●';
-            font-size: 6px;
-            margin-left: 4px;
-            vertical-align: middle;
-        }
-
-        /* Metric cards grid */
-        .metrics-grid {
-            display: grid;
-            gap: var(--space-2);
-        }
-
-        .metrics-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
-        .metrics-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-        .metrics-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-        .metrics-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
-
-        .metric-card {
-            background: var(--color-bg-white);
-            border-radius: var(--radius-md);
-            padding: var(--space-3) var(--space-2);
-            text-align: center;
-            border: 1px solid var(--color-border);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .metric-card:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .month-column.current .metric-card {
-            border: 1px solid var(--color-primary-light);
-            background: var(--color-bg-white);
-        }
-
-        /* Icon box style */
-        .metric-icon-box {
-            width: 22px;
-            height: 22px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto var(--space-2);
-            font-size: var(--font-sm);
-        }
-
-        .metric-icon-box.blue { background: var(--color-primary); }
-        .metric-icon-box.green { background: var(--color-success); }
-        .metric-icon-box.red { background: var(--color-danger); }
-        .metric-icon-box.orange { background: var(--color-orange); }
-        .metric-icon-box.purple { background: var(--color-purple); }
-        .metric-icon-box.gray { background: var(--color-text-muted); }
-
-        .metric-icon { font-size: var(--font-xl); margin-bottom: var(--space-1); }
-        .metric-label {
-            font-size: var(--font-xs);
-            color: var(--color-text-muted);
-            margin-bottom: 2px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-        .metric-value {
-            font-size: 1rem;
-            font-weight: 800;
-            color: var(--color-text-primary);
-            line-height: 1.2;
-        }
-        .metric-unit {
-            font-size: var(--font-sm);
-            font-weight: 500;
-            color: var(--color-text-muted);
-            margin-left: 2px;
-        }
-
-        /* Color variants for metric values */
-        .metric-value.blue { color: var(--color-primary); }
-        .metric-value.green { color: var(--color-success); }
-        .metric-value.red { color: var(--color-danger); }
-        .metric-value.orange { color: var(--color-orange); }
-        .metric-value.purple { color: var(--color-purple); }
-
-        /* Highlight animation for important values */
-        .metric-value.highlight {
-            position: relative;
-        }
-        .metric-value.highlight::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
-            border-radius: 2px;
-        }
-
-        /* Sub note (자료 미수신 등) */
-        .metric-note {
-            font-size: var(--font-sm);
-            color: var(--color-warning);
-            margin-top: var(--space-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-            font-weight: 500;
-        }
-
-        /* Metric card with background variants */
-        .metric-card.bg-blue { background: var(--color-primary-bg); }
-        .metric-card.bg-green { background: var(--color-success-bg); }
-        .metric-card.bg-red { background: var(--color-danger-bg); }
-        .metric-card.bg-orange { background: var(--color-orange-bg); }
-        .metric-card.bg-gray { background: var(--color-bg-primary); }
-
-        /* TOP5 section with side-by-side layout */
-        .top5-comparison {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            margin-bottom: var(--space-3);
-            background: var(--color-bg-white);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-            overflow: hidden;
-        }
-
-        .top5-column {
-            padding: var(--space-3);
-            min-width: 0;
-        }
-
-        .top5-column.current {
-            background: var(--color-bg-primary);
-            border-left: 1px solid var(--color-border);
-        }
-
-        .top5-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-2);
-            padding-bottom: var(--space-2);
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .top5-list {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
-        }
-
-        .top5-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            padding: var(--space-1) 0;
-            border-bottom: 1px solid var(--color-border-light);
-            transition: background 0.1s ease;
-        }
-
-        .top5-item:hover {
-            background: var(--color-bg-primary);
-            margin: 0 calc(var(--space-1) * -1);
-            padding-left: var(--space-1);
-            padding-right: var(--space-1);
-            border-radius: var(--radius-sm);
-        }
-
-        .top5-item:last-child {
-            border-bottom: none;
-        }
-
-        .top5-rank {
-            width: 18px;
-            height: 18px;
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: var(--font-xs);
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .top5-rank.rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
-        .top5-rank.rank-2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: white; }
-        .top5-rank.rank-3 { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
-        .top5-rank.rank-other { background: var(--color-border-light); color: var(--color-text-muted); }
-
-        .top5-icon {
-            font-size: var(--font-md);
-            width: 16px;
-            flex-shrink: 0;
-        }
-
-        .top5-content { flex: 1; min-width: 0; overflow: hidden; }
-
-        .top5-label {
-            font-size: var(--font-sm);
-            color: var(--color-text-secondary);
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
-            font-weight: 500;
-        }
-
-        .top5-bar-container {
-            height: 4px;
-            background: var(--color-border);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .top5-bar {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-
-        .top5-bar.blue { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); }
-        .top5-bar.green { background: linear-gradient(90deg, var(--color-success), #4ade80); }
-        .top5-bar.purple { background: linear-gradient(90deg, var(--color-purple), #a78bfa); }
-        .top5-bar.amber { background: linear-gradient(90deg, var(--color-warning), #fbbf24); }
-        .top5-bar.red { background: linear-gradient(90deg, var(--color-danger), #f87171); }
-        .top5-bar.multi { background: linear-gradient(90deg, var(--color-primary), var(--color-success), var(--color-warning)); }
-
-        .top5-stats {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            min-width: 45px;
-        }
-
-        .top5-value {
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--color-text-primary);
-        }
-
-        .top5-sub {
-            font-size: var(--font-xs);
-            color: var(--color-text-muted);
-        }
-
-        /* Category icons for how_found */
-        .category-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 24px;
-            height: 24px;
-            border-radius: var(--radius-sm);
-            flex-shrink: 0;
-            font-size: var(--font-md);
-        }
-        .category-icon.online { background: #dbeafe; color: var(--color-primary); }
-        .category-icon.offline { background: #fef3c7; color: var(--color-warning); }
-        .category-icon.referral { background: #dcfce7; color: var(--color-success); }
-        .category-icon.other { background: var(--color-border-light); color: var(--color-text-muted); }
-
-        /* Insight boxes - Key highlights */
-        .insight-box {
-            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
-            border-left: 3px solid #eab308;
-            border-radius: var(--radius-sm);
-            padding: var(--space-3) var(--space-4);
-            margin-bottom: var(--space-2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .insight-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.1), transparent);
-        }
-
-        .insight-box.blue {
-            background: linear-gradient(135deg, var(--color-primary-bg) 0%, #dbeafe 100%);
-            border-left-color: var(--color-primary);
-        }
-        .insight-box.blue::before {
-            background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent);
-        }
-
-        .insight-box.green {
-            background: linear-gradient(135deg, var(--color-success-bg) 0%, #dcfce7 100%);
-            border-left-color: var(--color-success);
-        }
-        .insight-box.green::before {
-            background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.1), transparent);
-        }
-
-        .insight-box.purple {
-            background: linear-gradient(135deg, var(--color-purple-bg) 0%, #f3e8ff 100%);
-            border-left-color: var(--color-purple);
-        }
-        .insight-box.purple::before {
-            background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.1), transparent);
-        }
-
-        .insight-title {
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-1);
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .insight-content {
-            font-size: var(--font-sm);
-            color: var(--color-text-secondary);
-            line-height: 1.5;
-        }
-
-        .insight-content strong {
-            color: var(--color-text-primary);
-            font-weight: 700;
-        }
-
-        .insight-content .highlight {
-            background: linear-gradient(transparent 50%, #fef08a 50%);
-            padding: 0 3px;
-            font-weight: 600;
-        }
-
-        .insight-content .highlight-blue {
-            background: linear-gradient(transparent 50%, #bfdbfe 50%);
-            padding: 0 3px;
-            font-weight: 600;
-        }
-
-        /* Summary section - Featured callout */
-        .summary-section {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid var(--color-primary-light);
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            margin-bottom: var(--space-3);
-            position: relative;
-        }
-
-        .summary-section::before {
-            content: '★';
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--color-primary);
-            color: white;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            font-size: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .summary-title {
-            text-align: center;
-            font-size: var(--font-md);
-            font-weight: 700;
-            color: var(--color-primary-dark);
-            margin-bottom: var(--space-2);
-        }
-
-        .summary-content {
-            text-align: center;
-            color: var(--color-text-secondary);
-            font-size: var(--font-sm);
-            line-height: 1.5;
-        }
-
-        /* Action Plan table - Modernized */
-        .action-plan {
-            margin-top: var(--space-4);
-        }
-
-        .action-plan-title {
-            font-size: var(--font-md);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-3);
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            padding-bottom: var(--space-2);
-            border-bottom: 2px solid var(--color-primary);
-        }
-
-        .action-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: var(--space-4);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            table-layout: fixed;
-        }
-
-        .action-table th {
-            text-align: left;
-            padding: var(--space-4) var(--space-5);
-            background: var(--color-bg-primary);
-            color: var(--color-text-secondary);
-            font-weight: 700;
-            font-size: var(--font-md);
-            border-bottom: 2px solid var(--color-border);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .action-table td {
-            text-align: left;
-            padding: var(--space-4) var(--space-5);
-            border-bottom: 1px solid var(--color-border-light);
-            color: var(--color-text-secondary);
-            font-size: var(--font-md);
-            line-height: 1.6;
-            vertical-align: top;
-            white-space: pre-wrap;
-        }
-
-        .action-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .action-table tr:hover td {
-            background: var(--color-bg-primary);
-        }
-
-        .agenda-cell {
-            background-color: var(--color-bg-primary);
-            font-weight: 600;
-            color: var(--color-text-primary);
-            width: 25%;
-            border-right: 1px solid var(--color-border-light);
-        }
-
-        .plan-cell {
-            color: var(--color-text-secondary);
-            font-size: var(--font-sm);
-            line-height: 1.5;
-        }
-
-        .plan-cell strong {
-            color: var(--color-text-primary);
-            font-weight: 700;
-        }
-
-        .plan-cell .sub-item {
-            margin-left: var(--space-3);
-            color: var(--color-text-muted);
-            font-size: var(--font-xs);
-        }
-
-        /* Diagnosis cards - Info panels */
-        .diagnosis-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-            margin-bottom: var(--space-3);
-        }
-
-        .diagnosis-card {
-            background: var(--color-bg-white);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-            overflow: hidden;
-            transition: box-shadow 0.15s ease;
-        }
-
-        .diagnosis-card:hover {
-            box-shadow: var(--shadow-md);
-        }
-
-        .diagnosis-header {
-            padding: var(--space-2) var(--space-3);
-            font-weight: 700;
-            font-size: var(--font-sm);
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .diagnosis-header.blue { background: var(--color-primary-bg); color: var(--color-primary-dark); }
-        .diagnosis-header.green { background: var(--color-success-bg); color: #16a34a; }
-        .diagnosis-header.purple { background: var(--color-purple-bg); color: #7c3aed; }
-        .diagnosis-header.amber { background: var(--color-warning-bg); color: #b45309; }
-
-        .diagnosis-content {
-            padding: var(--space-2) var(--space-3);
-            font-size: var(--font-sm);
-            color: var(--color-text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Tables - Clean design */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: var(--font-sm);
-        }
-
-        .data-table th {
-            background: var(--color-bg-primary);
-            padding: var(--space-2) var(--space-2);
-            text-align: left;
-            font-weight: 600;
-            color: var(--color-text-secondary);
-            border-bottom: 2px solid var(--color-border);
-            font-size: var(--font-xs);
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .data-table td {
-            padding: var(--space-2) var(--space-2);
-            border-bottom: 1px solid var(--color-border-light);
-            color: var(--color-text-secondary);
-        }
-
-        .data-table tr:hover td { background: var(--color-bg-primary); }
-
-        /* Key insight box (yellow gradient) - Important callout */
-        .key-insight-box {
-            background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
-            border: 2px solid #fde68a;
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            margin-bottom: var(--space-3);
-            position: relative;
-        }
-
-        .key-insight-box::before {
-            content: '💡';
-            position: absolute;
-            top: -10px;
-            left: var(--space-4);
-            font-size: 14px;
-        }
-
-        .key-insight-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: #854d0e;
-            margin-bottom: var(--space-2);
-        }
-
-        .key-insight-item {
-            background: var(--color-bg-white);
-            border-radius: var(--radius-sm);
-            padding: var(--space-2) var(--space-3);
-            margin-bottom: var(--space-2);
-            border: 1px solid #fde68a;
-            transition: transform 0.1s ease;
-        }
-
-        .key-insight-item:hover {
-            transform: translateX(4px);
-        }
-
-        .key-insight-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .key-insight-label {
-            font-size: var(--font-xs);
-            color: #92400e;
-            font-weight: 600;
-            margin-bottom: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .key-insight-title {
-            font-size: var(--font-sm);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: 2px;
-        }
-
-        .key-insight-value {
-            font-size: var(--font-xs);
-            color: var(--color-text-secondary);
-        }
-
-        .key-insight-value .highlight {
-            color: var(--color-orange);
-            font-weight: 700;
-        }
-
-        /* Video type distribution section */
-        .video-dist-section {
-            margin-top: var(--space-3);
-        }
-
-        .video-dist-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-2);
-        }
-
-        .video-dist-bar {
-            height: 20px;
-            background: var(--color-border);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            display: flex;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .video-dist-segment {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: var(--font-xs);
-            font-weight: 700;
-            color: white;
-            transition: width 0.4s ease;
-        }
-
-        .video-dist-segment.longform { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); }
-        .video-dist-segment.shortform { background: linear-gradient(90deg, var(--color-danger), #f87171); }
-
-        .video-dist-legend {
-            display: flex;
-            justify-content: center;
-            gap: var(--space-5);
-            margin-top: var(--space-2);
-        }
-
-        .video-dist-legend-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-            font-size: var(--font-xs);
-            color: var(--color-text-secondary);
-            font-weight: 500;
-        }
-
-        .video-dist-legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 2px;
-        }
-
-        .video-dist-legend-dot.longform { background: var(--color-primary); }
-        .video-dist-legend-dot.shortform { background: var(--color-danger); }
-
-        /* Ads 4-column ranking layout */
-        .ads-ranking-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: var(--space-2);
-            margin-bottom: var(--space-3);
-        }
-
-        .ads-ranking-box {
-            background: var(--color-bg-white);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            padding: var(--space-2);
-            transition: box-shadow 0.15s ease;
-        }
-
-        .ads-ranking-box:hover {
-            box-shadow: var(--shadow-md);
-        }
-
-        .ads-ranking-box.current {
-            border: 2px solid var(--color-primary);
-            background: var(--color-bg-primary);
-        }
-
-        .ads-ranking-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-            font-size: var(--font-xs);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-2);
-            padding-bottom: var(--space-1);
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .ads-ranking-header .icon {
-            font-size: var(--font-sm);
-        }
-
-        .ads-ranking-list {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
-        }
-
-        .ads-ranking-item {
-            display: flex;
-            align-items: flex-start;
-            gap: var(--space-1);
-        }
-
-        .ads-ranking-num {
-            width: 14px;
-            height: 14px;
-            background: var(--color-border-light);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            font-weight: 700;
-            color: var(--color-text-muted);
-            flex-shrink: 0;
-        }
-
-        .ads-ranking-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .ads-ranking-keyword {
-            font-size: var(--font-xs);
-            font-weight: 600;
-            color: var(--color-text-primary);
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .ads-ranking-bar-container {
-            height: 4px;
-            background: var(--color-border);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 2px;
-        }
-
-        .ads-ranking-bar {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-
-        .ads-ranking-bar.impressions { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); }
-        .ads-ranking-bar.clicks { background: linear-gradient(90deg, var(--color-success), #4ade80); }
-
-        .ads-ranking-stats {
-            display: flex;
-            gap: var(--space-2);
-            font-size: 8px;
-            color: var(--color-text-muted);
-        }
-
-        .ads-ranking-stat {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-
-        .ads-ranking-stat-label {
-            color: var(--color-text-light);
-        }
-
-        .ads-ranking-stat-value {
-            font-weight: 600;
-            color: var(--color-text-secondary);
-        }
-
-        .ads-ranking-stat-value.highlight {
-            color: var(--color-primary);
-            font-weight: 700;
-        }
-
-        /* Posting list table - side by side comparison */
-        .posting-list-section {
-            margin-top: var(--space-3);
-        }
-
-        .posting-list-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            font-size: var(--font-base);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-2);
-            padding-bottom: var(--space-2);
-            border-bottom: 2px solid var(--color-border);
-        }
-
-        .posting-comparison {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-        }
-
-        .posting-column {
-            min-width: 0;
-        }
-
-        .posting-column.current {
-            background: var(--color-bg-primary);
-            border-left: 1px solid var(--color-border);
-        }
-
-        .posting-column-header {
-            background: var(--color-bg-primary);
-            padding: var(--space-2);
-            text-align: center;
-            font-weight: 700;
-            font-size: var(--font-sm);
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .posting-column.current .posting-column-header {
-            background: var(--color-primary-bg);
-            color: var(--color-primary);
-        }
-
-        .posting-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .posting-table th {
-            background: var(--color-bg-primary);
-            padding: var(--space-2) var(--space-2);
-            text-align: left;
-            font-weight: 600;
-            color: var(--color-text-secondary);
-            font-size: var(--font-xs);
-            border-bottom: 1px solid var(--color-border);
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-        }
-
-        .posting-table th.center {
-            text-align: center;
-        }
-
-        .posting-table th.date { width: 85px; white-space: nowrap; }
-        .posting-table th.views { width: 45px; }
-
-        .posting-table td {
-            padding: var(--space-2) var(--space-2);
-            border-bottom: 1px solid var(--color-border-light);
-            font-size: var(--font-xs);
-            color: var(--color-text-secondary);
-            vertical-align: top;
-        }
-
-        .posting-table td.center {
-            text-align: center;
-        }
-
-        .posting-table td.date {
-            white-space: nowrap;
-        }
-
-        .posting-table td.views {
-            text-align: right;
-            color: var(--color-primary);
-            font-weight: 700;
-        }
-
-        .posting-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .posting-table tr:hover td {
-            background: var(--color-bg-primary);
-        }
-
-        .posting-title {
-            font-weight: 500;
-            color: var(--color-text-primary);
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            line-height: 1.3;
-        }
-
-        .posting-title a {
-            color: var(--color-text-primary);
-            text-decoration: none;
-            transition: color 0.1s ease;
-        }
-
-        .posting-title a:hover {
-            color: var(--color-primary);
-            text-decoration: underline;
-        }
-
-        .posting-empty {
-            text-align: center;
-            color: var(--color-text-light);
-            padding: var(--space-4);
-            font-size: var(--font-xs);
-            font-style: italic;
-        }
-
-        /* Print styles */
-        /* Executive Summary Section */
-        .executive-summary {
-            background: var(--color-bg-white);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
-            margin-bottom: var(--space-3);
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--color-border-light);
-        }
-
-        .executive-summary-header {
-            display: flex;
-            align-items: center;
-            gap: var(--space-2);
-            margin-bottom: var(--space-4);
-            padding-bottom: var(--space-2);
-            border-bottom: 2px solid var(--color-primary);
-        }
-
-        .executive-summary-title {
-            font-size: var(--font-xl);
-            font-weight: 800;
-            color: var(--color-text-primary);
-            letter-spacing: -0.01em;
-        }
-
-        /* Radar Chart Container */
-        .radar-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-6);
-            margin-bottom: var(--space-4);
-        }
-
-        .radar-chart-wrapper {
-            width: 280px;
-            height: 280px;
-            position: relative;
-        }
-
-        .radar-scores {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-        }
-
-        .radar-score-item {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            padding: var(--space-2) var(--space-3);
-            background: var(--color-bg-primary);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--color-border);
-        }
-
-        .radar-score-label {
-            font-size: var(--font-sm);
-            font-weight: 600;
-            color: var(--color-text-secondary);
-            min-width: 45px;
-        }
-
-        .radar-score-bar {
-            flex: 1;
-            height: 6px;
-            background: var(--color-border-light);
-            border-radius: 3px;
-            overflow: hidden;
-            min-width: 80px;
-        }
-
-        .radar-score-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-
-        .radar-score-value {
-            font-size: var(--font-sm);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            min-width: 30px;
-            text-align: right;
-        }
-
-        /* Best & Worst Cards */
-        .highlight-cards {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-            margin-bottom: var(--space-4);
-        }
-
-        .highlight-card {
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .highlight-card.best {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border: 1px solid #86efac;
-        }
-
-        .highlight-card.worst {
-            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
-            border: 1px solid #fca5a5;
-        }
-
-        .highlight-card-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: var(--font-xs);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: var(--space-2);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .highlight-card.best .highlight-card-badge {
-            background: #22c55e;
-            color: white;
-        }
-
-        .highlight-card.worst .highlight-card-badge {
-            background: #ef4444;
-            color: white;
-        }
-
-        .highlight-card-metric {
-            font-size: var(--font-lg);
-            font-weight: 700;
-            color: var(--color-text-primary);
-            margin-bottom: var(--space-1);
-        }
-
-        .highlight-card-source {
-            font-size: var(--font-xs);
-            color: var(--color-text-muted);
-            margin-bottom: var(--space-2);
-        }
-
-        .highlight-card-value {
-            font-size: var(--font-2xl);
-            font-weight: 800;
-        }
-
-        .highlight-card.best .highlight-card-value { color: #16a34a; }
-        .highlight-card.worst .highlight-card-value { color: #dc2626; }
-
-        /* Manager Comment Box */
-        .manager-comment {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-left: 4px solid var(--color-primary);
-            border-radius: 0 var(--radius-md) var(--radius-md) 0;
-            padding: var(--space-4);
-            margin-top: var(--space-3);
-        }
-
-        .manager-comment-label {
-            font-size: var(--font-xs);
-            font-weight: 700;
-            color: var(--color-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: var(--space-2);
-        }
-
-        .manager-comment-text {
-            font-size: var(--font-base);
-            color: var(--color-text-secondary);
-            font-style: italic;
-            line-height: 1.6;
-            white-space: pre-wrap;
-        }
-
+        body { font-family: 'Noto Sans KR', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #334155 100%); }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); overflow: hidden; }
+        .fade-in { animation: fadeIn 0.6s ease-out forwards; opacity: 0; transform: translateY(8px); }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .strategy-card { border-left: 4px solid; transition: transform 0.2s; }
+        .strategy-card:hover { transform: translateY(-2px); }
         @media print {
-            @page { size: A4; margin: 1cm; }
-            body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .report-section { box-shadow: none !important; break-inside: avoid; }
-            .executive-summary { box-shadow: none !important; break-inside: avoid; }
-            .no-print { display: none !important; }
-            .metric-card:hover { transform: none; box-shadow: var(--shadow-sm); }
-            .radar-chart-wrapper canvas { max-width: 100% !important; }
+            .fade-in { opacity: 1 !important; transform: none !important; animation: none !important; }
+            .card { box-shadow: none !important; border: 1px solid #e2e8f0; }
+            body { background: white !important; }
         }
     </style>
 </head>
-<body>
-    <div class="report-container">
-        <!-- Title Section -->
-        <div class="report-section" style="text-align: center; padding: var(--space-5) var(--space-4); background: linear-gradient(135deg, var(--color-bg-white) 0%, var(--color-primary-bg) 100%); border: 2px solid var(--color-primary-light);">
-            <p style="color: var(--color-text-muted); font-size: var(--font-sm); margin-bottom: var(--space-1); text-transform: uppercase; letter-spacing: 0.05em;">Marketing Performance Report</p>
-            <h1 style="font-size: var(--font-2xl); font-weight: 800; color: var(--color-text-primary); margin-bottom: var(--space-2); letter-spacing: -0.02em;">{{ report_title }}</h1>
-            <div style="width: 40px; height: 3px; background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light)); margin: var(--space-2) auto; border-radius: 2px;"></div>
-            <p style="font-size: var(--font-md); font-weight: 600; color: var(--color-text-secondary);">{{ clinic_name }}</p>
-            <p style="color: var(--color-text-light); font-size: var(--font-sm); margin-top: var(--space-1);">{{ report_date }} 발행</p>
-        </div>
+<body class="p-4 md:p-8 text-slate-800 bg-slate-100">
 
-        <!-- Executive Summary Section -->
-        {% if health_scores %}
-        <div class="executive-summary">
-            <div class="executive-summary-header">
-                <div class="section-icon" style="background: linear-gradient(135deg, #eff6ff, #dbeafe);">
-                    <span><i class="fas fa-chart-pie" style="color: var(--color-primary);"></i></span>
+    <div class="max-w-5xl mx-auto space-y-6">
+
+        <!-- 1. Header -->
+        <header class="gradient-bg text-white p-8 md:p-10 rounded-3xl shadow-xl relative overflow-hidden fade-in">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+            <div class="relative z-10">
+                <div class="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-bold mb-3 border border-white/10">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    MARKETING REPORT
                 </div>
-                <span class="executive-summary-title">Marketing Health Overview</span>
+                <h1 class="text-2xl md:text-4xl font-black tracking-tight mb-2">{{ report_title }}</h1>
+                <p class="text-slate-300 font-light">{{ clinic_name }} | {{ report_date }}</p>
+            </div>
+        </header>
+
+        <!-- 2. Executive Summary -->
+        {% if health_scores %}
+        <div class="card p-6 md:p-8 fade-in delay-1">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-indigo-100 p-2 rounded-lg"><i data-lucide="activity" class="w-5 h-5 text-indigo-600"></i></div>
+                <h2 class="text-xl font-bold">Marketing Health Overview</h2>
             </div>
 
-            <!-- Radar Chart + Score Bars -->
-            <div class="radar-container">
-                <div class="radar-chart-wrapper">
+            <!-- Radar + Score Bars -->
+            <div class="flex flex-col md:flex-row items-center gap-8 mb-6">
+                <div class="w-64 h-64 shrink-0">
                     <canvas id="healthRadar"></canvas>
                 </div>
-                <div class="radar-scores">
+                <div class="flex-1 space-y-3 w-full">
                     {% for axis, score in health_scores.items() %}
-                    <div class="radar-score-item">
-                        <span class="radar-score-label">{{ axis }}</span>
-                        <div class="radar-score-bar">
-                            <div class="radar-score-fill" style="width: {{ score }}%; background: {% if score >= 70 %}var(--color-success){% elif score >= 40 %}var(--color-warning){% else %}var(--color-danger){% endif %};"></div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-slate-600 w-14">{{ axis }}</span>
+                        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all" style="width: {{ score }}%; background: {% if score >= 70 %}#22c55e{% elif score >= 40 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
                         </div>
-                        <span class="radar-score-value">{{ score }}</span>
+                        <span class="text-sm font-bold text-slate-800 w-8 text-right">{{ score }}</span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- Best & Worst Highlights -->
+            <!-- Best & Worst -->
             {% if best_metric and worst_metric %}
-            <div class="highlight-cards">
-                <div class="highlight-card best">
-                    <div class="highlight-card-badge"><i class="fas fa-arrow-up" style="font-size: 8px;"></i> BEST</div>
-                    <div class="highlight-card-metric">{{ best_metric.name }}</div>
-                    <div class="highlight-card-source">{{ best_metric.source }}</div>
-                    <div class="highlight-card-value">{{ best_metric.growth }}%</div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                    <div class="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-2">
+                        <i data-lucide="trending-up" class="w-3 h-3"></i> BEST
+                    </div>
+                    <p class="text-sm font-bold text-slate-800">{{ best_metric.name }}</p>
+                    <p class="text-xs text-slate-500 mb-1">{{ best_metric.source }}</p>
+                    <p class="text-2xl font-black text-green-600">+{{ best_metric.growth }}%</p>
                 </div>
-                <div class="highlight-card worst">
-                    <div class="highlight-card-badge"><i class="fas fa-arrow-down" style="font-size: 8px;"></i> WORST</div>
-                    <div class="highlight-card-metric">{{ worst_metric.name }}</div>
-                    <div class="highlight-card-source">{{ worst_metric.source }}</div>
-                    <div class="highlight-card-value">{{ worst_metric.growth }}%</div>
+                <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-200">
+                    <div class="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-2">
+                        <i data-lucide="trending-down" class="w-3 h-3"></i> WORST
+                    </div>
+                    <p class="text-sm font-bold text-slate-800">{{ worst_metric.name }}</p>
+                    <p class="text-xs text-slate-500 mb-1">{{ worst_metric.source }}</p>
+                    <p class="text-2xl font-black text-red-600">{{ worst_metric.growth }}%</p>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Manager's Comment -->
+            <!-- Manager Comment -->
             {% if manager_comment %}
-            <div class="manager-comment">
-                <div class="manager-comment-label"><i class="fas fa-comment-dots"></i> 담당자 코멘트</div>
-                <div class="manager-comment-text">{{ manager_comment }}</div>
+            <div class="bg-slate-50 border-l-4 border-indigo-500 p-4 rounded-r-xl">
+                <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">담당자 코멘트</p>
+                <p class="text-sm text-slate-600 italic leading-relaxed whitespace-pre-wrap">{{ manager_comment }}</p>
             </div>
             {% endif %}
         </div>
@@ -1378,38 +122,26 @@ HTML_TEMPLATE = """
                     data: {
                         labels: {{ health_labels_json }},
                         datasets: [{
-                            label: 'Marketing Health',
                             data: {{ health_values_json }},
-                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                            borderColor: 'rgba(59, 130, 246, 0.8)',
+                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                            borderColor: 'rgba(99, 102, 241, 0.8)',
                             borderWidth: 2,
-                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                            pointBackgroundColor: 'rgba(99, 102, 241, 1)',
                             pointBorderColor: '#fff',
                             pointBorderWidth: 1,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
+                            pointRadius: 4
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: true,
                         animation: { duration: 0 },
-                        plugins: {
-                            legend: { display: false }
-                        },
+                        plugins: { legend: { display: false } },
                         scales: {
                             r: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    stepSize: 20,
-                                    font: { size: 9 },
-                                    backdropColor: 'transparent'
-                                },
-                                pointLabels: {
-                                    font: { size: 11, weight: '600', family: 'Pretendard' },
-                                    color: '#475569'
-                                },
+                                beginAtZero: true, max: 100,
+                                ticks: { stepSize: 20, font: { size: 9 }, backdropColor: 'transparent' },
+                                pointLabels: { font: { size: 11, weight: '600', family: 'Noto Sans KR' }, color: '#475569' },
                                 grid: { color: 'rgba(0,0,0,0.06)' },
                                 angleLines: { color: 'rgba(0,0,0,0.06)' }
                             }
@@ -1421,110 +153,102 @@ HTML_TEMPLATE = """
         </script>
         {% endif %}
 
+        <!-- 3. Department Sections -->
         {% for dept in departments %}
         {% if dept.has_data %}
-        <div class="report-section">
+        <div class="card p-6 md:p-8 fade-in delay-2">
             <!-- Section Header -->
-            <div class="section-header">
-                <div class="section-icon" style="background: {{ dept.color_bg }};">
-                    <span>{{ dept.icon }}</span>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2 rounded-lg" style="background: {{ dept.color_bg }};">
+                    <span class="text-lg">{{ dept.icon }}</span>
                 </div>
-                <h2 class="section-title">{{ dept.name }} 성과 분석</h2>
+                <h2 class="text-xl font-bold text-slate-800">{{ dept.name }} 성과 분석</h2>
             </div>
 
-            <!-- CPA Banner for Ads -->
+            <!-- CPA Banner (Ads only) -->
             {% if dept.id == 'ads' and dept.cpa_banner %}
-            <div style="background: linear-gradient(135deg, #0055FF 0%, #3b82f6 100%); border-radius: 6px; padding: 8px; margin-bottom: 8px; color: white; text-align: center;">
-                <p style="font-size: 0.5625rem; margin: 0 0 2px 0; opacity: 0.9;">💰 환자 1인당 마케팅 비용 (CPA)</p>
-                <p style="font-size: 1rem; font-weight: 800; margin: 0;">{{ dept.cpa_banner.cpa }}</p>
-                <p style="font-size: 0.5rem; margin: 2px 0 0 0; opacity: 0.8;">실 예약 환자 {{ dept.cpa_banner.actual_reservations }}명 기준</p>
-                {% if dept.cpa_banner.change_text %}
-                <p style="font-size: 0.5rem; margin: 2px 0 0 0; color: {{ dept.cpa_banner.change_color }}; background: white; display: inline-block; padding: 1px 6px; border-radius: 10px;">{{ dept.cpa_banner.change_text }}</p>
-                {% endif %}
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-xl mb-6 flex items-center justify-between shadow-lg">
+                <div>
+                    <p class="text-xs opacity-80 uppercase font-bold tracking-wider">Cost Per Acquisition</p>
+                    <p class="text-3xl font-black mt-1">{{ dept.cpa_banner.cpa }}</p>
+                    {% if dept.cpa_banner.change_text %}
+                    <p class="text-xs mt-1 font-bold" style="color: {{ dept.cpa_banner.change_color }};">{{ dept.cpa_banner.change_text }}</p>
+                    {% endif %}
+                </div>
+                <div class="text-right">
+                    <p class="text-xs opacity-80 uppercase font-bold">실 예약</p>
+                    <p class="text-2xl font-bold mt-1">{{ dept.cpa_banner.actual_reservations }}건</p>
+                </div>
             </div>
             {% endif %}
 
-            <!-- Month Comparison with metrics -->
+            <!-- Month Comparison Metrics -->
             {% if dept.prev_month and dept.curr_month and dept.id not in ['ads', 'design'] %}
-            <div class="month-comparison">
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
                 <!-- Previous Month -->
-                <div class="month-column">
-                    <div class="month-title prev">{{ dept.prev_month }}</div>
-                    {% if dept.id == 'reservation' %}
-                    <div class="metrics-grid cols-3">
-                    {% elif dept.id == 'blog' %}
-                    <div class="metrics-grid cols-2" style="margin-bottom: 0.375rem;">
-                    {% elif dept.id in ['design', 'youtube'] %}
-                    <div class="metrics-grid cols-3">
-                    {% elif dept.id == 'ads' %}
-                    <div class="metrics-grid cols-3">
-                    {% else %}
-                    <div class="metrics-grid cols-3">
-                    {% endif %}
+                <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-500 mb-3 pb-2 border-b border-slate-200">{{ dept.prev_month }}</h4>
+                    <div class="grid grid-cols-{% if dept.id == 'blog' %}2{% else %}3{% endif %} gap-3">
                         {% for metric in dept.prev_metrics %}
-                        <div class="metric-card {{ metric.bg_class|default('bg-gray') }}">
-                            <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                        <div class="bg-white p-3 rounded-lg border border-slate-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase">{{ metric.label }}</span>
                             </div>
-                            <div class="metric-label">{{ metric.label }}</div>
-                            <div class="metric-value {{ metric.color_class|default('') }}">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
                             {% if metric.note %}
-                            <div class="metric-note">⚠️ {{ metric.note }}</div>
+                            <p class="text-[10px] text-amber-600 mt-1">{{ metric.note }}</p>
                             {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                     {% if dept.id == 'blog' and dept.prev_metrics_row2 %}
-                    <div class="metrics-grid cols-2">
+                    <div class="grid grid-cols-2 gap-3 mt-3">
                         {% for metric in dept.prev_metrics_row2 %}
-                        <div class="metric-card {{ metric.bg_class|default('bg-gray') }}">
-                            <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                        <div class="bg-white p-3 rounded-lg border border-slate-100">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase">{{ metric.label }}</span>
                             </div>
-                            <div class="metric-label">{{ metric.label }}</div>
-                            <div class="metric-value {{ metric.color_class|default('') }}">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
+                            {% if metric.note %}
+                            <p class="text-[10px] text-amber-600 mt-1">{{ metric.note }}</p>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                     {% endif %}
                 </div>
 
-                <!-- Current Month -->
-                <div class="month-column current">
-                    <div class="month-title curr">{{ dept.curr_month }}</div>
-                    {% if dept.id == 'reservation' %}
-                    <div class="metrics-grid cols-3">
-                    {% elif dept.id == 'blog' %}
-                    <div class="metrics-grid cols-2" style="margin-bottom: 0.375rem;">
-                    {% elif dept.id in ['design', 'youtube'] %}
-                    <div class="metrics-grid cols-3">
-                    {% elif dept.id == 'ads' %}
-                    <div class="metrics-grid cols-3">
-                    {% else %}
-                    <div class="metrics-grid cols-3">
-                    {% endif %}
+                <!-- Current Month (highlighted) -->
+                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200">
+                    <h4 class="text-sm font-bold text-blue-600 mb-3 pb-2 border-b border-blue-200">{{ dept.curr_month }} <span class="text-[10px] text-blue-400">(당월)</span></h4>
+                    <div class="grid grid-cols-{% if dept.id == 'blog' %}2{% else %}3{% endif %} gap-3">
                         {% for metric in dept.curr_metrics %}
-                        <div class="metric-card {{ metric.bg_class|default('') }}">
-                            <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
                             </div>
-                            <div class="metric-label" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</div>
-                            <div class="metric-value {{ metric.color_class|default('') }}">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
                             {% if metric.note %}
-                            <div class="metric-note">⚠️ {{ metric.note }}</div>
+                            <p class="text-[10px] text-amber-600 mt-1">{{ metric.note }}</p>
                             {% endif %}
                         </div>
                         {% endfor %}
                     </div>
                     {% if dept.id == 'blog' and dept.curr_metrics_row2 %}
-                    <div class="metrics-grid cols-2">
+                    <div class="grid grid-cols-2 gap-3 mt-3">
                         {% for metric in dept.curr_metrics_row2 %}
-                        <div class="metric-card {{ metric.bg_class|default('') }}">
-                            <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="text-sm">{{ metric.icon }}</span>
+                                <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
                             </div>
-                            <div class="metric-label">{{ metric.label }}</div>
-                            <div class="metric-value {{ metric.color_class|default('') }}">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                            <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
+                            {% if metric.note %}
+                            <p class="text-[10px] text-amber-600 mt-1">{{ metric.note }}</p>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -1533,68 +257,57 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
 
-            <!-- TOP5 Charts (side by side comparison) -->
+            <!-- TOP5 Sections -->
             {% if dept.top5_sections %}
             {% for section in dept.top5_sections %}
-            <div class="top5-comparison">
-                <!-- Previous month TOP5 -->
-                <div class="top5-column">
-                    <div class="top5-header">{{ section.icon }} {{ section.title }}</div>
-                    <div class="top5-list">
+            <div class="mb-6">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-base">{{ section.icon }}</span>
+                    <h3 class="text-sm font-bold text-slate-700">{{ section.title }}</h3>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Previous Month TOP5 -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
+                        {% if section.prev_items %}
                         {% for item in section.prev_items %}
-                        <div class="top5-item">
+                        <div class="flex items-center gap-2 py-1.5 {% if not loop.last %}border-b border-slate-100{% endif %}">
                             {% if item.icon %}
-                            <div class="category-icon {{ item.icon_class|default('other') }}">
-                                <span>{{ item.icon }}</span>
-                            </div>
+                            <span class="text-xs">{{ item.icon }}</span>
+                            {% else %}
+                            <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
                             {% endif %}
-                            <div class="top5-content">
-                                <div class="top5-label">{{ item.label }}</div>
-                                <div class="top5-bar-container">
-                                    <div class="top5-bar {{ section.bar_color }}" style="width: {{ item.pct }}%;"></div>
-                                </div>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
+                            <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full bg-slate-400" style="width: {{ item.pct }}%;"></div>
                             </div>
-                            <div class="top5-stats">
-                                <div class="top5-value">{{ item.value_display }}</div>
-                                {% if item.sub_value %}
-                                <div class="top5-sub">{{ item.sub_value }}</div>
-                                {% endif %}
-                            </div>
+                            <span class="text-[10px] font-bold text-slate-600 w-14 text-right">{{ item.value_display }}</span>
                         </div>
                         {% endfor %}
-                        {% if not section.prev_items %}
-                        <div style="text-align: center; color: #94a3b8; padding: 2rem; font-style: italic;">{{ section.no_prev_data_msg|default('데이터 없음') }}</div>
+                        {% else %}
+                        <p class="text-xs text-slate-400 italic py-2">{{ section.no_prev_data_msg|default('데이터 없음') }}</p>
                         {% endif %}
                     </div>
-                </div>
-
-                <!-- Current month TOP5 -->
-                <div class="top5-column current">
-                    <div class="top5-header">{{ section.icon }} {{ section.title }}</div>
-                    <div class="top5-list">
+                    <!-- Current Month TOP5 -->
+                    <div class="bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">{{ dept.curr_month }}</p>
+                        {% if section.curr_items %}
                         {% for item in section.curr_items %}
-                        <div class="top5-item">
+                        <div class="flex items-center gap-2 py-1.5 {% if not loop.last %}border-b border-blue-50{% endif %}">
                             {% if item.icon %}
-                            <div class="category-icon {{ item.icon_class|default('other') }}">
-                                <span>{{ item.icon }}</span>
-                            </div>
+                            <span class="text-xs">{{ item.icon }}</span>
+                            {% else %}
+                            <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
                             {% endif %}
-                            <div class="top5-content">
-                                <div class="top5-label">{{ item.label }}</div>
-                                <div class="top5-bar-container">
-                                    <div class="top5-bar {{ section.bar_color }}" style="width: {{ item.pct }}%;"></div>
-                                </div>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
+                            <div class="w-16 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full bg-blue-500" style="width: {{ item.pct }}%;"></div>
                             </div>
-                            <div class="top5-stats">
-                                <div class="top5-value">{{ item.value_display }}</div>
-                                {% if item.sub_value %}
-                                <div class="top5-sub">{{ item.sub_value }}</div>
-                                {% endif %}
-                            </div>
+                            <span class="text-[10px] font-bold text-blue-700 w-14 text-right">{{ item.value_display }}</span>
                         </div>
                         {% endfor %}
-                        {% if not section.curr_items %}
-                        <div style="text-align: center; color: #94a3b8; padding: 2rem; font-style: italic;">데이터 없음</div>
+                        {% else %}
+                        <p class="text-xs text-slate-400 italic py-2">데이터 없음</p>
                         {% endif %}
                     </div>
                 </div>
@@ -1602,272 +315,206 @@ HTML_TEMPLATE = """
             {% endfor %}
             {% endif %}
 
-            <!-- Blog Key Insights Box (Yellow) -->
+            <!-- Blog: Key Insights -->
             {% if dept.id == 'blog' and dept.key_insights %}
-            <div class="key-insight-box">
-                <div class="key-insight-header">
-                    <span>💡</span> 핵심 인사이트
+            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 mb-6 relative">
+                <span class="absolute -top-2 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">KEY INSIGHT</span>
+                <div class="grid md:grid-cols-2 gap-4 mt-2">
+                    {% if dept.key_insights.top_post %}
+                    <div class="bg-white p-3 rounded-lg border border-amber-100">
+                        <p class="text-[10px] font-bold text-amber-700 uppercase mb-1">Best Post</p>
+                        <p class="text-xs font-bold text-slate-800 truncate">{{ dept.key_insights.top_post.title }}</p>
+                        <p class="text-sm font-black text-amber-600 mt-1">{{ dept.key_insights.top_post.views }}회</p>
+                    </div>
+                    {% endif %}
+                    {% if dept.key_insights.top_keyword %}
+                    <div class="bg-white p-3 rounded-lg border border-amber-100">
+                        <p class="text-[10px] font-bold text-amber-700 uppercase mb-1">Top Keyword</p>
+                        <p class="text-xs font-bold text-slate-800">{{ dept.key_insights.top_keyword.keyword }}</p>
+                        <p class="text-sm font-black text-amber-600 mt-1">{{ dept.key_insights.top_keyword.ratio }}%</p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% if dept.key_insights.top_post %}
-                <div class="key-insight-item">
-                    <div class="key-insight-label">🏆 가장 조회수 높은 포스팅</div>
-                    <div class="key-insight-title">{{ dept.key_insights.top_post.title }}</div>
-                    <div class="key-insight-value">조회수 <span class="highlight">{{ dept.key_insights.top_post.views }}</span>회</div>
-                </div>
-                {% endif %}
-                {% if dept.key_insights.top_keyword %}
-                <div class="key-insight-item">
-                    <div class="key-insight-label">🔍 가장 유입 많은 검색 키워드</div>
-                    <div class="key-insight-title">{{ dept.key_insights.top_keyword.keyword }}</div>
-                    <div class="key-insight-value">유입 비율 <span class="highlight">{{ dept.key_insights.top_keyword.ratio }}</span>%</div>
-                </div>
-                {% endif %}
             </div>
             {% endif %}
 
-            <!-- Blog Posting List - Side by Side Comparison -->
+            <!-- Blog: Posting List -->
             {% if dept.id == 'blog' and (dept.posting_list or dept.prev_posting_list) %}
-            <div class="posting-list-section">
-                <div class="posting-list-header">
-                    <span>📋</span> 발행 완료 포스팅 목록
-                </div>
-                <div class="posting-comparison">
-                    <!-- 전월 포스팅 -->
-                    <div class="posting-column">
-                        <div class="posting-column-header">{{ dept.prev_month }} (전월)</div>
-                        {% if dept.prev_posting_list %}
-                        <table class="posting-table">
-                            <thead>
-                                <tr>
-                                    <th>포스팅 제목</th>
-                                    <th class="date center">발행일</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for post in dept.prev_posting_list %}
-                                <tr>
-                                    <td>
-                                        <div class="posting-title">
-                                            {% if post.url %}
-                                            <a href="{{ post.url }}" target="_blank">{{ post.title }}</a>
-                                            {% else %}
-                                            {{ post.title }}
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td class="date center">{{ post.date }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="posting-empty">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                    <!-- 당월 포스팅 -->
-                    <div class="posting-column current">
-                        <div class="posting-column-header">{{ dept.curr_month }} (당월)</div>
-                        {% if dept.posting_list %}
-                        <table class="posting-table">
-                            <thead>
-                                <tr>
-                                    <th>포스팅 제목</th>
-                                    <th class="date center">발행일</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for post in dept.posting_list %}
-                                <tr>
-                                    <td>
-                                        <div class="posting-title">
-                                            {% if post.url %}
-                                            <a href="{{ post.url }}" target="_blank">{{ post.title }}</a>
-                                            {% else %}
-                                            {{ post.title }}
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td class="date center">{{ post.date }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        {% else %}
-                        <div class="posting-empty">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Ads 4-column ranking grid -->
-            {% if dept.id == 'ads' and dept.ads_ranking_data %}
-            <div class="ads-ranking-grid">
-                <!-- 전월 노출수 TOP5 -->
-                <div class="ads-ranking-box">
-                    <div class="ads-ranking-header">
-                        <span class="icon">👁️</span> 노출수 기준 TOP 5
-                    </div>
-                    <div class="ads-ranking-list">
-                        {% for item in dept.ads_ranking_data.prev_impressions %}
-                        <div class="ads-ranking-item">
-                            <div class="ads-ranking-num">{{ loop.index }}</div>
-                            <div class="ads-ranking-content">
-                                <div class="ads-ranking-keyword">{{ item.keyword }}</div>
-                                <div class="ads-ranking-bar-container">
-                                    <div class="ads-ranking-bar impressions" style="width: {{ item.pct }}%;"></div>
-                                </div>
-                                <div class="ads-ranking-stats">
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">노출</span>
-                                        <span class="ads-ranking-stat-value">{{ item.impressions }}</span>
-                                    </div>
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">클릭</span>
-                                        <span class="ads-ranking-stat-value highlight">{{ item.clicks }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% if not dept.ads_ranking_data.prev_impressions %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.8125rem;">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- 전월 클릭수 TOP5 -->
-                <div class="ads-ranking-box">
-                    <div class="ads-ranking-header">
-                        <span class="icon">👆</span> 클릭수 기준 TOP 5
-                    </div>
-                    <div class="ads-ranking-list">
-                        {% for item in dept.ads_ranking_data.prev_clicks %}
-                        <div class="ads-ranking-item">
-                            <div class="ads-ranking-num">{{ loop.index }}</div>
-                            <div class="ads-ranking-content">
-                                <div class="ads-ranking-keyword">{{ item.keyword }}</div>
-                                <div class="ads-ranking-bar-container">
-                                    <div class="ads-ranking-bar clicks" style="width: {{ item.pct }}%;"></div>
-                                </div>
-                                <div class="ads-ranking-stats">
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">노출</span>
-                                        <span class="ads-ranking-stat-value">{{ item.impressions }}</span>
-                                    </div>
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">클릭</span>
-                                        <span class="ads-ranking-stat-value highlight">{{ item.clicks }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% if not dept.ads_ranking_data.prev_clicks %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.8125rem;">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- 당월 노출수 TOP5 -->
-                <div class="ads-ranking-box current">
-                    <div class="ads-ranking-header">
-                        <span class="icon">👁️</span> 노출수 기준 TOP 5
-                    </div>
-                    <div class="ads-ranking-list">
-                        {% for item in dept.ads_ranking_data.curr_impressions %}
-                        <div class="ads-ranking-item">
-                            <div class="ads-ranking-num">{{ loop.index }}</div>
-                            <div class="ads-ranking-content">
-                                <div class="ads-ranking-keyword">{{ item.keyword }}</div>
-                                <div class="ads-ranking-bar-container">
-                                    <div class="ads-ranking-bar impressions" style="width: {{ item.pct }}%;"></div>
-                                </div>
-                                <div class="ads-ranking-stats">
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">노출</span>
-                                        <span class="ads-ranking-stat-value">{{ item.impressions }}</span>
-                                    </div>
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">클릭</span>
-                                        <span class="ads-ranking-stat-value highlight">{{ item.clicks }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% if not dept.ads_ranking_data.curr_impressions %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.8125rem;">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- 당월 클릭수 TOP5 -->
-                <div class="ads-ranking-box current">
-                    <div class="ads-ranking-header">
-                        <span class="icon">👆</span> 클릭수 기준 TOP 5
-                    </div>
-                    <div class="ads-ranking-list">
-                        {% for item in dept.ads_ranking_data.curr_clicks %}
-                        <div class="ads-ranking-item">
-                            <div class="ads-ranking-num">{{ loop.index }}</div>
-                            <div class="ads-ranking-content">
-                                <div class="ads-ranking-keyword">{{ item.keyword }}</div>
-                                <div class="ads-ranking-bar-container">
-                                    <div class="ads-ranking-bar clicks" style="width: {{ item.pct }}%;"></div>
-                                </div>
-                                <div class="ads-ranking-stats">
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">노출</span>
-                                        <span class="ads-ranking-stat-value">{{ item.impressions }}</span>
-                                    </div>
-                                    <div class="ads-ranking-stat">
-                                        <span class="ads-ranking-stat-label">클릭</span>
-                                        <span class="ads-ranking-stat-value highlight">{{ item.clicks }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% if not dept.ads_ranking_data.curr_clicks %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.8125rem;">데이터 없음</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- YouTube specific sections -->
-            {% if dept.id == 'youtube' %}
-            <!-- Production metrics (제작 성과) -->
-            {% if dept.prev_production_metrics or dept.curr_production_metrics %}
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>🎬</span> 제작 성과 ([영상팀])
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="list" class="w-4 h-4 text-slate-400"></i> 발행 포스팅 목록
                 </h3>
-                <div class="month-comparison">
-                    <div class="month-column">
-                        <div class="metrics-grid cols-2">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Prev Month Posts -->
+                    <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                        <div class="bg-slate-100 px-4 py-2">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase">{{ dept.prev_month }}</p>
+                        </div>
+                        {% if dept.prev_posting_list %}
+                        <div class="divide-y divide-slate-100">
+                            {% for post in dept.prev_posting_list %}
+                            <div class="px-4 py-2 flex items-center justify-between gap-2">
+                                <span class="text-xs text-slate-700 truncate flex-1">
+                                    {% if post.url %}<a href="{{ post.url }}" target="_blank" class="hover:text-blue-600 hover:underline">{{ post.title }}</a>{% else %}{{ post.title }}{% endif %}
+                                </span>
+                                <span class="text-[10px] text-slate-400 shrink-0">{{ post.date }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="px-4 py-3 text-xs text-slate-400 italic">데이터 없음</p>
+                        {% endif %}
+                    </div>
+                    <!-- Current Month Posts -->
+                    <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
+                        <div class="bg-blue-50 px-4 py-2">
+                            <p class="text-[10px] font-bold text-blue-500 uppercase">{{ dept.curr_month }}</p>
+                        </div>
+                        {% if dept.posting_list %}
+                        <div class="divide-y divide-blue-50">
+                            {% for post in dept.posting_list %}
+                            <div class="px-4 py-2 flex items-center justify-between gap-2">
+                                <span class="text-xs text-slate-700 truncate flex-1">
+                                    {% if post.url %}<a href="{{ post.url }}" target="_blank" class="hover:text-blue-600 hover:underline">{{ post.title }}</a>{% else %}{{ post.title }}{% endif %}
+                                </span>
+                                <span class="text-[10px] text-slate-400 shrink-0">{{ post.date }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="px-4 py-3 text-xs text-slate-400 italic">데이터 없음</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Ads: Keyword Ranking Grid -->
+            {% if dept.id == 'ads' and dept.ads_ranking_data %}
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+                <!-- Prev Impressions -->
+                <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-4 py-2 flex justify-between items-center">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">{{ dept.prev_month }} 노출수 TOP5</p>
+                    </div>
+                    {% if dept.ads_ranking_data.prev_impressions %}
+                    <div class="p-3 space-y-2">
+                        {% for item in dept.ads_ranking_data.prev_impressions %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
+                            <div class="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-400 rounded-full" style="width: {{ item.pct }}%;"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500 w-14 text-right">{{ item.impressions }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
+                </div>
+                <!-- Prev Clicks -->
+                <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-4 py-2">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">{{ dept.prev_month }} 클릭수 TOP5</p>
+                    </div>
+                    {% if dept.ads_ranking_data.prev_clicks %}
+                    <div class="p-3 space-y-2">
+                        {% for item in dept.ads_ranking_data.prev_clicks %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
+                            <div class="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-400 rounded-full" style="width: {{ item.pct }}%;"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500 w-14 text-right">{{ item.clicks }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
+                </div>
+                <!-- Curr Impressions -->
+                <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
+                    <div class="bg-blue-50 px-4 py-2">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">{{ dept.curr_month }} 노출수 TOP5</p>
+                    </div>
+                    {% if dept.ads_ranking_data.curr_impressions %}
+                    <div class="p-3 space-y-2">
+                        {% for item in dept.ads_ranking_data.curr_impressions %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
+                            <div class="w-12 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-full" style="width: {{ item.pct }}%;"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-indigo-700 w-14 text-right">{{ item.impressions }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
+                </div>
+                <!-- Curr Clicks -->
+                <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
+                    <div class="bg-blue-50 px-4 py-2">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">{{ dept.curr_month }} 클릭수 TOP5</p>
+                    </div>
+                    {% if dept.ads_ranking_data.curr_clicks %}
+                    <div class="p-3 space-y-2">
+                        {% for item in dept.ads_ranking_data.curr_clicks %}
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
+                            <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
+                            <div class="w-12 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-green-500 rounded-full" style="width: {{ item.pct }}%;"></div>
+                            </div>
+                            <span class="text-[10px] font-bold text-green-700 w-14 text-right">{{ item.clicks }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="p-4 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- YouTube: Production Metrics -->
+            {% if dept.id == 'youtube' %}
+            {% if dept.prev_production_metrics or dept.curr_production_metrics %}
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="clapperboard" class="w-4 h-4 text-slate-400"></i> 제작 현황
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
+                        <div class="grid grid-cols-2 gap-3">
                             {% for metric in dept.prev_production_metrics %}
-                            <div class="metric-card {{ metric.bg_class|default('bg-gray') }}">
-                                <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                    <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                            <div class="bg-white p-3 rounded-lg border border-slate-100">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="text-sm">{{ metric.icon }}</span>
+                                    <span class="text-[10px] text-slate-500 font-bold uppercase">{{ metric.label }}</span>
                                 </div>
-                                <div class="metric-label">{{ metric.label }}</div>
-                                <div class="metric-value">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                                <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
-                    <div class="month-column current">
-                        <div class="metrics-grid cols-2">
+                    <div class="bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">{{ dept.curr_month }}</p>
+                        <div class="grid grid-cols-2 gap-3">
                             {% for metric in dept.curr_production_metrics %}
-                            <div class="metric-card {{ metric.bg_class|default('') }}">
-                                <div class="metric-icon-box {{ metric.icon_box_class|default('blue') }}">
-                                    <span style="filter: brightness(0) invert(1);">{{ metric.icon }}</span>
+                            <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="text-sm">{{ metric.icon }}</span>
+                                    <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
                                 </div>
-                                <div class="metric-label" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</div>
-                                <div class="metric-value">{{ metric.value }}<span class="metric-unit">{{ metric.unit|default('') }}</span></div>
+                                <p class="text-lg font-bold text-slate-800">{{ metric.value }}<span class="text-xs text-slate-400 ml-0.5">{{ metric.unit|default('') }}</span></p>
                             </div>
                             {% endfor %}
                         </div>
@@ -1876,65 +523,59 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
 
-            <!-- Video type distribution (영상 종류별 분포) -->
+            <!-- YouTube: Video Type Distribution -->
             {% if dept.video_type_distribution %}
-            <div class="video-dist-section">
-                <h3 class="video-dist-header"><span>📊</span> 영상 종류별 분포</h3>
-                <div class="month-comparison">
-                    <div class="month-column">
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i> 영상 종류별 제작 분포
+                </h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Prev -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
                         {% if dept.video_type_distribution.prev.total > 0 %}
-                        <div class="video-dist-bar">
+                        <div class="flex h-6 rounded-full overflow-hidden mb-2">
                             {% if dept.video_type_distribution.prev.longform.pct > 0 %}
-                            <div class="video-dist-segment longform" style="width: {{ dept.video_type_distribution.prev.longform.pct }}%;">
-                                롱폼 {{ dept.video_type_distribution.prev.longform.count }}건 ({{ dept.video_type_distribution.prev.longform.pct }}%)
+                            <div class="bg-indigo-500 flex items-center justify-center" style="width: {{ dept.video_type_distribution.prev.longform.pct }}%;">
+                                <span class="text-[9px] text-white font-bold">롱폼</span>
                             </div>
                             {% endif %}
                             {% if dept.video_type_distribution.prev.shortform.pct > 0 %}
-                            <div class="video-dist-segment shortform" style="width: {{ dept.video_type_distribution.prev.shortform.pct }}%;">
-                                숏폼 {{ dept.video_type_distribution.prev.shortform.count }}건 ({{ dept.video_type_distribution.prev.shortform.pct }}%)
+                            <div class="bg-pink-400 flex items-center justify-center" style="width: {{ dept.video_type_distribution.prev.shortform.pct }}%;">
+                                <span class="text-[9px] text-white font-bold">숏폼</span>
                             </div>
                             {% endif %}
                         </div>
-                        <div class="video-dist-legend">
-                            <div class="video-dist-legend-item">
-                                <div class="video-dist-legend-dot longform"></div>
-                                <span>롱폼 {{ dept.video_type_distribution.prev.longform.count }}건</span>
-                            </div>
-                            <div class="video-dist-legend-item">
-                                <div class="video-dist-legend-dot shortform"></div>
-                                <span>숏폼 {{ dept.video_type_distribution.prev.shortform.count }}건</span>
-                            </div>
+                        <div class="flex gap-4 text-[10px] text-slate-500">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-indigo-500 rounded-full"></span> 롱폼 {{ dept.video_type_distribution.prev.longform.count }}건</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-pink-400 rounded-full"></span> 숏폼 {{ dept.video_type_distribution.prev.shortform.count }}건</span>
                         </div>
                         {% else %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-style: italic;">데이터 없음</div>
+                        <p class="text-xs text-slate-400 italic">데이터 없음</p>
                         {% endif %}
                     </div>
-                    <div class="month-column current">
+                    <!-- Curr -->
+                    <div class="bg-blue-50/30 p-4 rounded-xl border border-blue-100">
+                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">{{ dept.curr_month }}</p>
                         {% if dept.video_type_distribution.curr.total > 0 %}
-                        <div class="video-dist-bar">
+                        <div class="flex h-6 rounded-full overflow-hidden mb-2">
                             {% if dept.video_type_distribution.curr.longform.pct > 0 %}
-                            <div class="video-dist-segment longform" style="width: {{ dept.video_type_distribution.curr.longform.pct }}%;">
-                                롱폼 {{ dept.video_type_distribution.curr.longform.count }}건 ({{ dept.video_type_distribution.curr.longform.pct }}%)
+                            <div class="bg-indigo-500 flex items-center justify-center" style="width: {{ dept.video_type_distribution.curr.longform.pct }}%;">
+                                <span class="text-[9px] text-white font-bold">롱폼</span>
                             </div>
                             {% endif %}
                             {% if dept.video_type_distribution.curr.shortform.pct > 0 %}
-                            <div class="video-dist-segment shortform" style="width: {{ dept.video_type_distribution.curr.shortform.pct }}%;">
-                                숏폼 {{ dept.video_type_distribution.curr.shortform.count }}건 ({{ dept.video_type_distribution.curr.shortform.pct }}%)
+                            <div class="bg-pink-400 flex items-center justify-center" style="width: {{ dept.video_type_distribution.curr.shortform.pct }}%;">
+                                <span class="text-[9px] text-white font-bold">숏폼</span>
                             </div>
                             {% endif %}
                         </div>
-                        <div class="video-dist-legend">
-                            <div class="video-dist-legend-item">
-                                <div class="video-dist-legend-dot longform"></div>
-                                <span>롱폼 {{ dept.video_type_distribution.curr.longform.count }}건</span>
-                            </div>
-                            <div class="video-dist-legend-item">
-                                <div class="video-dist-legend-dot shortform"></div>
-                                <span>숏폼 {{ dept.video_type_distribution.curr.shortform.count }}건</span>
-                            </div>
+                        <div class="flex gap-4 text-[10px] text-slate-500">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-indigo-500 rounded-full"></span> 롱폼 {{ dept.video_type_distribution.curr.longform.count }}건</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 bg-pink-400 rounded-full"></span> 숏폼 {{ dept.video_type_distribution.curr.shortform.count }}건</span>
                         </div>
                         {% else %}
-                        <div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-style: italic;">데이터 없음</div>
+                        <p class="text-xs text-slate-400 italic">데이터 없음</p>
                         {% endif %}
                     </div>
                 </div>
@@ -1942,242 +583,149 @@ HTML_TEMPLATE = """
             {% endif %}
             {% endif %}
 
-            <!-- Design specific sections -->
+            <!-- Design: Task Tables -->
             {% if dept.id == 'design' %}
-            <div style="margin-bottom: 1.5rem;">
-                <!-- <h3 style="font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">🎨 디자인 작업 현황</h3> -->
-                
-                <div class="month-comparison">
-                    <!-- Left Column: Previous Month -->
-                    <div class="month-column">
-                        <div class="month-title prev">{{ dept.prev_month }} 디자인 성과</div>
-                        
-                        <!-- Metric Cards (Pink) -->
-                        <div class="metrics-grid cols-2" style="margin-bottom: 1rem;">
-                            <div class="metric-card" style="background: #fdf2f8; border: 1px solid #fce7f3;">
-                                <div class="metric-icon-box" style="background: #ec4899; color: white;">
-                                    <i class="fa-solid fa-layer-group"></i>
-                                </div>
-                                <div class="metric-label">총 작업 건수</div>
-                                <div class="metric-value" style="color: #be185d;">{{ dept.tables.clinic_task_count[0].total_tasks if dept.tables.clinic_task_count else 0 }}<span class="metric-unit"> 건</span></div>
-                            </div>
-                            <div class="metric-card" style="background: #fdf2f8; border: 1px solid #fce7f3;">
-                                <div class="metric-icon-box" style="background: #be185d; color: white;">
-                                    <i class="fa-regular fa-image"></i>
-                                </div>
-                                <div class="metric-label">총 완료 페이지</div>
-                                <div class="metric-value" style="color: #be185d;">{{ dept.tables.prev_task_list|sum(attribute='pages') }}<span class="metric-unit"> 페이지</span></div>
-                            </div>
-                        </div>
-
-                        <!-- Task Table -->
-                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                            <table class="data-table">
-                                <thead style="background: #f8fafc;">
-                                    <tr>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b;">디자인 작업명</th>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b; text-align: right;">수정 횟수</th>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b; text-align: right;">페이지 수</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if dept.tables.prev_task_list %}
-                                    {% for task in dept.tables.prev_task_list %}
-                                    <tr>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">{{ task.name }}</td>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; text-align: right; color: #64748b;">{{ task.revision_count }}회</td>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; text-align: right; color: #64748b;">{{ task.pages }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% else %}
-                                    <tr><td colspan="2" style="padding: 20px; text-align: center; color: #94a3b8;">데이터 없음</td></tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <!-- Prev Month Tasks -->
+                <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-100 px-4 py-2 flex justify-between items-center">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">{{ dept.prev_month }}</p>
+                        {% if dept.tables.prev_task_list %}
+                        <p class="text-[10px] text-slate-400">{{ dept.tables.prev_task_list|length }}건 / {{ dept.tables.prev_task_list|sum(attribute='pages') }}p</p>
+                        {% endif %}
                     </div>
-
-                    <!-- Right Column: Current Month -->
-                    <div class="month-column current">
-                         <div class="month-title curr">{{ dept.month }} 디자인 성과</div>
-                        
-                        <!-- Metric Cards (Pink) -->
-                        <div class="metrics-grid cols-2" style="margin-bottom: 1rem;">
-                            <div class="metric-card" style="background: #fdf2f8; border: 1px solid #fce7f3;">
-                                <div class="metric-icon-box" style="background: #ec4899; color: white;">
-                                    <i class="fa-solid fa-layer-group"></i>
-                                </div>
-                                <div class="metric-label">총 작업 건수</div>
-                                <div class="metric-value" style="color: #be185d;">{{ dept.tables.curr_task_list|length }}<span class="metric-unit"> 건</span></div>
-                            </div>
-                            <div class="metric-card" style="background: #fdf2f8; border: 1px solid #fce7f3;">
-                                <div class="metric-icon-box" style="background: #be185d; color: white;">
-                                    <i class="fa-regular fa-image"></i>
-                                </div>
-                                <div class="metric-label">총 완료 페이지</div>
-                                <div class="metric-value" style="color: #be185d;">{{ dept.tables.curr_task_list|sum(attribute='pages') }}<span class="metric-unit"> 페이지</span></div>
+                    {% if dept.tables.prev_task_list %}
+                    <div class="divide-y divide-slate-100">
+                        {% for task in dept.tables.prev_task_list %}
+                        <div class="px-4 py-2 flex items-center justify-between">
+                            <span class="text-xs text-slate-700 truncate flex-1">{{ task.name }}</span>
+                            <div class="flex items-center gap-3 text-[10px] text-slate-400 shrink-0">
+                                <span>{{ task.revision_count }}회</span>
+                                <span class="font-bold text-slate-600">{{ task.pages }}p</span>
                             </div>
                         </div>
-
-                         <!-- Task Table -->
-                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-                            <table class="data-table">
-                                <thead style="background: #f8fafc;">
-                                    <tr>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b;">디자인 작업명</th>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b; text-align: right;">수정 횟수</th>
-                                        <th style="padding: 12px; font-size: 0.8rem; color: #64748b; text-align: right;">페이지 수</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if dept.tables.curr_task_list %}
-                                    {% for task in dept.tables.curr_task_list %}
-                                    <tr>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">{{ task.name }}</td>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; text-align: right; color: #64748b;">{{ task.revision_count }}회</td>
-                                        <td style="padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; text-align: right; color: #64748b;">{{ task.pages }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% else %}
-                                    <tr><td colspan="2" style="padding: 20px; text-align: center; color: #94a3b8;">데이터 없음</td></tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <p class="px-4 py-3 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
+                </div>
+                <!-- Curr Month Tasks -->
+                <div class="bg-blue-50/30 rounded-xl border border-blue-100 overflow-hidden">
+                    <div class="bg-blue-50 px-4 py-2 flex justify-between items-center">
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">{{ dept.curr_month|default(dept.month) }}</p>
+                        {% if dept.tables.curr_task_list %}
+                        <p class="text-[10px] text-blue-400">{{ dept.tables.curr_task_list|length }}건 / {{ dept.tables.curr_task_list|sum(attribute='pages') }}p</p>
+                        {% endif %}
+                    </div>
+                    {% if dept.tables.curr_task_list %}
+                    <div class="divide-y divide-blue-50">
+                        {% for task in dept.tables.curr_task_list %}
+                        <div class="px-4 py-2 flex items-center justify-between">
+                            <span class="text-xs text-slate-700 truncate flex-1">{{ task.name }}</span>
+                            <div class="flex items-center gap-3 text-[10px] text-slate-400 shrink-0">
+                                <span>{{ task.revision_count }}회</span>
+                                <span class="font-bold text-blue-600">{{ task.pages }}p</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="px-4 py-3 text-xs text-slate-400 italic">데이터 없음</p>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
+
         </div>
         {% endif %}
         {% endfor %}
 
-        <!-- Summary Section -->
+        <!-- 4. Summary & Action Plan -->
         {% if summary %}
-        <div class="report-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: #dbeafe;">
-                    <span>📋</span>
+        <div class="card p-6 md:p-8 bg-slate-900 text-white relative overflow-hidden fade-in delay-3">
+            <div class="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-white/10 p-2 rounded-lg"><i data-lucide="compass" class="w-6 h-6 text-yellow-400"></i></div>
+                    <h2 class="text-xl font-bold text-white">{{ summary.title|default('종합 분석 및 전략') }}</h2>
                 </div>
-                <h2 class="section-title">종합 분석 및 실행 계획</h2>
-            </div>
 
-            <!-- Summary Box -->
-            <div class="summary-section">
-                <div class="summary-title">{{ summary.title }}</div>
-                <div class="summary-content">{{ summary.content|safe }}</div>
-            </div>
-
-            <!-- Detailed Analysis -->
-            {% if summary.analysis_sections %}
-            <div style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">1</span>
-                    상세 분석
-                </h3>
-                {% for section in summary.analysis_sections %}
-                <div class="insight-box {{ section.color|default('blue') }}">
-                    <div class="insight-title">{{ section.title }}</div>
-                    <div class="insight-content">{{ section.content|safe }}</div>
+                <!-- Summary Content -->
+                {% if summary.content %}
+                <div class="bg-white/5 p-5 rounded-xl border border-white/10 mb-6 text-sm text-slate-300 leading-relaxed">
+                    {{ summary.content|safe }}
                 </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+                {% endif %}
 
-            <!-- Diagnosis and Strategy -->
-            {% if summary.diagnosis %}
-            <div style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.125rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">2</span>
-                    핵심 진단 및 전략
-                </h3>
-                <div class="diagnosis-grid">
-                    {% for item in summary.diagnosis %}
-                    <div class="diagnosis-card">
-                        <div class="diagnosis-header {{ item.header_color|default('blue') }}">{{ item.title }}</div>
-                        <div class="diagnosis-content">{{ item.content|safe }}</div>
+                <!-- Analysis Sections -->
+                {% if summary.analysis_sections %}
+                <div class="space-y-4 mb-6">
+                    {% for section in summary.analysis_sections %}
+                    <div class="bg-white/10 p-5 rounded-xl border border-white/5">
+                        <h3 class="font-bold text-slate-200 mb-2">{{ section.title }}</h3>
+                        <div class="text-sm text-slate-300 leading-relaxed">{{ section.content|safe }}</div>
                     </div>
                     {% endfor %}
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            <!-- Action Plan -->
-            {% if summary.action_plan %}
-            <div class="action-plan">
-                <h3 class="action-plan-title">
-                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">3</span>
-                    {{ summary.action_plan_month }} 실행 계획 (Action Plan)
-                </h3>
-                <table class="action-table">
-                    <thead>
-                        <tr>
-                            <th>아젠다</th>
-                            <th>플랜(plan)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <!-- Diagnosis -->
+                {% if summary.diagnosis %}
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    {% for item in summary.diagnosis %}
+                    <div class="bg-white/10 p-5 rounded-xl border border-white/5">
+                        <p class="font-bold text-sm mb-2 {% if loop.index == 1 %}text-green-400{% else %}text-red-400{% endif %}">{{ item.title }}</p>
+                        <div class="text-sm text-slate-300 leading-relaxed">{{ item.content|safe }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Action Plan -->
+                {% if summary.action_plan %}
+                <div>
+                    <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
+                        <span class="bg-indigo-600 text-[10px] px-2 py-0.5 rounded uppercase font-bold">Action Plan</span>
+                        {{ summary.action_plan_month|default('') }} 실행 계획
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-3">
                         {% for item in summary.action_plan %}
-                        <tr>
-                            <td class="agenda-cell">{{ item.agenda|safe }}</td>
-                            <td class="plan-cell">{{ item.plan|safe }}</td>
-                        </tr>
+                        <div class="strategy-card bg-slate-800 p-4 rounded-xl border-l-{% if loop.index == 1 %}yellow{% elif loop.index == 2 %}green{% elif loop.index == 3 %}blue{% else %}purple{% endif %}-400">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">{{ item.agenda|safe }}</p>
+                            <p class="text-sm text-slate-300">{{ item.plan|safe }}</p>
+                        </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
         {% else %}
-        <!-- Default Summary Section -->
-        <div class="report-section">
-            <div class="section-header">
-                <div class="section-icon" style="background: #dbeafe;">
-                    <span>📋</span>
-                </div>
-                <h2 class="section-title">종합 분석 및 실행 계획</h2>
+        <!-- Default Summary -->
+        <div class="card p-6 md:p-8 bg-slate-900 text-white fade-in delay-3">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-white/10 p-2 rounded-lg"><i data-lucide="file-text" class="w-5 h-5 text-slate-300"></i></div>
+                <h2 class="text-lg font-bold">종합 요약</h2>
             </div>
-
-            <div class="summary-section">
-                <div class="summary-title">종합 요약</div>
-                <div class="summary-content">
-                    전반적인 데이터 분석 결과, 각 채널별로 유의미한 성과와 개선점이 확인되었습니다.<br>
-                    위 데이터를 바탕으로 다음 달 마케팅 전략을 수립하시기 바랍니다.
-                </div>
-            </div>
-
-            <!-- Action Plan -->
-            {% if summary.action_plan %}
-            <div class="action-plan">
-                <h3 class="action-plan-title">
-                    <span style="background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">1</span>
-                    실행 계획 (Action Plan)
-                </h3>
-                <table class="action-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px; text-align: center;">채널</th>
-                            <th style="width: 40%;">아젠다</th>
-                            <th>플랜(plan)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in summary.action_plan %}
-                        <tr>
-                            <td class="agenda-cell" style="text-align: center; font-weight: bold; color: #334155;">{{ item.department }}</td>
-                            <td class="agenda-cell">{{ item.agenda|safe }}</td>
-                            <td class="plan-cell">{{ item.plan|safe }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
+            <p class="text-sm text-slate-300">전반적인 데이터 분석 결과, 각 채널별로 유의미한 성과와 개선점이 확인되었습니다.</p>
+            <p class="text-sm text-slate-400 mt-2">위 데이터를 바탕으로 다음 달 마케팅 전략을 수립하시기 바랍니다.</p>
         </div>
         {% endif %}
+
+        <!-- 5. Footer -->
+        <footer class="text-center text-slate-400 text-xs py-4">
+            <p>Generated by Marketing Analytics System | Powered by (주)그룹디</p>
+        </footer>
+
     </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
+
 """
 
 
