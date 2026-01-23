@@ -269,13 +269,13 @@ DEPT_FIELDS = {
         'curr_key': 'current_month_data',
         'fields': [
             ('total_reservations', '총 신청'),
-            ('new_reservations', '신규'),
-            ('revisit_reservations', '재진'),
+            ('completed_count', '내원 확정'),
+            ('canceled_count', '취소/노쇼'),
         ],
         'metrics': [
             ('total_reservations', '총 신청', '건'),
-            ('new_reservations', '신규', '건'),
-            ('revisit_reservations', '재진', '건'),
+            ('completed_count', '내원 확정', '건'),
+            ('canceled_count', '취소/노쇼', '건'),
         ]
     },
     'ads': {
@@ -337,6 +337,10 @@ def render_department_card(dept_key: str, label: str, data: dict):
     else:
         render_read_metrics(dept_key, data)
 
+    # Show treatment TOP5 for reservation
+    if dept_key == 'reservation':
+        render_treatment_top5(data)
+
     st.markdown("<hr style='border:none; border-top:1px solid #f1f5f9; margin:0.75rem 0;'>", unsafe_allow_html=True)
 
 
@@ -384,6 +388,42 @@ def render_read_metrics(dept_key: str, data: dict):
             st.metric("완료 병원", f"{completed}개")
         with col3:
             st.metric("전체 병원", f"{total}개")
+
+
+def render_treatment_top5(data: dict):
+    """Show treatment TOP5 breakdown for reservation data."""
+    tables = data.get('tables', {})
+    curr_treatment = tables.get('treatment_top5', [])
+    prev_treatment = tables.get('prev_treatment_top5', [])
+
+    if not curr_treatment and not prev_treatment:
+        return
+
+    st.markdown("""
+    <div style="margin-top:0.75rem; margin-bottom:0.25rem;">
+        <span style="font-size:0.75rem; font-weight:700; color:#475569;">🦷 희망 진료 TOP5</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_prev, col_curr = st.columns(2)
+    with col_prev:
+        if prev_treatment:
+            st.caption("전월")
+            for i, item in enumerate(prev_treatment[:5], 1):
+                name = item.get('treatment', '')
+                count = item.get('count', 0)
+                st.markdown(f"<span style='font-size:0.72rem; color:#64748b;'>{i}. {name} <b>{count}건</b></span>", unsafe_allow_html=True)
+        else:
+            st.caption("전월: 데이터 없음")
+    with col_curr:
+        if curr_treatment:
+            st.caption("당월")
+            for i, item in enumerate(curr_treatment[:5], 1):
+                name = item.get('treatment', '')
+                count = item.get('count', 0)
+                st.markdown(f"<span style='font-size:0.72rem; color:#1e293b;'>{i}. {name} <b>{count}건</b></span>", unsafe_allow_html=True)
+        else:
+            st.caption("당월: 데이터 없음")
 
 
 def render_inline_edit(dept_key: str, data: dict):

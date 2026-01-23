@@ -282,28 +282,37 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                 if pd.isna(col): continue
                 col_str = str(col).strip()
 
-                # Priority 4: Explicit Survey (User Request)
+                # Priority 5: Explicit Survey (User Request)
                 if '원하시는 진료' in col_str or '원하시는 시술' in col_str:
+                    if 5 > highest_priority:
+                        best_treatment_col = col
+                        highest_priority = 5
+                # Priority 4: Detail Selection
+                elif '선택시술(상세)' in col_str or '선택시술' in col_str:
                     if 4 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 4
-                # Priority 3: Detail Selection
-                elif '선택시술(상세)' in col_str or '선택시술' in col_str:
+                # Priority 3: Generic Question with '진료' or '시술'
+                elif '어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str:
                     if 3 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 3
-                # Priority 2: Generic Question with '진료' or '시술'
-                elif '어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str:
+                # Priority 2: Column containing '진료' or '시술' keyword
+                elif ('진료' in col_str or '시술' in col_str) and ('일시' not in col_str and '상태' not in col_str):
                     if 2 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 2
-                # Priority 1: Column containing '진료' or '시술' keyword
-                elif ('진료' in col_str or '시술' in col_str) and ('일시' not in col_str and '상태' not in col_str):
+                # Priority 1: Product/Service/Menu Name
+                elif '상품명' in col_str or '서비스명' in col_str or '서비스' == col_str:
                     if 1 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 1
-                # Priority 0: Product Name (Fallback)
-                elif '상품명' in col_str:
+                elif '예약메뉴' in col_str or '예약 메뉴' in col_str or '예약항목' in col_str or '예약 항목' in col_str:
+                    if 1 > highest_priority:
+                        best_treatment_col = col
+                        highest_priority = 1
+                # Priority 0: Menu Name (Fallback)
+                elif '메뉴명' in col_str or ('메뉴' == col_str):
                     if 0 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 0
