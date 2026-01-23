@@ -1037,7 +1037,25 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
             'no_prev_data_msg': '전월 데이터 없음' if not prev_views_top5 else None,
         })
 
-    # Traffic TOP5 + 기타 (총 6개)
+    # Source TOP5 (유입경로 = 검색 키워드)
+    source_top5 = tables.get('source_top5', [])
+    prev_source_top5 = tables.get('prev_source_top5', [])
+    if source_top5 or prev_source_top5:
+        # 기타 제외한 항목만 표시
+        curr_items_filtered = [t for t in source_top5 if t.get('source', '') != '기타'][:5]
+        prev_items_filtered = [t for t in prev_source_top5 if t.get('source', '') != '기타'][:5]
+        curr_max = max((t.get('ratio', 0) for t in curr_items_filtered), default=1) or 1
+        prev_max = max((t.get('ratio', 0) for t in prev_items_filtered), default=1) or 1
+        top5_sections.append({
+            'title': '유입 키워드 TOP5',
+            'icon': '🏷️',
+            'bar_color': 'purple',
+            'prev_items': [{'label': t.get('source', ''), 'value_display': f"{t.get('ratio', 0):.1f}%", 'pct': (t.get('ratio', 0) / prev_max) * 100} for t in prev_items_filtered] if prev_items_filtered else [],
+            'curr_items': [{'label': t.get('source', ''), 'value_display': f"{t.get('ratio', 0):.1f}%", 'pct': (t.get('ratio', 0) / curr_max) * 100} for t in curr_items_filtered],
+            'no_prev_data_msg': '전월 데이터 없음' if not prev_items_filtered else None,
+        })
+
+    # Traffic TOP5 + 기타 (총 6개) - 상세유입경로
     traffic_top5 = tables.get('traffic_top5', [])
     prev_traffic_top5 = tables.get('prev_traffic_top5', [])
     if traffic_top5 or prev_traffic_top5:
@@ -1064,9 +1082,16 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
             'views': f"{top_post.get('views', 0):,}"
         }
 
-    # Get top keyword from traffic_top5
-    traffic_top5 = tables.get('traffic_top5', [])
-    if traffic_top5:
+    # Get top keyword from source_top5 (유입 키워드) - 기타 제외
+    source_for_insight = [s for s in tables.get('source_top5', []) if s.get('source', '') != '기타']
+    if source_for_insight:
+        top_keyword = source_for_insight[0]
+        key_insights['top_keyword'] = {
+            'keyword': top_keyword.get('source', ''),
+            'ratio': f"{top_keyword.get('ratio', 0):.1f}"
+        }
+    elif traffic_top5:
+        # Fallback to traffic if no source data
         top_keyword = traffic_top5[0]
         key_insights['top_keyword'] = {
             'keyword': top_keyword.get('source', ''),

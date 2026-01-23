@@ -454,7 +454,8 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
     추가: URL에서 검색 키워드 추출하여 급상승 검색어 TOP10 생성
     월별 데이터 분리하여 전월/당월 비교 가능
     """
-    inflow_data = []
+    inflow_data = []  # 상세유입경로 (C열)
+    source_data = []  # 유입경로 (A열) - 검색 키워드
     search_keywords = []  # 검색어 수집
     file_months = []
 
@@ -505,47 +506,59 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
             # 컬럼명 리스트
             col_names = [str(c).strip() if pd.notna(c) else '' for c in df.columns]
 
-            # C열(상세유입경로)과 D열(비율)을 사용
-            # '상세유입경로' 컬럼 찾기
+            # A열(유입경로), B열(비율), C열(상세유입경로), D열(비율) 위치 찾기
+            source_col_idx = 0  # A열: 유입경로 (기본값)
+            source_ratio_col_idx = 1  # B열: 비율 (기본값)
             inflow_col_idx = 2  # C열: 상세유입경로 (기본값)
             inflow_ratio_col_idx = 3  # D열: 비율 (기본값)
 
             for i, col_name in enumerate(col_names):
                 if '상세유입경로' in col_name or '상세' in col_name:
                     inflow_col_idx = i
-                    # 바로 다음 컬럼이 비율
                     if i + 1 < len(col_names):
                         inflow_ratio_col_idx = i + 1
-                    break
+                elif col_name == '유입경로':
+                    source_col_idx = i
+                    if i + 1 < len(col_names):
+                        source_ratio_col_idx = i + 1
 
-            # 데이터 추출 - C열(상세유입경로)과 D열(비율) 사용
+            # 데이터 추출
             for _, row in df.iterrows():
-                if inflow_col_idx >= len(row) or inflow_ratio_col_idx >= len(row):
-                    continue
+                # A열(유입경로) + B열(비율) 추출
+                if source_col_idx < len(row) and source_ratio_col_idx < len(row):
+                    src_val = row.iloc[source_col_idx]
+                    src_ratio_val = row.iloc[source_ratio_col_idx]
+                    src_raw = str(src_val).strip() if pd.notna(src_val) else ''
+                    src_ratio = pd.to_numeric(str(src_ratio_val).replace('%', ''), errors='coerce') or 0
+                    if src_raw and src_raw.lower() != 'nan' and src_ratio > 0:
+                        source_data.append({
+                            'source': src_raw,
+                            'ratio': round(src_ratio, 2),
+                            'file_month': file_month
+                        })
 
-                inflow_val = row.iloc[inflow_col_idx]
-                ratio_val = row.iloc[inflow_ratio_col_idx]
-
-                # 상세유입경로 값이 있는지 확인 (NaN, 빈 문자열 제외)
-                inflow_raw = str(inflow_val).strip() if pd.notna(inflow_val) else ''
-                ratio = pd.to_numeric(str(ratio_val).replace('%', ''), errors='coerce') or 0
-
-                # 상세유입경로에 값이 있고 비율도 있는 행만 추가
-                if inflow_raw and inflow_raw.lower() != 'nan' and ratio > 0:
-                    inflow_data.append({
-                        'source': inflow_raw,
-                        'ratio': round(ratio, 2),
-                        'file_month': file_month
-                    })
+                # C열(상세유입경로) + D열(비율) 추출
+                if inflow_col_idx < len(row) and inflow_ratio_col_idx < len(row):
+                    inflow_val = row.iloc[inflow_col_idx]
+                    ratio_val = row.iloc[inflow_ratio_col_idx]
+                    inflow_raw = str(inflow_val).strip() if pd.notna(inflow_val) else ''
+                    ratio = pd.to_numeric(str(ratio_val).replace('%', ''), errors='coerce') or 0
+                    if inflow_raw and inflow_raw.lower() != 'nan' and ratio > 0:
+                        inflow_data.append({
+                            'source': inflow_raw,
+                            'ratio': round(ratio, 2),
+                            'file_month': file_month
+                        })
 
         except Exception as e:
             print(f"Error processing inflow file {f.name}: {e}")
             continue
 
-    if not inflow_data:
+    if not inflow_data and not source_data:
         return {}
 
-    inflow_df = pd.DataFrame(inflow_data)
+    inflow_df = pd.DataFrame(inflow_data) if inflow_data else pd.DataFrame()
+    source_df = pd.DataFrame(source_data) if source_data else pd.DataFrame()
     sorted_months = sorted(set(file_months)) if file_months else []
 
     # 비율 정규화 함수 (합이 100%가 되도록)
@@ -573,17 +586,33 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
             result = top5_non_etc
         return result.to_dict('records')
 
-    # 월별로 TOP5 + 기타 분리
+    # 월별로 상세유입경로 TOP5 + 기타 분리
     monthly_traffic_top5 = {}
-    for month in sorted_months:
-        month_data = inflow_df[inflow_df['file_month'] == month]
-        if not month_data.empty:
-            month_agg = month_data.groupby('source')['ratio'].sum().reset_index()
-            monthly_traffic_top5[month] = get_top5_with_etc(month_agg)
+    top5 = []
+    if not inflow_df.empty:
+        for month in sorted_months:
+            month_data = inflow_df[inflow_df['file_month'] == month]
+            if not month_data.empty:
+                month_agg = month_data.groupby('source')['ratio'].sum().reset_index()
+                monthly_traffic_top5[month] = get_top5_with_etc(month_agg)
 
-    # 전체 집계 (하위 호환성)
-    inflow_agg = inflow_df.groupby('source')['ratio'].sum().reset_index()
-    top5 = get_top5_with_etc(inflow_agg)
+        # 전체 집계 (하위 호환성)
+        inflow_agg = inflow_df.groupby('source')['ratio'].sum().reset_index()
+        top5 = get_top5_with_etc(inflow_agg)
+
+    # 월별로 유입경로(검색키워드) TOP5 + 기타 분리
+    monthly_source_top5 = {}
+    source_top5 = []
+    if not source_df.empty:
+        for month in sorted_months:
+            month_data = source_df[source_df['file_month'] == month]
+            if not month_data.empty:
+                month_agg = month_data.groupby('source')['ratio'].sum().reset_index()
+                monthly_source_top5[month] = get_top5_with_etc(month_agg)
+
+        # 전체 집계
+        source_agg = source_df.groupby('source')['ratio'].sum().reset_index()
+        source_top5 = get_top5_with_etc(source_agg)
 
     # 검색어 TOP10 집계 (월별)
     search_keywords_top10 = []
@@ -605,9 +634,11 @@ def process_inflow_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
 
     return {
         'traffic_top5': top5,
+        'source_top5': source_top5,  # 유입경로(검색키워드) TOP5
         'search_keywords_top10': search_keywords_top10,  # 급상승 검색어 TOP10
         'file_months': sorted_months,
-        'monthly_traffic_top5': monthly_traffic_top5,  # 월별 트래픽 TOP5
+        'monthly_traffic_top5': monthly_traffic_top5,  # 월별 상세유입경로 TOP5
+        'monthly_source_top5': monthly_source_top5,  # 월별 유입경로 TOP5
         'monthly_search_keywords': monthly_search_keywords  # 월별 검색어 TOP10
     }
 
@@ -970,15 +1001,22 @@ def process_blog(files: List[LoadedFile]) -> Dict[str, Any]:
             })
 
     monthly_traffic_top5 = inflow_result.get('monthly_traffic_top5', {})
+    monthly_source_top5 = inflow_result.get('monthly_source_top5', {})
 
-    # 당월/전월 traffic_top5
+    # 당월/전월 traffic_top5 (상세유입경로)
     curr_traffic_top5 = monthly_traffic_top5.get(current_month, inflow_result.get('traffic_top5', []))
     prev_traffic_top5 = monthly_traffic_top5.get(prev_month, [])
+
+    # 당월/전월 source_top5 (유입경로 = 검색 키워드)
+    curr_source_top5 = monthly_source_top5.get(current_month, inflow_result.get('source_top5', []))
+    prev_source_top5 = monthly_source_top5.get(prev_month, [])
 
     # Tables with new features
     tables = {
         'traffic_top5': curr_traffic_top5,
-        'prev_traffic_top5': prev_traffic_top5,  # 전월 트래픽 TOP5
+        'prev_traffic_top5': prev_traffic_top5,  # 전월 상세유입경로 TOP5
+        'source_top5': curr_source_top5,  # 당월 유입경로(검색키워드) TOP5
+        'prev_source_top5': prev_source_top5,  # 전월 유입경로 TOP5
         'views_top5': curr_views_top5,
         'prev_views_top5': prev_views_top5,  # 전월 조회수 TOP5
         'views_top10': views_rank_result.get('views_top10', []),
@@ -993,7 +1031,8 @@ def process_blog(files: List[LoadedFile]) -> Dict[str, Any]:
         'steady_sellers': views_rank_result.get('steady_sellers', []),  # 효자 콘텐츠
         # 월별 데이터 (상세)
         'monthly_views_top5': monthly_views_top5,
-        'monthly_traffic_top5': monthly_traffic_top5
+        'monthly_traffic_top5': monthly_traffic_top5,
+        'monthly_source_top5': monthly_source_top5  # 월별 유입경로 TOP5
     }
 
     # Charts
