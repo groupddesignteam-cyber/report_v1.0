@@ -130,6 +130,7 @@ def process_uploaded_files(uploaded_files):
             st.session_state.processed_results['setting'] = process_setting(routed_files['setting'])
 
     st.session_state.files_uploaded = True
+    st.session_state.clinic_name_confirmed = False
     st.rerun()
 
 
@@ -388,24 +389,33 @@ def render_dashboard():
     """Render the main dashboard after data processing."""
     settings = st.session_state.report_settings
 
-    # 거래처명 불일치 경고 체크
+    # 거래처명 자동 감지 및 불일치 체크
     detected_names, source_names = check_clinic_name_mismatch()
-    if len(detected_names) > 1:
-        names_html = ', '.join([f'<strong>{name}</strong>' for name in detected_names])
-        sources_html = ' / '.join([f'{src}: <strong>{name}</strong>' for src, name in source_names.items()])
-        st.markdown(f"""
-        <div class="clinic-mismatch-warning">
-            <div class="warning-header">
-                <div class="warning-dot"></div>
-                <span class="warning-title">거래처명 불일치 감지</span>
-            </div>
-            <div class="warning-content">
-                데이터 파일에서 서로 다른 거래처명이 감지되었습니다: {names_html}<br>
-                출처: {sources_html}<br>
-                올바른 거래처의 데이터인지 확인해주세요.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    if len(detected_names) == 1:
+        auto_name = list(detected_names)[0]
+        if settings['clinic_name'] != auto_name and not st.session_state.get('clinic_name_confirmed'):
+            st.session_state.report_settings['clinic_name'] = auto_name
+            settings = st.session_state.report_settings
+    elif len(detected_names) > 1 and not st.session_state.get('clinic_name_confirmed'):
+        name_list = sorted(detected_names)
+        with st.container():
+            st.warning("데이터에서 서로 다른 거래처명이 감지되었습니다.")
+            sources_text = ' / '.join([f'{src}: **{name}**' for src, name in source_names.items()])
+            st.caption(sources_text)
+            col_select, col_btn = st.columns([3, 1])
+            with col_select:
+                selected_name = st.selectbox(
+                    "분석할 치과를 선택하세요",
+                    options=name_list,
+                    key="clinic_name_selector",
+                    label_visibility="collapsed"
+                )
+            with col_btn:
+                if st.button("설정", type="primary", use_container_width=True):
+                    st.session_state.report_settings['clinic_name'] = selected_name
+                    st.session_state.clinic_name_confirmed = True
+                    st.rerun()
+        return  # 선택 전에는 대시보드 표시하지 않음
 
     # Compact header
     col_title, col_actions = st.columns([3, 1])
@@ -422,6 +432,7 @@ def render_dashboard():
             st.session_state.processed_results = {}
             st.session_state.all_loaded_files = []
             st.session_state.edit_mode = False
+            st.session_state.clinic_name_confirmed = False
             st.rerun()
 
     # Generate HTML report

@@ -109,6 +109,15 @@ body,
     background-color: var(--bg-primary) !important;
 }
 
+/* Constrain content width */
+.block-container,
+[data-testid="stAppViewBlockContainer"] {
+    max-width: 920px !important;
+    margin: 0 auto !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+
 /* ============================================
    Typography
    ============================================ */

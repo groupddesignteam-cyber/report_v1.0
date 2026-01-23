@@ -725,72 +725,18 @@ HTML_TEMPLATE = """
 
             <!-- Setting: Workplan Achievement -->
             {% if dept.id == 'setting' and dept.channel_completion %}
-            <div class="mb-6">
-                <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-500"></i>
-                    플랫폼별 세팅 달성률
-                </h3>
-
-                <!-- Overall Progress -->
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4 rounded-xl mb-4 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs opacity-80 uppercase font-bold">전체 달성률</p>
-                        <p class="text-3xl font-black">{{ dept.avg_progress_rate }}%</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {% for ch in dept.channel_completion %}
+                <div class="relative bg-white p-3 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
+                        <div class="h-full {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
                     </div>
-                    <div class="flex gap-4 text-right">
-                        <div>
-                            <p class="text-xs opacity-80">완료 병원</p>
-                            <p class="text-xl font-bold">{{ dept.completed_clinics }}개</p>
-                        </div>
-                        <div>
-                            <p class="text-xs opacity-80">주의 병원</p>
-                            <p class="text-xl font-bold text-red-200">{{ dept.risk_clinics }}개</p>
-                        </div>
-                    </div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{{ ch.channel }}</p>
+                    <p class="text-lg font-black {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</p>
+                    <p class="text-[10px] text-slate-400">{{ ch.completed }}/{{ ch.total }}</p>
                 </div>
-
-                <!-- Channel Progress Bars -->
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-                    {% for ch in dept.channel_completion %}
-                    <div>
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-medium text-slate-700">{{ ch.channel }}</span>
-                            <span class="text-xs font-bold {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</span>
-                        </div>
-                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all {% if ch.completion_rate >= 80 %}bg-green-500{% elif ch.completion_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ ch.completion_rate }}%"></div>
-                        </div>
-                        <div class="flex justify-end mt-0.5">
-                            <span class="text-[10px] text-slate-400">{{ ch.completed }}/{{ ch.total }}개 완료</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+                {% endfor %}
             </div>
-
-            <!-- Clinic Progress Table -->
-            {% if dept.clinic_progress %}
-            <div class="mb-6">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="building-2" class="w-4 h-4 text-indigo-500"></i>
-                    병원별 진행 현황
-                </h3>
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="divide-y divide-slate-100">
-                        {% for clinic in dept.clinic_progress %}
-                        <div class="px-4 py-2.5 flex items-center gap-3">
-                            <span class="text-xs font-medium text-slate-700 flex-1 truncate">{{ clinic.clinic }}</span>
-                            <div class="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full {% if clinic.progress_rate >= 80 %}bg-green-500{% elif clinic.progress_rate >= 50 %}bg-amber-400{% else %}bg-red-400{% endif %}" style="width: {{ clinic.progress_rate }}%"></div>
-                            </div>
-                            <span class="text-[10px] font-bold w-10 text-right {% if clinic.progress_rate >= 80 %}text-green-600{% elif clinic.progress_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ clinic.progress_rate|round(0)|int }}%</span>
-                            <span class="text-[10px] text-slate-400 w-12 text-right">{{ clinic.completed_channels }}/{{ clinic.total_channels }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
             {% endif %}
 
         </div>
