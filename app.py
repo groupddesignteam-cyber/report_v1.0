@@ -353,25 +353,25 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_data = res_data.get('prev_month') or {}
+                prev_data = res_data.get('prev_month_data') or {}
                 prev_total = st.number_input("전월 총 예약건", value=safe_int(prev_data.get('total_reservations', 0)), key="edit_res_prev_total")
                 prev_new = st.number_input("전월 신규 예약", value=safe_int(prev_data.get('new_reservations', 0)), key="edit_res_prev_new")
                 prev_revisit = st.number_input("전월 재진 예약", value=safe_int(prev_data.get('revisit_reservations', 0)), key="edit_res_prev_revisit")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_data = res_data.get('current_month') or {}
+                curr_data = res_data.get('current_month_data') or {}
                 curr_total = st.number_input("당월 총 예약건", value=safe_int(curr_data.get('total_reservations', 0)), key="edit_res_curr_total")
                 curr_new = st.number_input("당월 신규 예약", value=safe_int(curr_data.get('new_reservations', 0)), key="edit_res_curr_new")
                 curr_revisit = st.number_input("당월 재진 예약", value=safe_int(curr_data.get('revisit_reservations', 0)), key="edit_res_curr_revisit")
 
             if st.button("💾 예약 데이터 저장", key="save_res"):
-                results['reservation']['prev_month']['total_reservations'] = prev_total
-                results['reservation']['prev_month']['new_reservations'] = prev_new
-                results['reservation']['prev_month']['revisit_reservations'] = prev_revisit
-                results['reservation']['current_month']['total_reservations'] = curr_total
-                results['reservation']['current_month']['new_reservations'] = curr_new
-                results['reservation']['current_month']['revisit_reservations'] = curr_revisit
+                results['reservation']['prev_month_data']['total_reservations'] = prev_total
+                results['reservation']['prev_month_data']['new_reservations'] = prev_new
+                results['reservation']['prev_month_data']['revisit_reservations'] = prev_revisit
+                results['reservation']['current_month_data']['total_reservations'] = curr_total
+                results['reservation']['current_month_data']['new_reservations'] = curr_new
+                results['reservation']['current_month_data']['revisit_reservations'] = curr_revisit
                 st.success("예약 데이터가 저장되었습니다!")
                 st.rerun()
         else:
@@ -385,25 +385,25 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_ads = ads_data.get('prev_month') or {}
+                prev_ads = ads_data.get('prev_month_data') or {}
                 prev_spend = st.number_input("전월 광고비", value=safe_int(prev_ads.get('total_spend', 0)), key="edit_ads_prev_spend")
                 prev_imp = st.number_input("전월 노출수", value=safe_int(prev_ads.get('total_impressions', 0)), key="edit_ads_prev_imp")
                 prev_clicks = st.number_input("전월 클릭수", value=safe_int(prev_ads.get('total_clicks', 0)), key="edit_ads_prev_clicks")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_ads = ads_data.get('current_month') or {}
+                curr_ads = ads_data.get('current_month_data') or {}
                 curr_spend = st.number_input("당월 광고비", value=safe_int(curr_ads.get('total_spend', 0)), key="edit_ads_curr_spend")
                 curr_imp = st.number_input("당월 노출수", value=safe_int(curr_ads.get('total_impressions', 0)), key="edit_ads_curr_imp")
                 curr_clicks = st.number_input("당월 클릭수", value=safe_int(curr_ads.get('total_clicks', 0)), key="edit_ads_curr_clicks")
 
             if st.button("💾 광고 데이터 저장", key="save_ads"):
-                results['ads']['prev_month']['total_spend'] = prev_spend
-                results['ads']['prev_month']['total_impressions'] = prev_imp
-                results['ads']['prev_month']['total_clicks'] = prev_clicks
-                results['ads']['current_month']['total_spend'] = curr_spend
-                results['ads']['current_month']['total_impressions'] = curr_imp
-                results['ads']['current_month']['total_clicks'] = curr_clicks
+                results['ads']['prev_month_data']['total_spend'] = prev_spend
+                results['ads']['prev_month_data']['total_impressions'] = prev_imp
+                results['ads']['prev_month_data']['total_clicks'] = prev_clicks
+                results['ads']['current_month_data']['total_spend'] = curr_spend
+                results['ads']['current_month_data']['total_impressions'] = curr_imp
+                results['ads']['current_month_data']['total_clicks'] = curr_clicks
                 st.success("광고 데이터가 저장되었습니다!")
                 st.rerun()
         else:
@@ -417,21 +417,21 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_blog = blog_data.get('prev_month') or {}
+                prev_blog = blog_data.get('prev_month_data') or {}
                 prev_posts = st.number_input("전월 포스팅 수", value=safe_int(prev_blog.get('total_posts', 0)), key="edit_blog_prev_posts")
                 prev_views = st.number_input("전월 조회수", value=safe_int(prev_blog.get('total_views', 0)), key="edit_blog_prev_views")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_blog = blog_data.get('current_month') or {}
+                curr_blog = blog_data.get('current_month_data') or {}
                 curr_posts = st.number_input("당월 포스팅 수", value=safe_int(curr_blog.get('total_posts', 0)), key="edit_blog_curr_posts")
                 curr_views = st.number_input("당월 조회수", value=safe_int(curr_blog.get('total_views', 0)), key="edit_blog_curr_views")
 
             if st.button("💾 블로그 데이터 저장", key="save_blog"):
-                results['blog']['prev_month']['total_posts'] = prev_posts
-                results['blog']['prev_month']['total_views'] = prev_views
-                results['blog']['current_month']['total_posts'] = curr_posts
-                results['blog']['current_month']['total_views'] = curr_views
+                results['blog']['prev_month_data']['total_posts'] = prev_posts
+                results['blog']['prev_month_data']['total_views'] = prev_views
+                results['blog']['current_month_data']['total_posts'] = curr_posts
+                results['blog']['current_month_data']['total_views'] = curr_views
                 st.success("블로그 데이터가 저장되었습니다!")
                 st.rerun()
         else:
@@ -445,21 +445,21 @@ def render_data_editor():
 
             with col1:
                 st.markdown("**전월 데이터**")
-                prev_yt = yt_data.get('prev_month') or {}
+                prev_yt = yt_data.get('prev_month_data') or {}
                 prev_videos = st.number_input("전월 영상 수", value=safe_int(prev_yt.get('total_videos', 0)), key="edit_yt_prev_videos")
                 prev_yt_views = st.number_input("전월 조회수", value=safe_int(prev_yt.get('total_views', 0)), key="edit_yt_prev_views")
 
             with col2:
                 st.markdown("**당월 데이터**")
-                curr_yt = yt_data.get('current_month') or {}
+                curr_yt = yt_data.get('current_month_data') or {}
                 curr_videos = st.number_input("당월 영상 수", value=safe_int(curr_yt.get('total_videos', 0)), key="edit_yt_curr_videos")
                 curr_yt_views = st.number_input("당월 조회수", value=safe_int(curr_yt.get('total_views', 0)), key="edit_yt_curr_views")
 
             if st.button("💾 유튜브 데이터 저장", key="save_yt"):
-                results['youtube']['prev_month']['total_videos'] = prev_videos
-                results['youtube']['prev_month']['total_views'] = prev_yt_views
-                results['youtube']['current_month']['total_videos'] = curr_videos
-                results['youtube']['current_month']['total_views'] = curr_yt_views
+                results['youtube']['prev_month_data']['total_videos'] = prev_videos
+                results['youtube']['prev_month_data']['total_views'] = prev_yt_views
+                results['youtube']['current_month_data']['total_videos'] = curr_videos
+                results['youtube']['current_month_data']['total_views'] = curr_yt_views
                 st.success("유튜브 데이터가 저장되었습니다!")
                 st.rerun()
         else:
