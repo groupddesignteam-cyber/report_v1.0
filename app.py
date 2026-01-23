@@ -598,11 +598,23 @@ def render_dashboard():
             st.session_state.view_mode = 'preview'
             st.rerun()
 
+    # Manager's comment input
+    with st.expander("💬 담당자 코멘트 (보고서에 포함)", expanded=False):
+        manager_comment = st.text_area(
+            "보고서 상단에 표시될 담당자 브리핑을 입력하세요",
+            value=st.session_state.get('manager_comment', ''),
+            height=100,
+            placeholder="예: 이번 달은 광고 예산 증액으로 노출이 크게 증가했으며, 예약 전환율 개선이 필요합니다.",
+            key="manager_comment_input"
+        )
+        st.session_state['manager_comment'] = manager_comment
+
     # Generate HTML report for preview and download
     html_report = generate_html_report(
         st.session_state.processed_results,
         clinic_name=settings['clinic_name'],
-        report_date=settings['report_date']
+        report_date=settings['report_date'],
+        manager_comment=st.session_state.get('manager_comment', '')
     )
     filename = get_report_filename(settings['clinic_name'])
 

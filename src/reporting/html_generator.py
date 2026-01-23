@@ -3,6 +3,7 @@ HTML Report Generator using Jinja2 & Tailwind CSS
 Enhanced design matching the Streamlit dashboard style
 """
 
+import json
 from datetime import datetime
 from typing import Dict, Any, List
 from jinja2 import Template
@@ -16,6 +17,7 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ report_title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
@@ -1107,12 +1109,196 @@ HTML_TEMPLATE = """
         }
 
         /* Print styles */
+        /* Executive Summary Section */
+        .executive-summary {
+            background: var(--color-bg-white);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            margin-bottom: var(--space-3);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-border-light);
+        }
+
+        .executive-summary-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-2);
+            border-bottom: 2px solid var(--color-primary);
+        }
+
+        .executive-summary-title {
+            font-size: var(--font-xl);
+            font-weight: 800;
+            color: var(--color-text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        /* Radar Chart Container */
+        .radar-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-6);
+            margin-bottom: var(--space-4);
+        }
+
+        .radar-chart-wrapper {
+            width: 280px;
+            height: 280px;
+            position: relative;
+        }
+
+        .radar-scores {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .radar-score-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            background: var(--color-bg-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border);
+        }
+
+        .radar-score-label {
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            min-width: 45px;
+        }
+
+        .radar-score-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--color-border-light);
+            border-radius: 3px;
+            overflow: hidden;
+            min-width: 80px;
+        }
+
+        .radar-score-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .radar-score-value {
+            font-size: var(--font-sm);
+            font-weight: 700;
+            color: var(--color-text-primary);
+            min-width: 30px;
+            text-align: right;
+        }
+
+        /* Best & Worst Cards */
+        .highlight-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .highlight-card {
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-card.best {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #86efac;
+        }
+
+        .highlight-card.worst {
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+            border: 1px solid #fca5a5;
+        }
+
+        .highlight-card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: var(--font-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-2);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .highlight-card.best .highlight-card-badge {
+            background: #22c55e;
+            color: white;
+        }
+
+        .highlight-card.worst .highlight-card-badge {
+            background: #ef4444;
+            color: white;
+        }
+
+        .highlight-card-metric {
+            font-size: var(--font-lg);
+            font-weight: 700;
+            color: var(--color-text-primary);
+            margin-bottom: var(--space-1);
+        }
+
+        .highlight-card-source {
+            font-size: var(--font-xs);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .highlight-card-value {
+            font-size: var(--font-2xl);
+            font-weight: 800;
+        }
+
+        .highlight-card.best .highlight-card-value { color: #16a34a; }
+        .highlight-card.worst .highlight-card-value { color: #dc2626; }
+
+        /* Manager Comment Box */
+        .manager-comment {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-left: 4px solid var(--color-primary);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            padding: var(--space-4);
+            margin-top: var(--space-3);
+        }
+
+        .manager-comment-label {
+            font-size: var(--font-xs);
+            font-weight: 700;
+            color: var(--color-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-2);
+        }
+
+        .manager-comment-text {
+            font-size: var(--font-base);
+            color: var(--color-text-secondary);
+            font-style: italic;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
         @media print {
             @page { size: A4; margin: 1cm; }
             body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .report-section { box-shadow: none !important; break-inside: avoid; }
+            .executive-summary { box-shadow: none !important; break-inside: avoid; }
             .no-print { display: none !important; }
             .metric-card:hover { transform: none; box-shadow: var(--shadow-sm); }
+            .radar-chart-wrapper canvas { max-width: 100% !important; }
         }
     </style>
 </head>
@@ -1126,6 +1312,114 @@ HTML_TEMPLATE = """
             <p style="font-size: var(--font-md); font-weight: 600; color: var(--color-text-secondary);">{{ clinic_name }}</p>
             <p style="color: var(--color-text-light); font-size: var(--font-sm); margin-top: var(--space-1);">{{ report_date }} 발행</p>
         </div>
+
+        <!-- Executive Summary Section -->
+        {% if health_scores %}
+        <div class="executive-summary">
+            <div class="executive-summary-header">
+                <div class="section-icon" style="background: linear-gradient(135deg, #eff6ff, #dbeafe);">
+                    <span><i class="fas fa-chart-pie" style="color: var(--color-primary);"></i></span>
+                </div>
+                <span class="executive-summary-title">Marketing Health Overview</span>
+            </div>
+
+            <!-- Radar Chart + Score Bars -->
+            <div class="radar-container">
+                <div class="radar-chart-wrapper">
+                    <canvas id="healthRadar"></canvas>
+                </div>
+                <div class="radar-scores">
+                    {% for axis, score in health_scores.items() %}
+                    <div class="radar-score-item">
+                        <span class="radar-score-label">{{ axis }}</span>
+                        <div class="radar-score-bar">
+                            <div class="radar-score-fill" style="width: {{ score }}%; background: {% if score >= 70 %}var(--color-success){% elif score >= 40 %}var(--color-warning){% else %}var(--color-danger){% endif %};"></div>
+                        </div>
+                        <span class="radar-score-value">{{ score }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Best & Worst Highlights -->
+            {% if best_metric and worst_metric %}
+            <div class="highlight-cards">
+                <div class="highlight-card best">
+                    <div class="highlight-card-badge"><i class="fas fa-arrow-up" style="font-size: 8px;"></i> BEST</div>
+                    <div class="highlight-card-metric">{{ best_metric.name }}</div>
+                    <div class="highlight-card-source">{{ best_metric.source }}</div>
+                    <div class="highlight-card-value">{{ best_metric.growth }}%</div>
+                </div>
+                <div class="highlight-card worst">
+                    <div class="highlight-card-badge"><i class="fas fa-arrow-down" style="font-size: 8px;"></i> WORST</div>
+                    <div class="highlight-card-metric">{{ worst_metric.name }}</div>
+                    <div class="highlight-card-source">{{ worst_metric.source }}</div>
+                    <div class="highlight-card-value">{{ worst_metric.growth }}%</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Manager's Comment -->
+            {% if manager_comment %}
+            <div class="manager-comment">
+                <div class="manager-comment-label"><i class="fas fa-comment-dots"></i> 담당자 코멘트</div>
+                <div class="manager-comment-text">{{ manager_comment }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Radar Chart Script -->
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ctx = document.getElementById('healthRadar');
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'radar',
+                    data: {
+                        labels: {{ health_labels_json }},
+                        datasets: [{
+                            label: 'Marketing Health',
+                            data: {{ health_values_json }},
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            borderColor: 'rgba(59, 130, 246, 0.8)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        animation: { duration: 0 },
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 20,
+                                    font: { size: 9 },
+                                    backdropColor: 'transparent'
+                                },
+                                pointLabels: {
+                                    font: { size: 11, weight: '600', family: 'Pretendard' },
+                                    color: '#475569'
+                                },
+                                grid: { color: 'rgba(0,0,0,0.06)' },
+                                angleLines: { color: 'rgba(0,0,0,0.06)' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        </script>
+        {% endif %}
 
         {% for dept in departments %}
         {% if dept.has_data %}
@@ -2572,9 +2866,105 @@ def prepare_department_data(name: str, dept_id: str, result: Dict[str, Any]) -> 
     }
 
 
+def calculate_marketing_health(results: Dict[str, Any]) -> Dict[str, float]:
+    """Calculate 5-axis marketing health scores (0~100)."""
+    res_kpi = results.get('reservation', {}).get('kpi', {})
+    ads_kpi = results.get('ads', {}).get('kpi', {})
+    blog_kpi = results.get('blog', {}).get('kpi', {})
+    yt_kpi = results.get('youtube', {}).get('kpi', {})
+
+    if not any([res_kpi, ads_kpi, blog_kpi, yt_kpi]):
+        return {}
+
+    # 노출력: 전체 노출/조회수 기반
+    exposure_raw = (
+        (ads_kpi.get('total_impressions', 0) / 50000) * 40 +
+        (blog_kpi.get('total_views', 0) / 10000) * 30 +
+        (yt_kpi.get('total_impressions', 0) / 30000) * 30
+    )
+
+    # 전환력: 예약전환율 + CTR
+    conversion_raw = (
+        min(res_kpi.get('completion_rate', 0), 100) * 0.5 +
+        min(ads_kpi.get('avg_ctr', 0) * 10, 30) +
+        min(res_kpi.get('actual_reservations', 0) / 50 * 20, 20)
+    )
+
+    # 효율성: CPA 역비례 + 완료율
+    cpa = ads_kpi.get('cpa', 999999) or 999999
+    efficiency_raw = (
+        min(50000 / max(cpa, 1), 50) +
+        blog_kpi.get('publish_completion_rate', 0) * 0.25 +
+        yt_kpi.get('completion_rate', 0) * 0.25
+    )
+
+    # 확산성: 구독자 + CTR
+    spread_raw = (
+        min(yt_kpi.get('new_subscribers', 0) / 100 * 50, 50) +
+        min(yt_kpi.get('avg_ctr', 0) * 5, 30) +
+        min(abs(blog_kpi.get('views_mom_growth', 0)) * 0.2, 20)
+    )
+
+    # 성장성: MoM 성장률 평균
+    growths = [
+        res_kpi.get('mom_growth', 0),
+        ads_kpi.get('impressions_mom_growth', 0),
+        yt_kpi.get('views_mom_growth', 0)
+    ]
+    valid_growths = [g for g in growths if g != 0]
+    avg_growth = sum(valid_growths) / len(valid_growths) if valid_growths else 0
+    growth_raw = 50 + min(max(avg_growth * 0.5, -50), 50)
+
+    return {
+        '노출력': min(round(exposure_raw, 1), 100),
+        '전환력': min(round(conversion_raw, 1), 100),
+        '효율성': min(round(efficiency_raw, 1), 100),
+        '확산성': min(round(spread_raw, 1), 100),
+        '성장성': min(round(growth_raw, 1), 100)
+    }
+
+
+def calculate_best_worst(results: Dict[str, Any]) -> tuple:
+    """Find best and worst performing metrics by MoM growth rate."""
+    candidates = []
+    metric_configs = [
+        ('reservation', 'total_reservations', '총 예약 신청', '예약'),
+        ('blog', 'views', '블로그 조회수', '블로그'),
+        ('ads', 'impressions', '광고 노출수', '광고'),
+        ('youtube', 'views', '영상 조회수', '유튜브'),
+    ]
+
+    for dept_id, key, name, source in metric_configs:
+        dept = results.get(dept_id, {})
+        growth_rate = dept.get('growth_rate', {})
+        if growth_rate and key in growth_rate:
+            val = growth_rate[key]
+            if val is not None and val != 0:
+                candidates.append({
+                    'name': name,
+                    'source': source,
+                    'growth': round(val, 1)
+                })
+
+    if not candidates:
+        return None, None
+
+    best = max(candidates, key=lambda x: x['growth'])
+    worst = min(candidates, key=lambda x: x['growth'])
+
+    # Only show if there's meaningful difference
+    if best['growth'] <= 0:
+        best = max(candidates, key=lambda x: x['growth'])
+    if worst['growth'] >= 0:
+        worst = min(candidates, key=lambda x: x['growth'])
+
+    return best, worst
+
+
 def generate_html_report(results: Dict[str, Dict[str, Any]],
                          clinic_name: str = None,
-                         report_date: str = None) -> str:
+                         report_date: str = None,
+                         manager_comment: str = None) -> str:
     """Generate HTML report from processed results."""
     if clinic_name is None:
         clinic_name = '서울리멤버치과'
@@ -2598,7 +2988,12 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         dept_data = prepare_department_data(name, dept_id, result)
         departments.append(dept_data)
 
-    
+    # Calculate executive summary data
+    health_scores = calculate_marketing_health(results)
+    health_labels = list(health_scores.keys()) if health_scores else []
+    health_values = list(health_scores.values()) if health_scores else []
+    best_metric, worst_metric = calculate_best_worst(results)
+
     # Generate summary
     summary = generate_summary(results)
 
@@ -2608,7 +3003,13 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         report_date=report_date,
         clinic_name=clinic_name,
         departments=departments,
-        summary=summary
+        summary=summary,
+        health_scores=health_scores,
+        health_labels_json=json.dumps(health_labels, ensure_ascii=False),
+        health_values_json=json.dumps(health_values),
+        best_metric=best_metric,
+        worst_metric=worst_metric,
+        manager_comment=manager_comment or ''
     )
 
 
