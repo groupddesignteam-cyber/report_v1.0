@@ -733,7 +733,7 @@ HTML_TEMPLATE = """
                     </div>
                     <p class="text-[10px] text-slate-400 font-bold uppercase mb-0.5">{{ ch.channel }}</p>
                     <p class="text-lg font-black {% if ch.completion_rate >= 80 %}text-green-600{% elif ch.completion_rate >= 50 %}text-amber-600{% else %}text-red-500{% endif %}">{{ ch.completion_rate }}%</p>
-                    <p class="text-[10px] text-slate-400">{{ ch.completed }}/{{ ch.total }}</p>
+                    <p class="text-[10px] text-slate-400"><span class="text-green-500">{{ ch.completed }}</span> · <span class="text-amber-500">{{ ch.in_progress }}</span> · <span class="text-red-400">{{ ch.not_started }}</span></p>
                 </div>
                 {% endfor %}
             </div>

@@ -144,15 +144,31 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                 for channel_name, suffixes in channel_groups.items():
                     status_col = suffixes.get('-상태')
                     completion_date_col = suffixes.get('-작업완료일')
+                    start_date_col = suffixes.get('-작업시작일')
+                    type_col = suffixes.get('-종류')
 
                     status_value = row.get(status_col) if status_col else None
                     completion_date = row.get(completion_date_col) if completion_date_col else None
+                    start_date = row.get(start_date_col) if start_date_col else None
+                    type_value = row.get(type_col) if type_col else None
 
                     is_completed = is_completed_status(status_value, completion_date)
-                    channel_status[channel_name] = is_completed
 
+                    # 미진행 판별: 모든 관련 필드가 비어있으면 미진행
+                    has_any_content = False
+                    for val in [status_value, completion_date, start_date, type_value]:
+                        if val is not None and pd.notna(val) and str(val).strip() not in ['', 'nan', 'NaN']:
+                            has_any_content = True
+                            break
+
+                    # 상태: 'completed', 'in_progress', 'not_started'
                     if is_completed:
+                        channel_status[channel_name] = 'completed'
                         completed_channels += 1
+                    elif has_any_content:
+                        channel_status[channel_name] = 'in_progress'
+                    else:
+                        channel_status[channel_name] = 'not_started'
 
                 progress_rate = (completed_channels / total_channels * 100) if total_channels > 0 else 0
 
@@ -199,15 +215,19 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
         'progress_rate', ascending=False
     ).to_dict('records')
 
-    # Channel completion rate
+    # Channel completion rate (3-state: completed, in_progress, not_started)
     all_channel_statuses = {}
     for _, row in clinic_df.iterrows():
         for channel, status in row['channel_status'].items():
             if channel not in all_channel_statuses:
-                all_channel_statuses[channel] = {'completed': 0, 'total': 0}
+                all_channel_statuses[channel] = {'completed': 0, 'in_progress': 0, 'not_started': 0, 'total': 0}
             all_channel_statuses[channel]['total'] += 1
-            if status:
+            if status == 'completed':
                 all_channel_statuses[channel]['completed'] += 1
+            elif status == 'in_progress':
+                all_channel_statuses[channel]['in_progress'] += 1
+            else:
+                all_channel_statuses[channel]['not_started'] += 1
 
     channel_completion_rate = []
     for channel, counts in all_channel_statuses.items():
@@ -215,6 +235,8 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
         channel_completion_rate.append({
             'channel': channel,
             'completed': counts['completed'],
+            'in_progress': counts['in_progress'],
+            'not_started': counts['not_started'],
             'total': counts['total'],
             'completion_rate': round(rate, 2)
         })
