@@ -122,7 +122,7 @@ HTML_TEMPLATE = """
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-slate-800">{{ dept.name }}</h2>
-                        <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Performance Analysis</p>
+                        <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{% if dept.id == 'setting' %}Channel Setting Analysis{% else %}Performance Analysis{% endif %}</p>
                     </div>
                 </div>
                 {% if dept.prev_month and dept.curr_month %}
@@ -670,105 +670,64 @@ HTML_TEMPLATE = """
             </div>
             {% endif %}
 
-            <!-- Setting: KPI Summary -->
-            {% if dept.id == 'setting' %}
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
-                    <p class="text-[10px] font-bold text-indigo-500 uppercase mb-1">평균 달성률</p>
-                    <p class="text-2xl font-black text-indigo-700">{{ dept.avg_progress_rate }}%</p>
-                </div>
-                <div class="bg-green-50 p-4 rounded-xl border border-green-100 text-center">
-                    <p class="text-[10px] font-bold text-green-500 uppercase mb-1">세팅 완료</p>
-                    <p class="text-2xl font-black text-green-700">{{ dept.completed_clinics }}<span class="text-sm text-green-400 ml-0.5">/{{ dept.total_clinics }}</span></p>
-                </div>
-                <div class="bg-red-50 p-4 rounded-xl border border-red-100 text-center">
-                    <p class="text-[10px] font-bold text-red-500 uppercase mb-1">리스크</p>
-                    <p class="text-2xl font-black text-red-700">{{ dept.risk_clinics }}<span class="text-sm text-red-400 ml-0.5">개</span></p>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Setting: Workplan Achievement - 플랫폼별 상세 -->
-            {% if dept.id == 'setting' and dept.channel_completion %}
+            <!-- Setting: 병원별 플랫폼 카드 레이아웃 -->
+            {% if dept.id == 'setting' and dept.clinic_progress %}
+            {% for clinic in dept.clinic_progress %}
             <div class="mb-6">
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="layout-grid" class="w-4 h-4 text-slate-400"></i> 플랫폼별 진행 현황
-                </h3>
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <!-- Header -->
-                    <div class="grid grid-cols-12 gap-0 bg-slate-50 px-4 py-2 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200">
-                        <span class="col-span-3">플랫폼</span>
-                        <span class="col-span-2 text-center">달성률</span>
-                        <span class="col-span-2 text-center">완료</span>
-                        <span class="col-span-2 text-center">진행중</span>
-                        <span class="col-span-3">종류</span>
+                <!-- Clinic Header -->
+                <div class="flex items-center justify-between mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></span>
+                        <span class="text-sm font-bold text-slate-800">{{ clinic.clinic }}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if clinic.progress_rate >= 80 %}bg-green-100 text-green-700{% elif clinic.progress_rate >= 50 %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
+                            {% if clinic.progress_rate >= 100 %}완료{% else %}진행{% endif %}
+                        </span>
                     </div>
-                    <!-- Body -->
-                    <div class="divide-y divide-slate-100">
-                        {% for ch in dept.channel_completion %}
-                        <div class="grid grid-cols-12 gap-0 px-4 py-2.5 items-center">
-                            <div class="col-span-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background: {% if ch.completion_rate >= 80 %}#22c55e{% elif ch.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></span>
-                                <span class="text-xs text-slate-700 font-medium truncate">{{ ch.channel }}</span>
-                            </div>
-                            <div class="col-span-2 flex items-center justify-center gap-1.5">
-                                <div class="w-10 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full" style="width: {{ ch.completion_rate }}%; background: {% if ch.completion_rate >= 80 %}#22c55e{% elif ch.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
-                                </div>
-                                <span class="text-[10px] font-bold" style="color: {% if ch.completion_rate >= 80 %}#16a34a{% elif ch.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ ch.completion_rate|int }}%</span>
-                            </div>
-                            <span class="col-span-2 text-xs text-center text-green-600 font-medium">{{ ch.completed }}/{{ ch.total }}</span>
-                            <span class="col-span-2 text-xs text-center text-amber-600 font-medium">{{ ch.in_progress }}</span>
-                            <div class="col-span-3">
-                                {% if ch.types %}
-                                <div class="flex flex-wrap gap-1">
-                                    {% for t in ch.types[:3] %}
-                                    <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{{ t.name }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                <span class="text-[10px] text-slate-400">-</span>
-                                {% endif %}
-                            </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full" style="width: {{ clinic.progress_rate }}%; background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
                         </div>
-                        {% endfor %}
+                        <span class="text-xs font-bold" style="color: {% if clinic.progress_rate >= 80 %}#16a34a{% elif clinic.progress_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ clinic.progress_rate|round(1) }}%</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Setting: 병원별 상세 진행 -->
-            {% if dept.clinic_progress %}
-            <div>
-                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i> 병원별 진행 현황
-                </h3>
-                <div class="space-y-2">
-                    {% for clinic in dept.clinic_progress %}
-                    <div class="bg-slate-50 rounded-xl border border-slate-200 p-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-slate-700">{{ clinic.clinic }}</span>
-                            <div class="flex items-center gap-2">
-                                <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full" style="width: {{ clinic.progress_rate }}%; background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
-                                </div>
-                                <span class="text-[10px] font-bold" style="color: {% if clinic.progress_rate >= 80 %}#16a34a{% elif clinic.progress_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ clinic.progress_rate|int }}%</span>
+                <!-- Platform Cards Grid -->
+                {% if clinic.platform_groups %}
+                <div class="grid md:grid-cols-3 gap-3">
+                    {% for group in clinic.platform_groups %}
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                        <!-- Platform Header with colored top border -->
+                        <div class="px-3 py-2 border-b border-slate-100" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800">{{ group.platform }}</span>
+                                <span class="text-[10px] font-bold" style="color: {% if group.completion_rate >= 100 %}#0891b2{% elif group.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ group.completion_rate|int }}% 완료</span>
                             </div>
                         </div>
-                        {% if clinic.channels %}
-                        <div class="flex flex-wrap gap-1.5">
-                            {% for ch in clinic.channels %}
-                            <span class="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded border {% if ch.status == 'completed' %}bg-green-50 border-green-200 text-green-700{% elif ch.status == 'in_progress' %}bg-amber-50 border-amber-200 text-amber-700{% else %}bg-slate-100 border-slate-200 text-slate-400{% endif %}">
-                                {% if ch.status == 'completed' %}✓{% elif ch.status == 'in_progress' %}◐{% else %}○{% endif %}
-                                {{ ch.channel }}{% if ch.type %}<span class="opacity-70">({{ ch.type }})</span>{% endif %}
-                            </span>
+                        <!-- Channel Sub-tasks -->
+                        <div class="divide-y divide-slate-50">
+                            {% for ch in group.channels %}
+                            <div class="px-3 py-2 flex items-start justify-between gap-2">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[11px] text-slate-700 font-medium leading-tight">{{ ch.type if ch.type else ch.channel }}</p>
+                                    {% if ch.completion_date %}
+                                    <p class="text-[9px] text-slate-400 mt-0.5">{{ ch.completion_date }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 {% if ch.status == 'completed' %}bg-cyan-50 text-cyan-700 border border-cyan-200{% elif ch.status == 'in_progress' %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-slate-50 text-slate-400 border border-slate-200{% endif %}">
+                                    {% if ch.status == 'completed' %}완료{% elif ch.status == 'in_progress' %}{{ ch.status_raw if ch.status_raw else '진행' }}{% else %}대기{% endif %}
+                                </span>
+                            </div>
                             {% endfor %}
                         </div>
-                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
+                {% endif %}
             </div>
+            {% if not loop.last %}
+            <div class="border-t border-slate-100 my-4"></div>
             {% endif %}
+            {% endfor %}
             {% endif %}
 
         </div>
@@ -1408,6 +1367,46 @@ def prepare_design_data(result: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _group_channels_by_platform(channels: list) -> list:
+    """Group channels by platform prefix (e.g., 네이버, 카카오, 구글)."""
+    platform_map = {}
+    platform_order = []
+
+    for ch in channels:
+        ch_name = ch.get('channel', '')
+        # Determine platform group
+        platform = ch_name  # default: channel name IS the platform
+        for prefix in ['네이버', '카카오', '구글', 'Google']:
+            if ch_name.startswith(prefix):
+                platform = prefix
+                break
+
+        if platform not in platform_map:
+            platform_map[platform] = {
+                'platform': platform,
+                'channels': [],
+                'completed': 0,
+                'total': 0,
+            }
+            platform_order.append(platform)
+
+        platform_map[platform]['channels'].append(ch)
+        if ch.get('status') == 'completed':
+            platform_map[platform]['completed'] += 1
+        platform_map[platform]['total'] += 1
+
+    # Calculate completion rate per platform
+    result = []
+    for p_name in platform_order:
+        group = platform_map[p_name]
+        total = group['total']
+        completed = group['completed']
+        group['completion_rate'] = round((completed / total * 100) if total > 0 else 0, 1)
+        result.append(group)
+
+    return result
+
+
 def prepare_setting_data(result: Dict[str, Any]) -> Dict[str, Any]:
     """Prepare setting department data."""
     kpi = result.get('kpi', {})
@@ -1418,11 +1417,21 @@ def prepare_setting_data(result: Dict[str, Any]) -> Dict[str, Any]:
     risk_clinics = kpi.get('risk_clinics', 0)
     total_clinics = kpi.get('total_clinics', 0)
 
-    # Channel completion rates for progress bars
+    # Channel completion rates
     channel_completion = tables.get('channel_completion_rate', [])
 
-    # Clinic progress for table
-    clinic_progress = tables.get('clinic_progress', [])
+    # Clinic progress with per-clinic platform grouping
+    clinic_progress_raw = tables.get('clinic_progress', [])
+    clinic_progress = []
+    for clinic in clinic_progress_raw:
+        grouped = _group_channels_by_platform(clinic.get('channels', []))
+        clinic_progress.append({
+            'clinic': clinic.get('clinic', ''),
+            'total_channels': clinic.get('total_channels', 0),
+            'completed_channels': clinic.get('completed_channels', 0),
+            'progress_rate': clinic.get('progress_rate', 0),
+            'platform_groups': grouped,
+        })
 
     return {
         'avg_progress_rate': round(avg_progress, 1),
@@ -1655,7 +1664,7 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         ('유튜브', 'youtube'),
         ('네이버 광고', 'ads'),
         ('디자인', 'design'),
-        ('세팅팀', 'setting')
+        ('플랫폼별 세팅 현황', 'setting')
     ]
 
     departments = []

@@ -21,24 +21,28 @@ class LoadedFile:
 def is_completed_status(status_value, completion_date_value=None) -> bool:
     """
     Check if a channel is completed based on status or completion date.
-    Completed = (상태 contains 완료/완료됨/O/Y) OR (작업완료일 not null)
+    Status text takes priority over completion date.
     """
-    # Check completion date first
+    # Check status text FIRST (takes priority)
+    if status_value is not None and not pd.isna(status_value):
+        status_str = str(status_value).strip().upper()
+        if status_str:
+            # Explicitly NOT completed keywords
+            incomplete_keywords = ['진행', '대기', '미완', '보류', '예정', '준비']
+            for keyword in incomplete_keywords:
+                if keyword in status_str:
+                    return False
+
+            # Completed keywords
+            completion_keywords = ['완료', '완료됨', 'O', 'Y', 'YES', 'DONE', 'COMPLETE']
+            for keyword in completion_keywords:
+                if keyword in status_str:
+                    return True
+
+    # Fallback: check completion date only if status is empty/missing
     if completion_date_value is not None and pd.notna(completion_date_value):
         date_str = str(completion_date_value).strip()
         if date_str and date_str.lower() not in ['nan', 'nat', '']:
-            return True
-
-    # Check status
-    if pd.isna(status_value):
-        return False
-
-    status_str = str(status_value).strip().upper()
-
-    # Check for completion indicators
-    completion_keywords = ['완료', '완료됨', 'O', 'Y', 'YES', 'DONE', 'COMPLETE']
-    for keyword in completion_keywords:
-        if keyword in status_str:
             return True
 
     return False
@@ -175,11 +179,17 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                     type_str = str(type_value).strip() if type_value is not None and pd.notna(type_value) and str(type_value).strip() not in ['', 'nan', 'NaN'] else ''
                     # 상태 원본 텍스트
                     status_raw = str(status_value).strip() if status_value is not None and pd.notna(status_value) and str(status_value).strip() not in ['', 'nan', 'NaN'] else ''
+                    # 완료일
+                    completion_date_str = str(completion_date).strip() if completion_date is not None and pd.notna(completion_date) and str(completion_date).strip() not in ['', 'nan', 'NaN', 'NaT'] else ''
+                    # 날짜 형식 정리 (2025-12-11 00:00:00 → 2025-12-11)
+                    if completion_date_str and ' ' in completion_date_str:
+                        completion_date_str = completion_date_str.split(' ')[0]
 
                     channel_status[channel_name] = {
                         'status': status_label,
                         'type': type_str,
-                        'status_raw': status_raw
+                        'status_raw': status_raw,
+                        'completion_date': completion_date_str
                     }
 
                 progress_rate = (completed_channels / total_channels * 100) if total_channels > 0 else 0
@@ -232,14 +242,16 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                     'channel': ch_name,
                     'status': ch_info['status'],
                     'type': ch_info.get('type', ''),
-                    'status_raw': ch_info.get('status_raw', '')
+                    'status_raw': ch_info.get('status_raw', ''),
+                    'completion_date': ch_info.get('completion_date', '')
                 })
             else:
                 channels_detail.append({
                     'channel': ch_name,
                     'status': ch_info,
                     'type': '',
-                    'status_raw': ''
+                    'status_raw': '',
+                    'completion_date': ''
                 })
         clinic_progress.append({
             'clinic': row['clinic'],
