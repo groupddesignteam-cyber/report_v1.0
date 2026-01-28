@@ -51,6 +51,7 @@ FILE_PATTERNS = {
         r'.*유튜브.*트래픽.*DB.*\.xlsx'
     ],
     'setting': [
+        r'신규계약프로세스.*\.csv',
         r'세팅KPI.*\.csv',
         r'세팅.*KPI.*\.csv'
     ]
