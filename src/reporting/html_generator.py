@@ -675,11 +675,10 @@ HTML_TEMPLATE = """
             <!-- Setting: 병원별 플랫폼 카드 레이아웃 -->
             {% if dept.id == 'setting' and dept.clinic_progress %}
             {% for clinic in dept.clinic_progress %}
-            <details class="mb-6 group" open>
-                <!-- Clinic Header (clickable toggle) -->
-                <summary class="flex items-center justify-between mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 cursor-pointer list-none select-none hover:bg-slate-100 transition-colors">
+            <div class="mb-6">
+                <!-- Clinic Header -->
+                <div class="flex items-center justify-between mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] text-slate-400 transition-transform group-open:rotate-90" style="display:inline-block;">▶</span>
                         <span class="w-2.5 h-2.5 rounded-full" style="background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></span>
                         <span class="text-sm font-bold text-slate-800">{{ clinic.clinic }}</span>
                         <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if clinic.progress_rate >= 80 %}bg-green-100 text-green-700{% elif clinic.progress_rate >= 50 %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
@@ -692,24 +691,27 @@ HTML_TEMPLATE = """
                         </div>
                         <span class="text-xs font-bold" style="color: {% if clinic.progress_rate >= 80 %}#16a34a{% elif clinic.progress_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ clinic.progress_rate|round(1) }}%</span>
                     </div>
-                </summary>
+                </div>
 
                 <!-- Platform Cards Grid -->
                 {% if clinic.platform_groups %}
                 <div class="grid md:grid-cols-3 gap-3">
                     {% for group in clinic.platform_groups %}
-                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                        <!-- Platform Header with colored top border -->
-                        <div class="px-3 py-2 border-b border-slate-100" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                    <details class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group/platform" open>
+                        <!-- Platform Header (clickable toggle) -->
+                        <summary class="px-3 py-2 border-b border-slate-100 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-800">{{ group.platform }}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] text-slate-400 transition-transform group-open/platform:rotate-90" style="display:inline-block;">▶</span>
+                                    <span class="text-xs font-bold text-slate-800">{{ group.platform }}</span>
+                                </div>
                                 <span class="text-[10px] font-bold" style="color: {% if group.completion_rate >= 100 %}#0891b2{% elif group.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ group.completed }}/{{ group.total }}</span>
                             </div>
                             <!-- Mini progress bar -->
                             <div class="w-full h-1 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
                                 <div class="h-full rounded-full" style="width: {{ group.completion_rate }}%; background: {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
                             </div>
-                        </div>
+                        </summary>
                         <!-- Channel groups with sub-tasks -->
                         <div class="divide-y divide-slate-100">
                             {% for ch in group.channels %}
@@ -745,11 +747,11 @@ HTML_TEMPLATE = """
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
+                    </details>
                     {% endfor %}
                 </div>
                 {% endif %}
-            </details>
+            </div>
             {% if not loop.last %}
             <div class="border-t border-slate-100 my-4"></div>
             {% endif %}
