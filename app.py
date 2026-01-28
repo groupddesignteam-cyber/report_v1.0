@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.1.2"
+APP_VERSION = "v1.1.3"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -613,11 +613,31 @@ def render_dashboard():
         # 디자인 거래처 선택 (selectbox)
         selected_design_clinic = None
         if len(design_clinics) > 1:
+            # 블로그/유튜브 거래처명과 매칭되는 디자인 거래처 찾기
+            other_clinic_name = None
+            for src in ['블로그', '유튜브']:
+                if src in source_names:
+                    other_clinic_name = source_names[src]
+                    break
+
+            sorted_clinics = sorted(design_clinics)
+            default_idx = 0
+            if other_clinic_name:
+                if other_clinic_name in sorted_clinics:
+                    default_idx = sorted_clinics.index(other_clinic_name)
+                    st.info(f"'{other_clinic_name}'이(가) 디자인 거래처 목록에서 자동 매칭되었습니다.")
+                else:
+                    sorted_clinics = ["없음"] + sorted_clinics
+                    st.warning(f"'{other_clinic_name}'이(가) 디자인 거래처 목록에 없습니다. 직접 선택하거나 '없음'을 선택하세요.")
+
             selected_design_clinic = st.selectbox(
                 "디자인 거래처 선택",
-                options=sorted(design_clinics),
+                options=sorted_clinics,
+                index=default_idx,
                 key="design_clinic_selector"
             )
+            if selected_design_clinic == "없음":
+                selected_design_clinic = None
 
         if st.button("설정", type="primary", use_container_width=True):
             # 체크 해제된 소스 데이터 제거
