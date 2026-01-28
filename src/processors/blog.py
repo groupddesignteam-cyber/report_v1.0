@@ -971,16 +971,14 @@ def process_blog(files: List[LoadedFile]) -> Dict[str, Any]:
         title = post.get('post_title', '')
         url = post.get('post_url', '')
         status = post.get('status', '')
-        # 직접 upload_date 사용 (없으면 views_top5에서 찾기)
+        # 포스팅-업로드 날짜만 사용
         write_date = post.get('upload_date', '')
-        if not write_date:
-            write_date = curr_views_date_map.get(title, '')
         if title and title.lower() != 'nan':
             posting_list.append({
                 'title': title,
                 'url': url if url and url.lower() != 'nan' else '',
                 'status': status,
-                'write_date': write_date  # 발행일 추가
+                'write_date': write_date
             })
 
     prev_posting_list = []
@@ -988,10 +986,8 @@ def process_blog(files: List[LoadedFile]) -> Dict[str, Any]:
         title = post.get('post_title', '')
         url = post.get('post_url', '')
         status = post.get('status', '')
-        # 직접 upload_date 사용 (없으면 views_top5에서 찾기)
+        # 포스팅-업로드 날짜만 사용
         write_date = post.get('upload_date', '')
-        if not write_date:
-            write_date = prev_views_date_map.get(title, '')
         if title and title.lower() != 'nan':
             prev_posting_list.append({
                 'title': title,

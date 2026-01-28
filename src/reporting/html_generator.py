@@ -1142,10 +1142,6 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
     # Use posting_list from tables (filtered by 완료 status)
     raw_posting_list = tables.get('posting_list', [])
 
-    # views_top5에서 발행일 정보를 매핑하기 위한 딕셔너리 생성
-    views_top5 = tables.get('views_top5', [])
-    views_map = {post.get('title', ''): post for post in views_top5}
-
     for post in raw_posting_list:
         status = post.get('status', '').strip().lower()
         # 발행 완료 상태만 표시
@@ -1153,12 +1149,8 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
             title = post.get('title', '')
             url = post.get('url', '')
             if title and title.lower() != 'nan':
-                # 먼저 posting_list에 저장된 write_date 사용
+                # 포스팅-업로드 날짜만 사용 (다른 소스 fallback 제거)
                 write_date = post.get('write_date', '')
-                # 없으면 views_top5에서 발행일 정보 찾기
-                if not write_date:
-                    views_info = views_map.get(title, {})
-                    write_date = views_info.get('write_date', '')
 
                 posting_list.append({
                     'title': title,
@@ -1168,22 +1160,9 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
     # Limit to 10
     posting_list = posting_list[:10]
 
-    # If no posting_list, try to use views_top5 as fallback (has write_date)
-    if not posting_list and views_top5:
-        for post in views_top5[:5]:
-            posting_list.append({
-                'title': post.get('title', ''),
-                'url': '',
-                'date': format_publish_date(post.get('write_date', ''))
-            })
-
     # 전월 포스팅 리스트 준비
     prev_posting_list = []
     raw_prev_posting_list = tables.get('prev_posting_list', [])
-
-    # prev_views_top5에서 발행일 정보를 매핑하기 위한 딕셔너리 생성
-    prev_views_top5 = tables.get('prev_views_top5', [])
-    prev_views_map = {post.get('title', ''): post for post in prev_views_top5}
 
     for post in raw_prev_posting_list:
         status = post.get('status', '').strip().lower()
@@ -1192,12 +1171,8 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
             title = post.get('title', '')
             url = post.get('url', '')
             if title and title.lower() != 'nan':
-                # 먼저 posting_list에 저장된 write_date 사용
+                # 포스팅-업로드 날짜만 사용 (다른 소스 fallback 제거)
                 write_date = post.get('write_date', '')
-                # 없으면 prev_views_top5에서 발행일 정보 찾기
-                if not write_date:
-                    views_info = prev_views_map.get(title, {})
-                    write_date = views_info.get('write_date', '')
 
                 prev_posting_list.append({
                     'title': title,
@@ -1206,15 +1181,6 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
                 })
     # Limit to 10
     prev_posting_list = prev_posting_list[:10]
-
-    # If no prev_posting_list, try to use prev_views_top5 as fallback
-    if not prev_posting_list and prev_views_top5:
-        for post in prev_views_top5[:5]:
-            prev_posting_list.append({
-                'title': post.get('title', ''),
-                'url': '',
-                'date': format_publish_date(post.get('write_date', ''))
-            })
 
     return {
         'prev_month': prev_month,
