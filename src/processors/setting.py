@@ -11,6 +11,10 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 
+# 상시 변경 채널: 항상 '완료' 처리
+ALWAYS_COMPLETED_CHANNELS = ['워터마크 등록']
+
+
 @dataclass
 class LoadedFile:
     name: str
@@ -229,6 +233,16 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                             'start_date': start_date_str,
                             'note': note_str,
                         })
+
+                    # 상시 변경 채널은 항상 완료 처리
+                    if channel_name in ALWAYS_COMPLETED_CHANNELS:
+                        if not sub_tasks:
+                            sub_tasks = [{'type': '', 'status': 'completed', 'status_raw': '완료', 'completion_date': '', 'start_date': '', 'note': '상시 변경'}]
+                        else:
+                            for st_item in sub_tasks:
+                                st_item['status'] = 'completed'
+                                if not st_item['status_raw']:
+                                    st_item['status_raw'] = '완료'
 
                     # 플랫폼 전체 상태 계산
                     if sub_tasks:

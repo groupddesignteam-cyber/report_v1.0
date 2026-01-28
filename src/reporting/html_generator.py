@@ -697,7 +697,8 @@ HTML_TEMPLATE = """
                 {% if clinic.platform_groups %}
                 <div class="grid md:grid-cols-3 gap-3">
                     {% for group in clinic.platform_groups %}
-                    <details class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group/platform" open>
+                    {% set is_wide = group.channels|length > 4 %}
+                    <details class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group/platform {% if is_wide %}md:col-span-3{% endif %}" open>
                         <!-- Platform Header (clickable toggle) -->
                         <summary class="px-3 py-2 border-b border-slate-100 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
                             <div class="flex items-center justify-between">
@@ -713,9 +714,9 @@ HTML_TEMPLATE = """
                             </div>
                         </summary>
                         <!-- Channel groups with sub-tasks -->
-                        <div class="divide-y divide-slate-100">
+                        <div class="{% if is_wide %}grid md:grid-cols-2 gap-0{% endif %}">
                             {% for ch in group.channels %}
-                            <div class="px-3 py-2">
+                            <div class="px-3 py-2 {% if is_wide %}border-b border-slate-100 {% if loop.index is odd and not loop.last %}md:border-r{% endif %}{% else %}{% if not loop.last %}border-b border-slate-100{% endif %}{% endif %}">
                                 <!-- Channel name header -->
                                 <div class="flex items-center justify-between mb-1">
                                     <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">{{ ch.channel }}</span>
