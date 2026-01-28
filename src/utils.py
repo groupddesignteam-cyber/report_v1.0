@@ -20,7 +20,7 @@ class LoadedFile:
 # File pattern to processor mapping
 FILE_PATTERNS = {
     'ads': [
-        r'945246_소진_내역_.*\.xlsx',
+        r'\d+_소진_내역_.*\.xlsx',
         r'캠페인.*보고서.*\.csv',
         r'캠페인 보고서.*\.csv'
     ],
