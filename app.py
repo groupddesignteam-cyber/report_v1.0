@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.2"
+APP_VERSION = "v1.2.3"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -144,23 +144,35 @@ def process_uploaded_files(uploaded_files):
 
 def render_upload_section():
     """Render compact upload section with file classification preview."""
-    # Header with app info
+    # Modern Header with Gradient
     st.markdown(f"""
-    <div style="text-align: center; padding: 1.5rem 0 1rem;">
-        <h1 style="font-size: 1.4rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.025em;">{APP_TITLE}</h1>
-        <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.5rem;">{APP_CREATOR} &middot; {APP_VERSION}</p>
+    <div style="text-align: center; padding: 3rem 0 2rem;">
+        <div style="display:inline-block; padding:0.4rem 1rem; background:#eff6ff; border-radius:20px; color:#3b82f6; font-weight:700; font-size:0.8rem; margin-bottom:1rem; letter-spacing:0.05em;">REPORT GENERATOR</div>
+        <h1 style="font-size: 2.5rem; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.03em; line-height:1.2;">
+            주식회사 그룹디<br>
+            <span style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">전략 보고서 생성기</span>
+        </h1>
+        <p style="font-size: 1rem; color: #64748b; margin-top: 1rem; font-weight:500;">
+            {APP_CREATOR} <span style="color:#cbd5e1; margin:0 8px;">|</span> {APP_VERSION}
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Settings
+    # Step 1: Basic Info
+    st.markdown("""
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+        <div style="width:28px; height:28px; background:#0f172a; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem;">1</div>
+        <div style="font-weight:700; color:#0f172a; font-size:1.1rem;">기본 정보 설정</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     col_name, col_date = st.columns([3, 2])
     with col_name:
         clinic_name = st.text_input(
             "치과명",
             value=st.session_state.report_settings['clinic_name'],
-            placeholder="서울리멤버치과",
-            key="main_clinic_name",
-            label_visibility="collapsed"
+            placeholder="예: 서울리멤버치과",
+            key="main_clinic_name"
         )
         if clinic_name != st.session_state.report_settings['clinic_name']:
             st.session_state.report_settings['clinic_name'] = clinic_name
@@ -168,17 +180,26 @@ def render_upload_section():
         report_date = st.text_input(
             "작성일",
             value=st.session_state.report_settings['report_date'],
-            key="main_report_date",
-            label_visibility="collapsed"
+            key="main_report_date"
         )
         if report_date != st.session_state.report_settings['report_date']:
             st.session_state.report_settings['report_date'] = report_date
 
-    # File type description (above uploader)
+    st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
+
+    # Step 2: Upload
     st.markdown("""
-    <p style="font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 0.5rem;">
-        예약 / 블로그 / 광고 / 유튜브 / 디자인 / 세팅 파일을 모두 선택하세요 (자동 분류)
-    </p>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:1rem;">
+        <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem;">2</div>
+        <div style="font-weight:700; color:#0f172a; font-size:1.1rem;">데이터 업로드</div>
+    </div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1rem; display:flex; align-items:center; gap:12px;">
+        <div style="width:40px; height:40px; background:#eff6ff; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#3b82f6; font-size:1.2rem;">📂</div>
+        <div>
+            <div style="font-weight:600; color:#1e293b; font-size:0.9rem;">분석할 파일을 모두 선택하세요</div>
+            <div style="font-size:0.8rem; color:#64748b;">예약, 블로그, 광고, 유튜브, 디자인 등 (파일명 기반 자동 분류)</div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
     # File uploader (label hidden, drop zone only)
@@ -192,6 +213,8 @@ def render_upload_section():
 
     # Classification preview + action button
     if uploaded_files:
+        st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
+        
         # Classify files in real-time
         classification = {}
         unclassified = []
@@ -207,26 +230,47 @@ def render_upload_section():
         for idx, (cat_key, meta) in enumerate(CATEGORY_META.items()):
             with cols[idx]:
                 file_count = len(classification.get(cat_key, []))
-                color = meta['color'] if file_count > 0 else '#cbd5e1'
-                bg = f"{meta['color']}10" if file_count > 0 else '#f8fafc'
-                check = f'<span style="color:{meta["color"]};">&#10003;</span>' if file_count > 0 else '<span style="color:#cbd5e1;">&#8212;</span>'
+                # Active/Inactive styles
+                if file_count > 0:
+                    bg = f"{meta['color']}10" # 10% opacity
+                    border = meta['color']
+                    icon_color = meta['color']
+                    opacity = "1"
+                    scale = "transform: scale(1.05);"
+                    shadow = f"box-shadow: 0 4px 12px {meta['color']}20;"
+                else:
+                    bg = "#f8fafc"
+                    border = "#e2e8f0"
+                    icon_color = "#cbd5e1"
+                    opacity = "0.7"
+                    scale = ""
+                    shadow = ""
+                    
+                check = f'<span style="color:{icon_color}; font-size:1.2rem;">●</span>' if file_count > 0 else f'<span style="color:{icon_color};">○</span>'
+                
                 st.markdown(f"""
-                <div style="background:{bg}; border:1.5px solid {color}; border-radius:10px;
-                            padding:10px 4px; text-align:center; transition:all 0.2s;">
-                    <div style="font-size:1.1rem; margin-bottom:2px;">{check}</div>
-                    <div style="font-size:0.7rem; color:{color}; font-weight:700;">{meta['label']}</div>
-                    <div style="font-size:0.65rem; color:#94a3b8; margin-top:2px;">{file_count}개 파일</div>
+                <div style="background:{bg}; border:1.5px solid {border}; border-radius:12px;
+                            padding:12px 6px; text-align:center; transition:all 0.2s; opacity:{opacity}; {scale} {shadow} height: 100%;">
+                    <div style="margin-bottom:4px;">{check}</div>
+                    <div style="font-size:0.75rem; color:{icon_color}; font-weight:700; margin-bottom:4px;">{meta['label']}</div>
+                    <div style="font-size:0.7rem; color:#64748b;">{file_count}건</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         # Unclassified files warning
         if unclassified:
-            st.warning(f"분류 불가 파일: {', '.join(unclassified)}")
+            st.warning(f"⚠️ 분류 불가 파일 ({len(unclassified)}건): {', '.join(unclassified)}")
 
-        st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+        # Action Button
+        st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
         valid_count = len(uploaded_files) - len(unclassified)
-        if st.button(f"  {valid_count}개 파일 분석 시작  ", type="primary", use_container_width=True):
-            process_uploaded_files(uploaded_files)
+        
+        # Primary Action Button
+        if valid_count > 0:
+            if st.button(f"🚀  데이터 분석 시작 ({valid_count}개 파일)", type="primary", use_container_width=True):
+                process_uploaded_files(uploaded_files)
+        else:
+            st.button("파일을 업로드해주세요", disabled=True, use_container_width=True)
 
 
 
@@ -671,8 +715,8 @@ def render_dashboard():
     with col_title:
         st.markdown(f"""
         <div style="margin-bottom: 0.25rem;">
-            <h1 style="margin-bottom: 0; font-size: 1.5rem;">{settings['clinic_name']}</h1>
-            <p style="color: #64748b; font-size: 0.8rem; margin-top: 2px;">{settings['report_date']} | 월간 마케팅 분석 보고서</p>
+            <h1 style="margin-bottom: 0; font-size: 1.5rem; color: #f1f5f9;">{settings['clinic_name']}</h1>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 2px;">{settings['report_date']} | 월간 마케팅 분석 보고서</p>
         </div>
         """, unsafe_allow_html=True)
     with col_add:
@@ -693,7 +737,7 @@ def render_dashboard():
     status_html = '<div style="display:flex; gap:12px; justify-content:center; padding:6px 0; margin-bottom:8px;">'
     for cat_key, meta in CATEGORY_META.items():
         has_data = bool(results.get(cat_key))
-        dot_color = meta['color'] if has_data else '#cbd5e1'
+        dot_color = meta['color'] if has_data else '#334155'
         dot_char = '&#9679;' if has_data else '&#9675;'
         status_html += f'<span style="font-size:0.72rem; color:{dot_color}; font-weight:600;">{dot_char} {meta["label"]}</span>'
     status_html += '</div>'
@@ -770,85 +814,153 @@ def render_dashboard():
 
 
 def render_intro():
-    """Render intro animation on first visit."""
+    """Render intro animation on first visit — Professional Reveal + Neon 2.0 + Typing."""
     st.markdown("""
     <style>
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap');
 
     #gd-intro-overlay {
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         z-index: 999999;
-        background: #0f172a;
+        background: #0f172a; /* Dark Navy Brand Color */
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-family: 'Pretendard', sans-serif;
-        animation: gd-fadeout 0.8s ease-in-out 3.8s forwards;
-        pointer-events: auto;
+        font-family: 'Montserrat', 'Pretendard', sans-serif;
+        animation: gd-slideup 0.8s cubic-bezier(0.7, 0, 0.3, 1) 3.5s forwards; /* Extended duration for typing */
+        pointer-events: all;
     }
-    #gd-intro-overlay.hidden { display: none; }
+    
+    .intro-content {
+        text-align: center;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .intro-logo {
+        animation: gd-scale-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        font-size: 3.5rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        margin-bottom: 1.5rem;
+    }
+    
+    .logo-text {
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    }
 
-    .gd-intro-line {
+    /* Neon 2.0 Style */
+    .neon-badge {
+        font-size: 3.5rem;
+        font-weight: 900;
         color: #fff;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        overflow: hidden;
-        white-space: nowrap;
-        border-right: 2px solid rgba(255,255,255,0.6);
-        width: 0;
+        font-style: italic;
+        text-shadow:
+            0 0 7px #fff,
+            0 0 10px #fff,
+            0 0 21px #fff,
+            0 0 42px #ec4899,
+            0 0 82px #ec4899,
+            0 0 92px #ec4899;
+        animation: neon-flicker 2s infinite alternate;
+        padding-right: 10px;
     }
-    .gd-intro-line1 {
-        font-size: 1rem;
-        opacity: 0.5;
-        animation: gd-type 0.8s steps(12) 0.5s forwards, gd-blink 0.6s step-end 0.5s 3;
+    
+    /* Typewriter Subtitle */
+    .intro-sub-container {
+        display: inline-block;
     }
-    .gd-intro-line2 {
-        font-size: 2.5rem;
-        margin-top: 0.5rem;
-        animation: gd-type2 1.2s steps(16) 1.6s forwards, gd-blink 0.6s step-end 1.6s 3;
-    }
-    .gd-intro-ver {
-        color: rgba(255,255,255,0.25);
-        font-size: 0.75rem;
-        font-weight: 400;
-        margin-top: 1.5rem;
-        opacity: 0;
-        animation: gd-fadein 0.5s ease 3s forwards;
+    
+    .intro-sub {
+        font-family: 'Pretendard', sans-serif; /* Pretendard Font */
+        font-size: 1.1rem; /* Slightly larger for Korean */
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: 0.05em; /* Tighter for Korean */
+        overflow: hidden; 
+        border-right: 2px solid #3b82f6; 
+        white-space: nowrap; 
+        margin: 0 auto; 
+        max-width: 0;
+        animation: 
+            typing 1.2s steps(10, end) 1s forwards, /* Adjusted steps for Korean length */
+            blink-caret 0.75s step-end infinite;
+        padding-right: 5px;
     }
 
-    @keyframes gd-type {
-        from { width: 0; }
-        to { width: 7.5em; border-color: transparent; }
+    /* Animations */
+    @keyframes gd-slideup {
+        0% { transform: translateY(0); opacity: 1; pointer-events: all; }
+        99% { transform: translateY(-100%); opacity: 1; pointer-events: none; }
+        100% { transform: translateY(-100%); opacity: 0; pointer-events: none; visibility: hidden; }
     }
-    @keyframes gd-type2 {
-        from { width: 0; }
-        to { width: 12em; border-color: transparent; }
+    
+    @keyframes gd-scale-in {
+        0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-    @keyframes gd-blink {
-        50% { border-color: transparent; }
+    
+    @keyframes typing {
+        from { max-width: 0; }
+        to { max-width: 100%; }
     }
-    @keyframes gd-fadein {
-        to { opacity: 1; }
+    
+    @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
     }
-    @keyframes gd-fadeout {
-        0% { opacity: 1; pointer-events: auto; }
-        100% { opacity: 0; pointer-events: none; }
+
+    @keyframes neon-flicker {
+        0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+            text-shadow:
+                0 0 4px #fff,
+                0 0 10px #fff,
+                0 0 18px #fff,
+                0 0 38px #ec4899,
+                0 0 73px #ec4899;
+            opacity: 1;
+        }
+        20%, 24%, 55% {
+            text-shadow: none;
+            opacity: 0.8;
+        }
     }
     </style>
-
+    
     <div id="gd-intro-overlay">
-        <div class="gd-intro-line gd-intro-line1">주식회사 그룹디</div>
-        <div class="gd-intro-line gd-intro-line2">2.0 전략보고서</div>
-        <div class="gd-intro-ver">""" + APP_VERSION + """</div>
+        <div class="intro-content">
+            <div class="intro-logo">
+                <span class="logo-text">GROUP D</span>
+                <span class="neon-badge">2.0</span>
+            </div>
+            <div class="intro-sub-container">
+                <div class="intro-sub">전략 보고서 시스템</div>
+            </div>
+        </div>
     </div>
-
+    
     <script>
-    setTimeout(function() {
-        var el = document.getElementById('gd-intro-overlay');
-        if (el) el.classList.add('hidden');
-    }, 4800);
+        // Force cleanup - Adjusted timeout for typing animation
+        setTimeout(function() {
+            const overlay = document.getElementById('gd-intro-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+                overlay.remove();
+            }
+        }, 4000); // reduced timeout slightly as korean is shorter
     </script>
     """, unsafe_allow_html=True)
 

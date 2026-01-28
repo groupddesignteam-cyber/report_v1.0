@@ -1,58 +1,57 @@
 /* ============================================
-   Report v3 - Premium Dark-Light Theme
+   Report v4 - Premium Dark Navy Theme
+   Group-D Strategic Report
    ============================================ */
 
-/* Import Google Fonts */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 /* ============================================
-   CSS Variables - Design Tokens
+   CSS Variables - Dark Navy Design Tokens
+   ============================================ */
+/* ============================================
+   CSS Variables - Clean Light Design Tokens
    ============================================ */
 :root {
-    /* Colors */
-    --bg-primary: #F8FAFC;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
-    --bg-dark: #0F172A;
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f8fafc;
+    --bg-input: #ffffff;
 
-    /* Accent Colors */
-    --accent-primary: #3B82F6;
-    --accent-secondary: #60A5FA;
-    --accent-dark: #2563EB;
-    --accent-gradient: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    --accent-gradient-hover: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
+    --accent-primary: #3b82f6;
+    --accent-secondary: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-glow: rgba(59, 130, 246, 0.15);
+    --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --accent-gradient-hover: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
 
-    /* Status Colors */
-    --color-success: #10B981;
-    --color-success-bg: #ECFDF5;
-    --color-danger: #EF4444;
-    --color-danger-bg: #FEF2F2;
-    --color-warning: #F59E0B;
-    --color-warning-bg: #FFFBEB;
-    --color-info: #3B82F6;
-    --color-info-bg: #EFF6FF;
+    --color-success: #10b981;
+    --color-success-bg: rgba(16, 185, 129, 0.1);
+    --color-danger: #ef4444;
+    --color-danger-bg: rgba(239, 68, 68, 0.1);
+    --color-warning: #f59e0b;
+    --color-warning-bg: rgba(245, 158, 11, 0.1);
+    --color-info: #3b82f6;
+    --color-info-bg: rgba(59, 130, 246, 0.1);
 
-    /* Text Colors */
-    --text-primary: #1E293B;
-    --text-secondary: #475569;
-    --text-muted: #94A3B8;
-    --text-white: #FFFFFF;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --text-white: #ffffff;
 
-    /* Border Colors */
-    --border-subtle: #E2E8F0;
-    --border-light: #CBD5E1;
+    --border-subtle: #e2e8f0;
+    --border-light: #cbd5e1;
+    --border-accent: #bfdbfe;
 
-    /* Effects */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.15);
 
-    /* Typography */
-    --font-sans: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    /* Spacing & Radius */
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 14px;
@@ -64,19 +63,27 @@
    Animations
    ============================================ */
 @keyframes pulse-warning {
-    0%, 100% {
-        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-        border-color: #EF4444;
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.3);
     }
+
     50% {
-        box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.2);
-        border-color: #F87171;
+        box-shadow: 0 0 16px 2px rgba(248, 113, 113, 0.15);
     }
 }
 
 @keyframes blink-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
 }
 
 @keyframes slide-in {
@@ -84,6 +91,7 @@
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -91,8 +99,25 @@
 }
 
 @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes subtle-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 12px rgba(99, 180, 255, 0.06);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(99, 180, 255, 0.12);
+    }
 }
 
 /* ============================================
@@ -106,10 +131,14 @@ body,
 }
 
 .stApp {
-    background-color: var(--bg-primary) !important;
+    background: var(--bg-primary) !important;
 }
 
-/* Constrain content width */
+/* Main app background with subtle gradient */
+[data-testid="stAppViewContainer"] {
+    background: #ffffff !important;
+}
+
 .block-container,
 [data-testid="stAppViewBlockContainer"] {
     max-width: 960px !important;
@@ -121,7 +150,12 @@ body,
 /* ============================================
    Typography
    ============================================ */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-sans) !important;
     font-weight: 700 !important;
     color: var(--text-primary) !important;
@@ -141,15 +175,17 @@ h3 {
     font-size: 1.25rem !important;
 }
 
-p, span, div {
+p,
+span,
+div {
     color: var(--text-secondary);
 }
 
 /* ============================================
-   Sidebar Styles
+   Sidebar
    ============================================ */
 [data-testid="stSidebar"] {
-    background-color: var(--bg-secondary) !important;
+    background: var(--bg-secondary) !important;
     border-right: 1px solid var(--border-subtle) !important;
 }
 
@@ -158,21 +194,22 @@ p, span, div {
 }
 
 /* ============================================
-   Cards & Metrics - Premium Style
+   Cards & Metrics
    ============================================ */
 [data-testid="stMetric"] {
-    background: var(--bg-secondary) !important;
+    background: var(--bg-card) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-lg) !important;
     padding: 1.25rem !important;
     box-shadow: var(--shadow-sm) !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    backdrop-filter: blur(10px);
 }
 
 [data-testid="stMetric"]:hover {
-    box-shadow: var(--shadow-lg) !important;
-    transform: translateY(-3px) !important;
-    border-color: var(--accent-primary) !important;
+    box-shadow: var(--shadow-glow) !important;
+    border-color: var(--border-accent) !important;
+    transform: translateY(-2px) !important;
 }
 
 [data-testid="stMetricLabel"] {
@@ -190,14 +227,15 @@ p, span, div {
 }
 
 /* ============================================
-   Tab Styling - Premium
+   Tab Styling
    ============================================ */
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px !important;
-    background: var(--bg-tertiary) !important;
+    background: var(--bg-secondary) !important;
     padding: 4px !important;
     border-radius: var(--radius-lg) !important;
     margin-bottom: 1.5rem !important;
+    border: 1px solid var(--border-subtle) !important;
 }
 
 .stTabs [data-baseweb="tab"] {
@@ -207,48 +245,52 @@ p, span, div {
     border-radius: var(--radius-md) !important;
     font-weight: 600 !important;
     font-size: 0.8125rem !important;
-    color: var(--text-secondary) !important;
+    color: var(--text-muted) !important;
     border: none !important;
     transition: all 0.2s ease !important;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
-    color: var(--text-primary) !important;
-    background: rgba(255,255,255,0.7) !important;
+    color: var(--text-secondary) !important;
+    background: var(--bg-tertiary) !important;
 }
 
 .stTabs [aria-selected="true"] {
-    background: var(--bg-secondary) !important;
+    background: var(--bg-tertiary) !important;
     color: var(--accent-primary) !important;
     border: none !important;
     box-shadow: var(--shadow-sm) !important;
     font-weight: 700 !important;
 }
 
-/* Tab indicator line removal */
 .stTabs [data-baseweb="tab-highlight"] {
     display: none !important;
 }
 
 /* ============================================
-   File Uploader - Streamlined
+   File Uploader
    ============================================ */
 [data-testid="stFileUploader"] {
-    background: var(--bg-secondary) !important;
-    border: 2px dashed var(--border-light) !important;
-    border-radius: var(--radius-lg) !important;
+    background: #f8fafc !important;
+    /* Light Slate 50 to contrast with White Page */
+    border: 2px dashed #cbd5e1 !important;
+    /* Slate 300 */
+    border-radius: 16px !important;
     padding: 3rem 2rem !important;
-    min-height: 180px !important;
+    min-height: 200px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
 }
 
 [data-testid="stFileUploader"]:hover {
     border-color: var(--accent-primary) !important;
-    background-color: var(--color-info-bg) !important;
+    background: rgba(99, 180, 255, 0.03) !important;
+    box-shadow: var(--shadow-glow) !important;
 }
 
 [data-testid="stFileUploader"] section {
@@ -256,7 +298,7 @@ p, span, div {
     width: 100% !important;
 }
 
-[data-testid="stFileUploader"] section > div {
+[data-testid="stFileUploader"] section>div {
     width: 100% !important;
 }
 
@@ -265,10 +307,17 @@ p, span, div {
     font-size: 0.75rem !important;
 }
 
+/* File uploader text/labels */
+[data-testid="stFileUploader"] label,
+[data-testid="stFileUploader"] p,
+[data-testid="stFileUploader"] span {
+    color: var(--text-secondary) !important;
+}
+
 /* ============================================
-   Buttons - Premium with White Text
+   Buttons
    ============================================ */
-.stButton > button {
+.stButton>button {
     background: var(--accent-gradient) !important;
     color: var(--text-white) !important;
     border: none !important;
@@ -276,105 +325,85 @@ p, span, div {
     padding: 0.75rem 1.5rem !important;
     font-weight: 600 !important;
     font-size: 0.875rem !important;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3) !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
     letter-spacing: 0.01em !important;
 }
 
-.stButton > button:hover {
+.stButton>button:hover {
     background: var(--accent-gradient-hover) !important;
     color: var(--text-white) !important;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
+    box-shadow: 0 4px 20px rgba(99, 180, 255, 0.35) !important;
     transform: translateY(-2px) !important;
 }
 
-.stButton > button:active {
+.stButton>button:active {
     transform: translateY(0) !important;
-    box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3) !important;
 }
 
-/* Button text - ensure white */
-.stButton > button > div,
-.stButton > button > div > p,
-.stButton > button span,
-.stButton > button p {
+.stButton>button>div,
+.stButton>button>div>p,
+.stButton>button span,
+.stButton>button p {
     color: var(--text-white) !important;
 }
 
 /* Secondary buttons */
-.stButton > button[kind="secondary"] {
-    background: var(--bg-secondary) !important;
+.stButton>button[kind="secondary"] {
+    background: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border-subtle) !important;
     box-shadow: var(--shadow-sm) !important;
 }
 
-.stButton > button[kind="secondary"]:hover {
-    background: var(--bg-tertiary) !important;
-    border-color: var(--accent-primary) !important;
+.stButton>button[kind="secondary"]:hover {
+    background: var(--bg-card-hover) !important;
+    border-color: var(--border-accent) !important;
     color: var(--accent-primary) !important;
-    box-shadow: var(--shadow-md) !important;
 }
 
-.stButton > button[kind="secondary"] > div,
-.stButton > button[kind="secondary"] > div > p,
-.stButton > button[kind="secondary"] span,
-.stButton > button[kind="secondary"] p {
+.stButton>button[kind="secondary"]>div,
+.stButton>button[kind="secondary"]>div>p,
+.stButton>button[kind="secondary"] span,
+.stButton>button[kind="secondary"] p {
     color: var(--text-primary) !important;
 }
 
-/* Download button - Premium & Prominent */
-.stDownloadButton > button {
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%) !important;
+/* Download button */
+.stDownloadButton>button {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%) !important;
     color: var(--text-white) !important;
-    border: none !important;
+    border: 1px solid var(--border-light) !important;
     border-radius: var(--radius-lg) !important;
     padding: 1rem 2rem !important;
     font-weight: 700 !important;
     font-size: 1rem !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
-    letter-spacing: 0.01em !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
-.stDownloadButton > button:hover {
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35) !important;
+.stDownloadButton>button:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), var(--shadow-glow) !important;
     transform: translateY(-2px) !important;
+    border-color: var(--border-accent) !important;
 }
 
-.stDownloadButton > button:active {
-    transform: translateY(0) !important;
-}
-
-.stDownloadButton > button > div,
-.stDownloadButton > button > div > p,
-.stDownloadButton > button span,
-.stDownloadButton > button p {
+.stDownloadButton>button>div,
+.stDownloadButton>button>div>p,
+.stDownloadButton>button span,
+.stDownloadButton>button p {
     color: var(--text-white) !important;
 }
 
 /* ============================================
-   Warning Box - Animated Alert
+   Warning Box
    ============================================ */
 .clinic-mismatch-warning {
-    background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%) !important;
-    border: 2px solid #EF4444 !important;
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, rgba(248, 113, 113, 0.05) 100%) !important;
+    border: 1px solid rgba(248, 113, 113, 0.3) !important;
     border-radius: var(--radius-lg) !important;
     padding: 1rem 1.25rem !important;
     margin-bottom: 1rem !important;
     animation: pulse-warning 2s infinite !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-
-.clinic-mismatch-warning::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -200%;
-    width: 200%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.05), transparent);
-    animation: shimmer 3s infinite;
 }
 
 .warning-header {
@@ -387,7 +416,7 @@ p, span, div {
 .warning-dot {
     width: 10px;
     height: 10px;
-    background: #EF4444;
+    background: #f87171;
     border-radius: 50%;
     animation: blink-dot 1s infinite;
 }
@@ -395,32 +424,33 @@ p, span, div {
 .warning-title {
     font-size: 0.9375rem;
     font-weight: 700;
-    color: #DC2626;
+    color: #f87171;
 }
 
 .warning-content {
     font-size: 0.8125rem;
-    color: #7F1D1D;
+    color: #fca5a5;
     line-height: 1.6;
     padding-left: 18px;
 }
 
 .warning-content strong {
-    color: #DC2626;
+    color: #f87171;
     font-weight: 700;
 }
 
-/* Streamlit native warning override */
+/* Streamlit native alerts */
 [data-testid="stAlert"] {
     border-radius: var(--radius-md) !important;
     border-left-width: 4px !important;
+    background: var(--bg-secondary) !important;
 }
 
 /* ============================================
-   Expander - Premium
+   Expander
    ============================================ */
 [data-testid="stExpander"] {
-    background: var(--bg-secondary) !important;
+    background: var(--bg-card) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-lg) !important;
     box-shadow: var(--shadow-sm) !important;
@@ -430,7 +460,7 @@ p, span, div {
 
 [data-testid="stExpander"]:hover {
     box-shadow: var(--shadow-md) !important;
-    border-color: var(--accent-secondary) !important;
+    border-color: var(--border-accent) !important;
 }
 
 [data-testid="stExpander"] summary {
@@ -440,7 +470,7 @@ p, span, div {
 }
 
 /* ============================================
-   Custom Comparison Layout
+   Comparison Layout
    ============================================ */
 .comparison-header {
     display: flex;
@@ -448,7 +478,7 @@ p, span, div {
     align-items: center;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid var(--accent-primary);
+    border-bottom: 1px solid var(--border-accent);
 }
 
 .comparison-header h2 {
@@ -465,7 +495,7 @@ p, span, div {
 }
 
 .month-column {
-    background: var(--bg-secondary);
+    background: var(--bg-card);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
@@ -474,7 +504,8 @@ p, span, div {
 }
 
 .month-column:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-glow);
+    border-color: var(--border-accent);
 }
 
 .month-title {
@@ -487,12 +518,12 @@ p, span, div {
     border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Metric Item in Grid */
+/* Metric Item */
 .metric-item {
     display: flex;
     align-items: center;
     padding: 1rem;
-    background: var(--bg-primary);
+    background: var(--bg-input);
     border-radius: var(--radius-md);
     margin-bottom: 0.75rem;
     transition: all 0.2s ease;
@@ -500,8 +531,8 @@ p, span, div {
 }
 
 .metric-item:hover {
-    border-color: var(--accent-primary);
-    background: var(--color-info-bg);
+    border-color: var(--border-accent);
+    background: rgba(99, 180, 255, 0.05);
 }
 
 .metric-icon {
@@ -563,7 +594,7 @@ p, span, div {
 }
 
 .upload-card {
-    background: var(--bg-secondary);
+    background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
@@ -572,8 +603,8 @@ p, span, div {
 }
 
 .upload-card:hover {
-    border-color: var(--accent-primary);
-    box-shadow: var(--shadow-lg);
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-glow);
     transform: translateY(-3px);
 }
 
@@ -596,7 +627,7 @@ p, span, div {
 
 /* Chart Container */
 .chart-box {
-    background: var(--bg-secondary);
+    background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
@@ -606,13 +637,13 @@ p, span, div {
 
 /* Table Container */
 [data-testid="stDataFrame"] {
-    background: var(--bg-secondary) !important;
+    background: var(--bg-card) !important;
     border: 1px solid var(--border-subtle) !important;
     border-radius: var(--radius-lg) !important;
 }
 
 /* ============================================
-   Divider - Subtle
+   Divider
    ============================================ */
 hr {
     border: none !important;
@@ -622,7 +653,7 @@ hr {
 }
 
 /* ============================================
-   Scrollbar - Premium
+   Scrollbar
    ============================================ */
 ::-webkit-scrollbar {
     width: 6px;
@@ -630,27 +661,29 @@ hr {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border-light);
+    background: var(--text-muted);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--text-secondary);
 }
 
 /* ============================================
-   Inputs - Clean & Consistent
+   Inputs
    ============================================ */
 [data-testid="stNumberInput"] input,
 [data-testid="stTextInput"] input,
 [data-testid="stTextArea"] textarea {
     border-radius: var(--radius-md) !important;
-    border: 1px solid var(--border-subtle) !important;
+    border: 1px solid var(--border-light) !important;
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
     font-weight: 500 !important;
     font-family: var(--font-sans) !important;
     transition: all 0.2s ease !important;
@@ -660,22 +693,45 @@ hr {
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {
     border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
 }
 
-/* Input labels */
 [data-testid="stWidgetLabel"] label {
     font-weight: 600 !important;
     font-size: 0.8125rem !important;
-    color: var(--text-secondary) !important;
+    color: var(--text-muted) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.03em !important;
 }
 
+/* Select box */
+[data-testid="stSelectbox"]>div>div {
+    background: var(--bg-input) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+}
+
 /* ============================================
-   Toast & Success Messages
+   Toast
    ============================================ */
 [data-testid="stToast"] {
     border-radius: var(--radius-md) !important;
     box-shadow: var(--shadow-lg) !important;
+    background: var(--bg-secondary) !important;
+}
+
+/* ============================================
+   Header / Streamlit top bar
+   ============================================ */
+[data-testid="stHeader"] {
+    background: transparent !important;
+}
+
+/* Hide Streamlit branding */
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
 }
