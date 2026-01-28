@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.1"
+APP_VERSION = "v1.2.2"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -769,10 +769,99 @@ def render_dashboard():
                 st.rerun()
 
 
+def render_intro():
+    """Render intro animation on first visit."""
+    st.markdown("""
+    <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    #gd-intro-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 999999;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Pretendard', sans-serif;
+        animation: gd-fadeout 0.8s ease-in-out 3.8s forwards;
+        pointer-events: auto;
+    }
+    #gd-intro-overlay.hidden { display: none; }
+
+    .gd-intro-line {
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        overflow: hidden;
+        white-space: nowrap;
+        border-right: 2px solid rgba(255,255,255,0.6);
+        width: 0;
+    }
+    .gd-intro-line1 {
+        font-size: 1rem;
+        opacity: 0.5;
+        animation: gd-type 0.8s steps(12) 0.5s forwards, gd-blink 0.6s step-end 0.5s 3;
+    }
+    .gd-intro-line2 {
+        font-size: 2.5rem;
+        margin-top: 0.5rem;
+        animation: gd-type2 1.2s steps(16) 1.6s forwards, gd-blink 0.6s step-end 1.6s 3;
+    }
+    .gd-intro-ver {
+        color: rgba(255,255,255,0.25);
+        font-size: 0.75rem;
+        font-weight: 400;
+        margin-top: 1.5rem;
+        opacity: 0;
+        animation: gd-fadein 0.5s ease 3s forwards;
+    }
+
+    @keyframes gd-type {
+        from { width: 0; }
+        to { width: 7.5em; border-color: transparent; }
+    }
+    @keyframes gd-type2 {
+        from { width: 0; }
+        to { width: 12em; border-color: transparent; }
+    }
+    @keyframes gd-blink {
+        50% { border-color: transparent; }
+    }
+    @keyframes gd-fadein {
+        to { opacity: 1; }
+    }
+    @keyframes gd-fadeout {
+        0% { opacity: 1; pointer-events: auto; }
+        100% { opacity: 0; pointer-events: none; }
+    }
+    </style>
+
+    <div id="gd-intro-overlay">
+        <div class="gd-intro-line gd-intro-line1">주식회사 그룹디</div>
+        <div class="gd-intro-line gd-intro-line2">2.0 전략보고서</div>
+        <div class="gd-intro-ver">""" + APP_VERSION + """</div>
+    </div>
+
+    <script>
+    setTimeout(function() {
+        var el = document.getElementById('gd-intro-overlay');
+        if (el) el.classList.add('hidden');
+    }, 4800);
+    </script>
+    """, unsafe_allow_html=True)
+
+
 def main():
     """Main application entry point."""
     initialize_session_state()
-    
+
+    # Show intro animation on first visit
+    if 'intro_shown' not in st.session_state:
+        st.session_state.intro_shown = True
+        render_intro()
+
     if not st.session_state.files_uploaded:
         render_upload_section()
     else:
