@@ -37,6 +37,8 @@ HTML_TEMPLATE = """
         .glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+        details summary::-webkit-details-marker { display: none; }
+        details[open] > summary .toggle-arrow { transform: rotate(90deg); }
         @media print {
             .fade-in { opacity: 1 !important; transform: none !important; animation: none !important; }
             .card { box-shadow: none !important; border: 1px solid #e2e8f0; }
@@ -673,10 +675,11 @@ HTML_TEMPLATE = """
             <!-- Setting: 병원별 플랫폼 카드 레이아웃 -->
             {% if dept.id == 'setting' and dept.clinic_progress %}
             {% for clinic in dept.clinic_progress %}
-            <div class="mb-6">
-                <!-- Clinic Header -->
-                <div class="flex items-center justify-between mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <details class="mb-6 group" open>
+                <!-- Clinic Header (clickable toggle) -->
+                <summary class="flex items-center justify-between mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 cursor-pointer list-none select-none hover:bg-slate-100 transition-colors">
                     <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-400 transition-transform group-open:rotate-90" style="display:inline-block;">▶</span>
                         <span class="w-2.5 h-2.5 rounded-full" style="background: {% if clinic.progress_rate >= 80 %}#22c55e{% elif clinic.progress_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></span>
                         <span class="text-sm font-bold text-slate-800">{{ clinic.clinic }}</span>
                         <span class="text-[10px] px-2 py-0.5 rounded-full font-bold {% if clinic.progress_rate >= 80 %}bg-green-100 text-green-700{% elif clinic.progress_rate >= 50 %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
@@ -689,7 +692,7 @@ HTML_TEMPLATE = """
                         </div>
                         <span class="text-xs font-bold" style="color: {% if clinic.progress_rate >= 80 %}#16a34a{% elif clinic.progress_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ clinic.progress_rate|round(1) }}%</span>
                     </div>
-                </div>
+                </summary>
 
                 <!-- Platform Cards Grid -->
                 {% if clinic.platform_groups %}
@@ -746,7 +749,7 @@ HTML_TEMPLATE = """
                     {% endfor %}
                 </div>
                 {% endif %}
-            </div>
+            </details>
             {% if not loop.last %}
             <div class="border-t border-slate-100 my-4"></div>
             {% endif %}
