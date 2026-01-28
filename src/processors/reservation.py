@@ -517,12 +517,13 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
         treatment_list = []
         for t in df_target['treatment']:
             if t and str(t).strip() and str(t).strip() != '기타' and str(t).lower() != 'nan':
-                # 다양한 구분자 처리 (콤마, 슬래시, 세미콜론, 개행)
+                # 다중 선택 항목 분리: 각 항목은 "치료명, 홍보문구" 형태
+                # 항목 구분자: 마침표/느낌표/닫는괄호 뒤의 쉼표
                 import re
-                items = re.split(r'[,/;·\n]+', str(t))
+                items = re.split(r'[.!)]\s*,\s*', str(t))
                 for item in items:
-                    item = item.strip()
-                    if not item or item == '기타' or item.lower() == 'nan':
+                    item = item.strip().rstrip('.!)')
+                    if not item or item.lower() == 'nan':
                         continue
                     # 수식어 제거 적용
                     cleaned = extract_treatment_name(item)
