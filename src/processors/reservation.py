@@ -97,18 +97,28 @@ def extract_treatment_name(raw_treatment: str) -> str:
     진료항목에서 수식어를 제거하고 실제 치료명만 추출합니다.
     예: "구강건강을 지키는 스케일링" -> "스케일링"
     """
-    if not raw_treatment or raw_treatment == '기타' or pd.isna(raw_treatment):
+    if not raw_treatment or pd.isna(raw_treatment):
         return raw_treatment
 
     treatment = str(raw_treatment).strip()
 
-    # 수식어 제거
+    # 1. 쉼표 기준: "치료명, 홍보문구" → 치료명만 추출
+    if ',' in treatment:
+        treatment = treatment.split(',')[0].strip()
+
+    # 2. 괄호 제거: "기타 (하단 요청 사항에 적어주세요.)" → "기타"
+    treatment = re.sub(r'\s*[\(\（].*?[\)\）]', '', treatment).strip()
+
+    # 3. 앞쪽 수식어 제거
     for modifier in TREATMENT_MODIFIERS:
         if treatment.startswith(modifier):
             treatment = treatment[len(modifier):].strip()
             break
 
-    # 추가 정리: 앞뒤 공백, 특수문자 제거
+    # 4. 뒤쪽 홍보 문구 패턴 제거: 마침표로 끝나는 긴 설명문
+    treatment = re.sub(r'[.!]+$', '', treatment).strip()
+
+    # 5. 추가 정리: 앞뒤 공백, 특수문자 제거
     treatment = re.sub(r'^[\s\-·•]+', '', treatment)
     treatment = re.sub(r'[\s\-·•]+$', '', treatment)
 
