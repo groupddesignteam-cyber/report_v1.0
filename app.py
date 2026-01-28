@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.1.1"
+APP_VERSION = "v1.1.2"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -615,7 +615,7 @@ def render_dashboard():
         if len(design_clinics) > 1:
             selected_design_clinic = st.selectbox(
                 "디자인 거래처 선택",
-                options=design_clinics,
+                options=sorted(design_clinics),
                 key="design_clinic_selector"
             )
 
