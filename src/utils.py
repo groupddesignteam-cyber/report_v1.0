@@ -84,6 +84,9 @@ def load_uploaded_file(uploaded_file) -> LoadedFile:
     Returns:
         LoadedFile object with raw_bytes populated
     """
+    if isinstance(uploaded_file, LoadedFile):
+        return uploaded_file
+
     raw_bytes = uploaded_file.read()
     uploaded_file.seek(0)  # Reset for potential re-read
 
@@ -114,15 +117,18 @@ def route_files(uploaded_files: List) -> Dict[str, List[LoadedFile]]:
 
     for f in uploaded_files:
         # Handle both Streamlit UploadedFile and our LoadedFile
-        filename = f.name
-
-        processor = classify_file(filename)
-        if processor:
-            if isinstance(f, LoadedFile):
-                loaded = f
-            else:
-                loaded = load_uploaded_file(f)
-            routed[processor].append(loaded)
+        try:
+            filename = f.name
+            processor = classify_file(filename)
+            if processor:
+                if isinstance(f, LoadedFile):
+                    loaded = f
+                else:
+                    loaded = load_uploaded_file(f)
+                routed[processor].append(loaded)
+        except (AttributeError, Exception) as e:
+            print(f"Warning: Could not process file: {e}")
+            continue
 
     return routed
 
