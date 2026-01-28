@@ -48,6 +48,22 @@ def is_completed_status(status_value, completion_date_value=None) -> bool:
     return False
 
 
+def _clean_val(value) -> str:
+    """Clean a value to string, return empty if NaN/empty."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ''
+    s = str(value).strip()
+    return '' if s.lower() in ['nan', 'nat', ''] else s
+
+
+def _clean_date(value) -> str:
+    """Clean a date value, removing time portion."""
+    s = _clean_val(value)
+    if s and ' ' in s:
+        s = s.split(' ')[0]
+    return s
+
+
 def extract_channel_groups(columns: List[str]) -> Dict[str, Dict[str, str]]:
     """
     Extract channel groups from column names.
@@ -55,7 +71,7 @@ def extract_channel_groups(columns: List[str]) -> Dict[str, Dict[str, str]]:
 
     Returns dict: {channel_name: {suffix: column_name}}
     """
-    channel_suffixes = ['-상태', '-종류', '-작업완료일', '-작업시작일']
+    channel_suffixes = ['-상태', '-종류', '-작업완료일', '-작업시작일', '-비고', '-자료 수신일']
     channels = {}
 
     for col in columns:
@@ -87,7 +103,7 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
     clinic_data = []
 
     for f in files:
-        if not re.match(r'세팅KPI.*\.csv', f.name, re.IGNORECASE):
+        if not re.match(r'(세팅KPI|신규계약프로세스).*\.csv', f.name, re.IGNORECASE):
             continue
 
         try:
@@ -129,70 +145,125 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
             if not channel_groups:
                 continue
 
-            total_channels = len(channel_groups)
+            # CSV는 동일 ID의 여러 행으로 구성됨 (각 행이 플랫폼 세부작업)
+            # 첫 행: 메타정보(거래처명, 계약상품 등) + 각 플랫폼 첫 번째 세부작업
+            # 이후 행: 각 플랫폼 추가 세부작업
 
-            for _, row in df.iterrows():
-                clinic_name = str(row.get(clinic_col, '')).strip()
+            # ID 컬럼 찾기
+            id_col = None
+            for col in df.columns:
+                if str(col).strip() == '*ID':
+                    id_col = col
+                    break
+
+            # ID 기준으로 그룹핑 (없으면 전체를 하나의 그룹으로)
+            if id_col:
+                groups = df.groupby(id_col)
+            else:
+                # 첫 행의 clinic_col 기준
+                df['_group'] = df[clinic_col].fillna(method='ffill')
+                groups = df.groupby('_group')
+
+            for group_key, group_df in groups:
+                first_row = group_df.iloc[0]
+                clinic_name = str(first_row.get(clinic_col, '')).strip()
                 if not clinic_name or clinic_name == 'nan':
                     continue
-                
-                marketing_start_date = str(row.get(marketing_start_col, '')).strip() if marketing_start_col else ''
-                contract_item = str(row.get(contract_item_col, '')).strip() if contract_item_col else ''
-                platform_name = str(row.get(platform_name_col, '')).strip() if platform_name_col else ''
-                data_received = str(row.get(data_received_col, '')).strip() if data_received_col else ''
+                # 제목에서 [기개원] 등 접두사 제거
+                clinic_name = re.sub(r'\[.*?\]\s*', '', clinic_name).strip()
 
-                # Count completed channels for this clinic
-                completed_channels = 0
+                marketing_start_date = str(first_row.get(marketing_start_col, '')).strip() if marketing_start_col else ''
+                contract_item = str(first_row.get(contract_item_col, '')).strip() if contract_item_col else ''
+                platform_name = str(first_row.get(platform_name_col, '')).strip() if platform_name_col else ''
+                data_received = str(first_row.get(data_received_col, '')).strip() if data_received_col else ''
+
+                # 각 플랫폼별로 모든 행에서 세부작업 수집
                 channel_status = {}
 
                 for channel_name, suffixes in channel_groups.items():
-                    status_col = suffixes.get('-상태')
-                    completion_date_col = suffixes.get('-작업완료일')
-                    start_date_col = suffixes.get('-작업시작일')
-                    type_col = suffixes.get('-종류')
+                    status_col_name = suffixes.get('-상태')
+                    completion_date_col_name = suffixes.get('-작업완료일') or suffixes.get('-자료 수신일')
+                    start_date_col_name = suffixes.get('-작업시작일')
+                    type_col_name = suffixes.get('-종류')
+                    note_col_name = suffixes.get('-비고')
 
-                    status_value = row.get(status_col) if status_col else None
-                    completion_date = row.get(completion_date_col) if completion_date_col else None
-                    start_date = row.get(start_date_col) if start_date_col else None
-                    type_value = row.get(type_col) if type_col else None
+                    # 모든 행에서 세부작업 수집
+                    sub_tasks = []
+                    for _, row in group_df.iterrows():
+                        status_value = row.get(status_col_name) if status_col_name else None
+                        completion_date = row.get(completion_date_col_name) if completion_date_col_name else None
+                        start_date = row.get(start_date_col_name) if start_date_col_name else None
+                        type_value = row.get(type_col_name) if type_col_name else None
+                        note_value = row.get(note_col_name) if note_col_name else None
 
-                    is_completed = is_completed_status(status_value, completion_date)
+                        # 유효한 값 확인
+                        has_content = False
+                        for val in [status_value, completion_date, start_date, type_value]:
+                            if val is not None and pd.notna(val) and str(val).strip() not in ['', 'nan', 'NaN']:
+                                has_content = True
+                                break
 
-                    # 미진행 판별: 모든 관련 필드가 비어있으면 미진행
-                    has_any_content = False
-                    for val in [status_value, completion_date, start_date, type_value]:
-                        if val is not None and pd.notna(val) and str(val).strip() not in ['', 'nan', 'NaN']:
-                            has_any_content = True
-                            break
+                        if not has_content:
+                            continue
 
-                        # 상태: 'completed', 'in_progress', 'not_started'
-                    status_label = ''
-                    if is_completed:
-                        status_label = 'completed'
-                        completed_channels += 1
-                    elif has_any_content:
-                        status_label = 'in_progress'
+                        # 값 정리
+                        type_str = _clean_val(type_value)
+                        status_raw = _clean_val(status_value)
+                        completion_date_str = _clean_date(completion_date)
+                        start_date_str = _clean_date(start_date)
+                        note_str = _clean_val(note_value)
+
+                        is_completed = is_completed_status(status_value, completion_date)
+                        if is_completed:
+                            task_status = 'completed'
+                        elif status_raw:
+                            task_status = 'in_progress'
+                        else:
+                            task_status = 'not_started'
+
+                        sub_tasks.append({
+                            'type': type_str,
+                            'status': task_status,
+                            'status_raw': status_raw,
+                            'completion_date': completion_date_str,
+                            'start_date': start_date_str,
+                            'note': note_str,
+                        })
+
+                    # 플랫폼 전체 상태 계산
+                    if sub_tasks:
+                        completed_count = sum(1 for t in sub_tasks if t['status'] == 'completed')
+                        in_progress_count = sum(1 for t in sub_tasks if t['status'] == 'in_progress')
+                        total_tasks = len(sub_tasks)
+                        if completed_count == total_tasks:
+                            platform_status = 'completed'
+                        elif in_progress_count > 0 or completed_count > 0:
+                            platform_status = 'in_progress'
+                        else:
+                            platform_status = 'not_started'
                     else:
-                        status_label = 'not_started'
-
-                    # 종류 값 정리
-                    type_str = str(type_value).strip() if type_value is not None and pd.notna(type_value) and str(type_value).strip() not in ['', 'nan', 'NaN'] else ''
-                    # 상태 원본 텍스트
-                    status_raw = str(status_value).strip() if status_value is not None and pd.notna(status_value) and str(status_value).strip() not in ['', 'nan', 'NaN'] else ''
-                    # 완료일
-                    completion_date_str = str(completion_date).strip() if completion_date is not None and pd.notna(completion_date) and str(completion_date).strip() not in ['', 'nan', 'NaN', 'NaT'] else ''
-                    # 날짜 형식 정리 (2025-12-11 00:00:00 → 2025-12-11)
-                    if completion_date_str and ' ' in completion_date_str:
-                        completion_date_str = completion_date_str.split(' ')[0]
+                        platform_status = 'not_started'
+                        total_tasks = 0
+                        completed_count = 0
 
                     channel_status[channel_name] = {
-                        'status': status_label,
-                        'type': type_str,
-                        'status_raw': status_raw,
-                        'completion_date': completion_date_str
+                        'status': platform_status,
+                        'type': sub_tasks[0]['type'] if sub_tasks else '',
+                        'status_raw': sub_tasks[0]['status_raw'] if sub_tasks else '',
+                        'completion_date': sub_tasks[-1]['completion_date'] if sub_tasks else '',
+                        'sub_tasks': sub_tasks,
+                        'total_tasks': total_tasks,
+                        'completed_tasks': completed_count,
                     }
 
-                progress_rate = (completed_channels / total_channels * 100) if total_channels > 0 else 0
+                # 전체 진행률: 세부작업 기준
+                all_tasks = sum(ch['total_tasks'] for ch in channel_status.values())
+                all_completed = sum(ch['completed_tasks'] for ch in channel_status.values())
+                progress_rate = (all_completed / all_tasks * 100) if all_tasks > 0 else 0
+
+                # 플랫폼 수 기준 (세부작업이 있는 플랫폼만)
+                active_channels = sum(1 for ch in channel_status.values() if ch['total_tasks'] > 0)
+                completed_channels = sum(1 for ch in channel_status.values() if ch['status'] == 'completed')
 
                 clinic_data.append({
                     'clinic': clinic_name,
@@ -200,7 +271,7 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                     'contract_item': contract_item,
                     'platform_name': platform_name,
                     'data_received': data_received,
-                    'total_channels': total_channels,
+                    'total_channels': active_channels,
                     'completed_channels': completed_channels,
                     'progress_rate': round(progress_rate, 2),
                     'channel_status': channel_status
@@ -243,7 +314,10 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                     'status': ch_info['status'],
                     'type': ch_info.get('type', ''),
                     'status_raw': ch_info.get('status_raw', ''),
-                    'completion_date': ch_info.get('completion_date', '')
+                    'completion_date': ch_info.get('completion_date', ''),
+                    'sub_tasks': ch_info.get('sub_tasks', []),
+                    'total_tasks': ch_info.get('total_tasks', 0),
+                    'completed_tasks': ch_info.get('completed_tasks', 0),
                 })
             else:
                 channels_detail.append({
@@ -251,7 +325,10 @@ def process_setting(files: List[LoadedFile]) -> Dict[str, Any]:
                     'status': ch_info,
                     'type': '',
                     'status_raw': '',
-                    'completion_date': ''
+                    'completion_date': '',
+                    'sub_tasks': [],
+                    'total_tasks': 0,
+                    'completed_tasks': 0,
                 })
         clinic_progress.append({
             'clinic': row['clinic'],

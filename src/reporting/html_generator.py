@@ -700,22 +700,45 @@ HTML_TEMPLATE = """
                         <div class="px-3 py-2 border-b border-slate-100" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-bold text-slate-800">{{ group.platform }}</span>
-                                <span class="text-[10px] font-bold" style="color: {% if group.completion_rate >= 100 %}#0891b2{% elif group.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ group.completion_rate|int }}% 완료</span>
+                                <span class="text-[10px] font-bold" style="color: {% if group.completion_rate >= 100 %}#0891b2{% elif group.completion_rate >= 50 %}#d97706{% else %}#dc2626{% endif %};">{{ group.completed }}/{{ group.total }}</span>
+                            </div>
+                            <!-- Mini progress bar -->
+                            <div class="w-full h-1 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                                <div class="h-full rounded-full" style="width: {{ group.completion_rate }}%; background: {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
                             </div>
                         </div>
-                        <!-- Channel Sub-tasks -->
-                        <div class="divide-y divide-slate-50">
+                        <!-- Channel groups with sub-tasks -->
+                        <div class="divide-y divide-slate-100">
                             {% for ch in group.channels %}
-                            <div class="px-3 py-2 flex items-start justify-between gap-2">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-[11px] text-slate-700 font-medium leading-tight">{{ ch.type if ch.type else ch.channel }}</p>
-                                    {% if ch.completion_date %}
-                                    <p class="text-[9px] text-slate-400 mt-0.5">{{ ch.completion_date }}</p>
-                                    {% endif %}
+                            <div class="px-3 py-2">
+                                <!-- Channel name header -->
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">{{ ch.channel }}</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background: {% if ch.status == 'completed' %}#ecfeff{% elif ch.status == 'in_progress' %}#fffbeb{% else %}#f8fafc{% endif %}; color: {% if ch.status == 'completed' %}#0e7490{% elif ch.status == 'in_progress' %}#b45309{% else %}#94a3b8{% endif %}; border: 1px solid {% if ch.status == 'completed' %}#a5f3fc{% elif ch.status == 'in_progress' %}#fde68a{% else %}#e2e8f0{% endif %};">
+                                        {{ ch.completed_tasks }}/{{ ch.total_tasks }}
+                                    </span>
                                 </div>
-                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 {% if ch.status == 'completed' %}bg-cyan-50 text-cyan-700 border border-cyan-200{% elif ch.status == 'in_progress' %}bg-amber-50 text-amber-700 border border-amber-200{% else %}bg-slate-50 text-slate-400 border border-slate-200{% endif %}">
-                                    {% if ch.status == 'completed' %}완료{% elif ch.status == 'in_progress' %}{{ ch.status_raw if ch.status_raw else '진행' }}{% else %}대기{% endif %}
-                                </span>
+                                <!-- Sub-task list -->
+                                {% if ch.sub_tasks %}
+                                <div class="space-y-1">
+                                    {% for task in ch.sub_tasks %}
+                                    <div class="flex items-start justify-between gap-1.5 pl-2" style="border-left: 2px solid {% if task.status == 'completed' %}#a5f3fc{% elif task.status == 'in_progress' %}#fde68a{% else %}#e2e8f0{% endif %};">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-[10px] {% if task.status == 'completed' %}text-slate-500{% else %}text-slate-700{% endif %} leading-tight">{{ task.type if task.type else '-' }}</p>
+                                            {% if task.completion_date %}
+                                            <p class="text-[8px] text-slate-400">{{ task.start_date }}{% if task.start_date != task.completion_date %} → {{ task.completion_date }}{% endif %}</p>
+                                            {% endif %}
+                                        </div>
+                                        <span class="text-[8px] font-bold flex-shrink-0 {% if task.status == 'completed' %}text-cyan-600{% elif task.status == 'in_progress' %}text-amber-600{% else %}text-slate-400{% endif %}">
+                                            {% if task.status == 'completed' %}✓{% elif task.status == 'in_progress' %}{{ task.status_raw if task.status_raw else '진행' }}{% else %}대기{% endif %}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if ch.note %}
+                                <p class="text-[8px] text-amber-500 mt-1 pl-2">※ {{ ch.note }}</p>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
@@ -1374,9 +1397,17 @@ def _group_channels_by_platform(channels: list) -> list:
 
     for ch in channels:
         ch_name = ch.get('channel', '')
+        sub_tasks = ch.get('sub_tasks', [])
+        total_tasks = ch.get('total_tasks', 0)
+        completed_tasks = ch.get('completed_tasks', 0)
+
+        # Skip channels with no tasks
+        if total_tasks == 0:
+            continue
+
         # Determine platform group
         platform = ch_name  # default: channel name IS the platform
-        for prefix in ['네이버', '카카오', '구글', 'Google']:
+        for prefix in ['자료 수신', '네비게이션', '네이버', '카카오', '구글', 'Google']:
             if ch_name.startswith(prefix):
                 platform = prefix
                 break
@@ -1385,23 +1416,24 @@ def _group_channels_by_platform(channels: list) -> list:
             platform_map[platform] = {
                 'platform': platform,
                 'channels': [],
-                'completed': 0,
-                'total': 0,
+                'completed_tasks': 0,
+                'total_tasks': 0,
             }
             platform_order.append(platform)
 
         platform_map[platform]['channels'].append(ch)
-        if ch.get('status') == 'completed':
-            platform_map[platform]['completed'] += 1
-        platform_map[platform]['total'] += 1
+        platform_map[platform]['completed_tasks'] += completed_tasks
+        platform_map[platform]['total_tasks'] += total_tasks
 
-    # Calculate completion rate per platform
+    # Calculate completion rate per platform (based on sub-tasks)
     result = []
     for p_name in platform_order:
         group = platform_map[p_name]
-        total = group['total']
-        completed = group['completed']
+        total = group['total_tasks']
+        completed = group['completed_tasks']
         group['completion_rate'] = round((completed / total * 100) if total > 0 else 0, 1)
+        group['completed'] = completed
+        group['total'] = total
         result.append(group)
 
     return result
