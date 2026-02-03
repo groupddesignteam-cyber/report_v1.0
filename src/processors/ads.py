@@ -1,7 +1,8 @@
 """
 광고팀 데이터 처리 모듈
-- Spend xlsx: '945246_소진_내역_*.xlsx'
-- Campaign csv: '캠페인 보고서*.csv'
+- Spend xlsx: '날짜_치과명_광고비 소진 내역.xlsx' (새 형식)
+- Campaign csv: '날짜_치과명_기간별 내역.csv' (새 형식)
+- 기존 형식도 지원 (하위 호환)
 """
 
 import re
@@ -52,11 +53,18 @@ def parse_year_month_monthly(monthly: str) -> str:
 
 
 def process_spend_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
-    """Process spend xlsx files: '945246_소진_내역_*.xlsx'"""
+    """Process spend xlsx files: '날짜_치과명_광고비 소진 내역.xlsx' (새 형식) or '945246_소진_내역_*.xlsx' (기존 형식)"""
     spend_data = []
 
+    # 새 형식: 날짜_치과명_광고비 소진 내역.xlsx
+    # 기존 형식: 945246_소진_내역_*.xlsx
+    spend_patterns = [
+        r'\d+_.*_광고비\s*소진\s*내역\.xlsx',  # 새 형식
+        r'\d+_소진_내역_.*\.xlsx'  # 기존 형식
+    ]
+
     for f in files:
-        if not re.match(r'945246_소진_내역_.*\.xlsx', f.name, re.IGNORECASE):
+        if not any(re.match(p, f.name, re.IGNORECASE) for p in spend_patterns):
             continue
 
         try:
@@ -116,11 +124,18 @@ def process_spend_xlsx(files: List[LoadedFile]) -> Dict[str, Any]:
 
 
 def process_campaign_csv(files: List[LoadedFile]) -> Dict[str, Any]:
-    """Process campaign csv files: '캠페인 보고서*.csv'"""
+    """Process campaign csv files: '날짜_치과명_기간별 내역.csv' (새 형식) or '캠페인 보고서*.csv' (기존 형식)"""
     campaign_data = []
 
+    # 새 형식: 날짜_치과명_기간별 내역.csv
+    # 기존 형식: 캠페인 보고서*.csv
+    campaign_patterns = [
+        r'\d+_.*_기간별\s*내역\.csv',  # 새 형식
+        r'캠페인 보고서.*\.csv'  # 기존 형식
+    ]
+
     for f in files:
-        if not re.match(r'캠페인 보고서.*\.csv', f.name, re.IGNORECASE):
+        if not any(re.match(p, f.name, re.IGNORECASE) for p in campaign_patterns):
             continue
 
         try:

@@ -20,6 +20,11 @@ class LoadedFile:
 # File pattern to processor mapping
 FILE_PATTERNS = {
     'ads': [
+        # 새 형식: 날짜_치과명_광고비 소진 내역.xlsx
+        r'\d+_.*_광고비\s*소진\s*내역\.xlsx',
+        # 새 형식: 날짜_치과명_기간별 내역.csv
+        r'\d+_.*_기간별\s*내역\.csv',
+        # 기존 형식 (하위 호환)
         r'\d+_소진_내역_.*\.xlsx',
         r'캠페인.*보고서.*\.csv',
         r'캠페인 보고서.*\.csv'
