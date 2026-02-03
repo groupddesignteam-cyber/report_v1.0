@@ -395,18 +395,27 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                 if pd.isna(col): continue
                 col_str = str(col).strip()
 
-                # Priority 5: Explicit Survey (User Request)
-                if '원하시는 진료' in col_str or '원하시는 시술' in col_str or '원하시는 치료' in col_str:
+                # "기타" 입력 필드는 제외 (보조 입력 필드이므로)
+                if '기타' in col_str and ('입력' in col_str or '기재' in col_str or '작성' in col_str):
+                    continue
+
+                # Priority 5: Explicit Survey - "어떤 진료를 원하세요" 형태 (가장 명확한 설문)
+                if '어떤 진료' in col_str and '원하' in col_str:
                     if 5 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 5
-                # Priority 4: Detail Selection
-                elif '선택시술(상세)' in col_str or '선택시술' in col_str or '선택진료' in col_str:
+                # Priority 4: "원하시는 진료/시술/치료" 형태
+                elif ('원하시는 진료' in col_str or '원하시는 시술' in col_str or '원하시는 치료' in col_str):
                     if 4 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 4
+                # Priority 3.5: Detail Selection
+                elif '선택시술(상세)' in col_str or '선택시술' in col_str or '선택진료' in col_str:
+                    if 3.5 > highest_priority:
+                        best_treatment_col = col
+                        highest_priority = 3.5
                 # Priority 3: Generic Question with '진료', '시술', or '치료'
-                elif ('어떤 진료' in col_str or '진료를 원하세요' in col_str or '어떤 시술' in col_str
+                elif ('진료를 원하세요' in col_str or '어떤 시술' in col_str
                       or '어떤 치료' in col_str or '치료를 원하' in col_str
                       or '희망 진료' in col_str or '희망진료' in col_str or '희망 치료' in col_str or '희망치료' in col_str
                       or '관심 진료' in col_str or '관심진료' in col_str or '관심 치료' in col_str
