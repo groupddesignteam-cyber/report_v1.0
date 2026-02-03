@@ -66,53 +66,7 @@ HTML_TEMPLATE = """
             </div>
         </header>
 
-        <!-- 2. Executive Summary -->
-        {% if best_metric or worst_metric or manager_comment %}
-        <div class="card p-6 md:p-8 fade-in delay-1">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center gap-3">
-                    <div class="bg-gradient-to-br from-indigo-100 to-purple-100 p-2.5 rounded-xl shadow-sm"><i data-lucide="bar-chart-2" class="w-5 h-5 text-indigo-600"></i></div>
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-800">Performance Overview</h2>
-                        <p class="text-[10px] text-slate-400 font-medium">전월 대비 핵심 성과 변동</p>
-                    </div>
-                </div>
-                <span class="section-badge bg-indigo-50 text-indigo-600 border border-indigo-100">Executive Summary</span>
-            </div>
-
-            <!-- Best & Worst -->
-            {% if best_metric and worst_metric %}
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
-                    <div class="inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-2">
-                        <i data-lucide="trending-up" class="w-3 h-3"></i> BEST
-                    </div>
-                    <p class="text-sm font-bold text-slate-800">{{ best_metric.name }}</p>
-                    <p class="text-xs text-slate-500 mb-1">{{ best_metric.source }}</p>
-                    <p class="text-2xl font-black text-green-600">+{{ best_metric.growth }}%</p>
-                </div>
-                <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-200">
-                    <div class="inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mb-2">
-                        <i data-lucide="trending-down" class="w-3 h-3"></i> WORST
-                    </div>
-                    <p class="text-sm font-bold text-slate-800">{{ worst_metric.name }}</p>
-                    <p class="text-xs text-slate-500 mb-1">{{ worst_metric.source }}</p>
-                    <p class="text-2xl font-black text-red-600">{{ worst_metric.growth }}%</p>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Manager Comment -->
-            {% if manager_comment %}
-            <div class="bg-slate-50 border-l-4 border-indigo-500 p-4 rounded-r-xl">
-                <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1">담당자 코멘트</p>
-                <p class="text-sm text-slate-600 italic leading-relaxed whitespace-pre-wrap">{{ manager_comment }}</p>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- 3. Department Sections -->
+        <!-- 2. Department Sections -->
         {% for dept in departments %}
         {% if dept.has_data %}
         <div class="card p-6 md:p-8 fade-in delay-2">
@@ -1674,6 +1628,14 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
     departments = []
     for name, dept_id in dept_configs:
         result = results.get(dept_id, {})
+
+        # 디자인: 해당 치과 데이터가 없으면 섹션 제외
+        if dept_id == 'design' and clinic_name:
+            design_clinics = result.get('clean_data', {}).get('clinic_names', [])
+            has_clinic_data = any(clinic_name in c for c in design_clinics) if design_clinics else False
+            if not has_clinic_data:
+                continue  # 디자인 섹션 제외
+
         dept_data = prepare_department_data(name, dept_id, result)
         departments.append(dept_data)
 
