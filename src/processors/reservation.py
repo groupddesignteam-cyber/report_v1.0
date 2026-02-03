@@ -41,6 +41,82 @@ TREATMENT_MODIFIERS = [
     '잡자, ', '잡자,', '잡자! ', '잡자!', '잡자 ', '잡자',
 ]
 
+# 치과 진료 키워드 - 컬럼 데이터 자동 감지용
+DENTAL_TREATMENT_KEYWORDS = [
+    # 일반 진료
+    '스케일링', '충치', '신경치료', '발치', '사랑니', '잇몸', '치주',
+    '레진', '인레이', '온레이', '크라운', '브릿지', '틀니',
+    # 임플란트
+    '임플란트', '뼈이식', '상악동', '식립',
+    # 교정
+    '교정', '투명교정', '인비절라인', '부분교정', '치아교정',
+    # 심미/미백
+    '미백', '라미네이트', '심미', '치아성형',
+    # 소아/예방
+    '소아', '어린이', '불소', '실란트', '예방',
+    # 기타
+    '검진', '상담', '정기검진', '구강검진', '치과검진',
+    '턱관절', 'TMJ', '이갈이', '구취', '입냄새',
+    # 응급
+    '응급', '통증', '붓기', '염증',
+]
+
+# 진료 컬럼 제외 키워드 - 이 키워드가 포함된 컬럼은 진료 컬럼이 아님
+TREATMENT_EXCLUDE_KEYWORDS = [
+    '예약번호', '일시', '상태', '취소', '유입', '연락', '전화', '이름',
+    '메모', '주소', '알게', '어떻게', '이메일', '금액', '결제', '환불',
+    '수수료', '쿠폰', '방문자', '블랙리스트', 'N페이', '요청사항'
+]
+
+
+def detect_treatment_column_by_data(df: pd.DataFrame, mapped_cols: set) -> Optional[str]:
+    """
+    컬럼 데이터를 분석하여 진료 항목 컬럼을 자동 감지합니다.
+    치과 진료 키워드가 가장 많이 포함된 컬럼을 선택합니다.
+
+    Args:
+        df: 데이터프레임
+        mapped_cols: 이미 매핑된 컬럼들 (제외)
+
+    Returns:
+        감지된 컬럼명 또는 None
+    """
+    best_col = None
+    best_score = 0
+
+    for col in df.columns:
+        if pd.isna(col) or col in mapped_cols:
+            continue
+
+        col_str = str(col).strip()
+        if not col_str:
+            continue
+
+        # 제외 키워드가 포함된 컬럼은 스킵
+        if any(kw in col_str for kw in TREATMENT_EXCLUDE_KEYWORDS):
+            continue
+
+        # 컬럼 데이터에서 치과 진료 키워드 매칭 점수 계산
+        score = 0
+        sample_data = df[col].dropna().astype(str).head(50)  # 상위 50개 샘플
+
+        for value in sample_data:
+            value_lower = value.lower()
+            for keyword in DENTAL_TREATMENT_KEYWORDS:
+                if keyword.lower() in value_lower:
+                    score += 1
+
+        if score > best_score:
+            best_score = score
+            best_col = col
+
+    # 최소 3개 이상 매칭되어야 유효한 진료 컬럼으로 판단
+    if best_score >= 3:
+        print(f"[DEBUG] 진료 컬럼 자동 감지: '{best_col}' (매칭 점수: {best_score})")
+        return best_col
+
+    return None
+
 # AI 관련 키워드 (치과 인지 경로에서 감지)
 AI_KEYWORDS = [
     'chatgpt', 'gpt', 'gemini', 'claude', 'ai', '인공지능', '챗봇', 'bard',
@@ -343,8 +419,8 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                     if 2 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 2
-                # Priority 1: Product/Service/Menu Name
-                elif '상품명' in col_str or '서비스명' in col_str or '서비스' == col_str:
+                # Priority 1: Product/Service/Menu Name (상품, 상품명 포함)
+                elif '상품명' in col_str or col_str == '상품' or '서비스명' in col_str or col_str == '서비스':
                     if 1 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 1
@@ -353,36 +429,23 @@ def process_reservation(files: List[LoadedFile]) -> Dict[str, Any]:
                         best_treatment_col = col
                         highest_priority = 1
                 # Priority 0: Menu Name (Fallback)
-                elif '메뉴명' in col_str or ('메뉴' == col_str):
+                elif '메뉴명' in col_str or col_str == '메뉴':
                     if 0 > highest_priority:
                         best_treatment_col = col
                         highest_priority = 0
-            
+
             if best_treatment_col:
                 col_mapping['treatment'] = best_treatment_col
                 print(f"[DEBUG] Selected Treatment Column: '{best_treatment_col}' (Priority {highest_priority})")
             else:
-                # Aggressive fallback: look for unmapped columns with potential treatment data
+                # 데이터 기반 자동 감지 (치과 진료 키워드 매칭)
                 mapped_cols = set(col_mapping.values())
-                unmapped_cols = []
-                for col in df.columns:
-                    if pd.isna(col) or col in mapped_cols:
-                        continue
-                    col_str = str(col).strip()
-                    if not col_str:
-                        continue
-                    # Skip known non-treatment columns
-                    if any(kw in col_str for kw in ['예약번호', '일시', '상태', '취소', '유입', '연락', '전화', '이름', '메모', '주소', '알게', '어떻게']):
-                        unmapped_cols.append(col_str)
-                        continue
-                    # Match columns with treatment-related keywords
-                    if any(kw in col_str for kw in ['항목', '종류', '유형', '원하', '선택', '상담', '치과', '증상']):
-                        col_mapping['treatment'] = col
-                        print(f"[DEBUG] Treatment Column (fallback): '{col}'")
-                        break
-                    unmapped_cols.append(col_str)
+                auto_detected_col = detect_treatment_column_by_data(df, mapped_cols)
+                if auto_detected_col:
+                    col_mapping['treatment'] = auto_detected_col
+                    print(f"[DEBUG] Treatment Column (데이터 자동 감지): '{auto_detected_col}'")
                 else:
-                    print(f"[DEBUG] ⚠ Treatment column NOT found. Unmapped columns: {unmapped_cols}")
+                    print(f"[DEBUG] ⚠ Treatment column NOT found (컬럼명 매칭 실패, 데이터 자동 감지도 실패)")
 
             for _, row in df.iterrows():
                 request_dt = parse_korean_datetime(row.get(col_mapping.get('request_datetime', ''), ''))
