@@ -228,12 +228,14 @@ def find_header_row_by_columns(df: pd.DataFrame, required_cols: List[str]) -> in
 def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
     """Process work CSV: '[콘텐츠팀] 포스팅 업무 현황*.csv'
 
-    CSV 구조 (Notion 내보내기 형식):
-    - A열(*ID): 계약 그룹 ID (같은 ID = 같은 계약)
-    - E열(계약 건수): 계약된 포스팅 수
-    - G열(발행 완료 건수): 발행 완료된 포스팅 수
-    - L열(시작일): 계약 시작일 (월별 구분 기준)
-    - AB열(포스팅-업로드): 개별 포스팅 발행일
+    헤더 1행 기준으로 컬럼 탐색 (키워드 포함 여부로 매칭):
+    - *ID: 계약 그룹 ID (같은 ID = 같은 계약)
+    - 계약 건수: 계약된 포스팅 수
+    - 발행 완료: 발행 완료된 포스팅 수
+    - 누적 이월: 이월 건수
+    - 시작일: 계약 시작일 (월별 구분 기준)
+    - 포스팅-게시물 제목: 개별 포스팅 제목
+    - 포스팅-업로드: 개별 포스팅 발행일
     """
     all_posts = []  # 개별 포스팅 목록
     id_contracts = {}  # ID별 계약 정보 {id: {start_date, contract_count, published_count, ...}}
@@ -252,36 +254,48 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
             else:
                 continue
 
-            # 컬럼 인덱스로 직접 매핑 (더 안정적)
             col_names = list(df.columns)
 
-            # 컬럼명으로 매핑 찾기
+            # 헤더명에 키워드 포함 여부로 컬럼 매핑 (1행 기준)
             col_mapping = {}
-            for idx, col in enumerate(col_names):
+            for col in col_names:
                 col_str = str(col).strip()
-                if col_str == '*ID':
+                # ID 컬럼 (첫 번째 컬럼 또는 *ID 포함)
+                if '*ID' in col_str or col_str == 'ID':
                     col_mapping['id'] = col
-                elif col_str == '거래처 명':
+                # 거래처명
+                elif '거래처' in col_str:
                     col_mapping['clinic'] = col
-                elif col_str == '계약 건수':
+                # 계약 건수 (키워드: "계약 건수", "계약건수")
+                elif '계약' in col_str and '건수' in col_str:
                     col_mapping['contract_count'] = col
-                elif col_str == '발행 완료 건수':
-                    col_mapping['published_count'] = col
-                elif col_str == '누적 이월 건수':
+                # 발행 완료 (키워드: "발행 완료", "발행완료")
+                elif '발행' in col_str and ('완료' in col_str or '건수' in col_str):
+                    if 'published_count' not in col_mapping:  # 첫 번째 매칭만
+                        col_mapping['published_count'] = col
+                # 누적 이월 (키워드: "누적 이월", "이월")
+                elif '이월' in col_str:
                     col_mapping['carryover'] = col
-                elif col_str == '남은 작업 건수':
+                # 남은 작업 건수
+                elif '남은' in col_str and '작업' in col_str:
                     col_mapping['remaining'] = col
+                # 시작일
                 elif col_str == '시작일':
                     col_mapping['start_date'] = col
-                elif col_str == '포스팅-업로드':
+                # 포스팅-업로드
+                elif '포스팅' in col_str and '업로드' in col_str:
                     col_mapping['upload_date'] = col
-                elif col_str == '포스팅-게시물 제목':
+                # 포스팅-게시물 제목
+                elif '포스팅' in col_str and '제목' in col_str:
                     col_mapping['post_title'] = col
-                elif col_str == '포스팅-포스팅 URL':
+                # 포스팅 URL
+                elif '포스팅' in col_str and 'URL' in col_str.upper():
                     col_mapping['post_url'] = col
-                elif col_str == '포스팅-상태':
+                # 포스팅 상태
+                elif '포스팅' in col_str and '상태' in col_str:
                     col_mapping['post_status'] = col
-                elif col_str == '계약상품':
+                # 계약상품
+                elif '계약상품' in col_str or '계약 상품' in col_str:
                     col_mapping['contract_item'] = col
 
             # ID 컬럼 ffill (같은 계약 그룹 표시)
