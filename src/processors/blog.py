@@ -247,11 +247,22 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
             continue
 
         try:
+            df = None
             if f.df is not None:
                 df = f.df.copy()
             elif f.raw_bytes:
-                df = pd.read_csv(BytesIO(f.raw_bytes), encoding='utf-8-sig')
-            else:
+                # 여러 인코딩 시도 (EUC-KR 파일 지원)
+                for encoding in ['utf-8-sig', 'euc-kr', 'cp949']:
+                    try:
+                        df = pd.read_csv(BytesIO(f.raw_bytes), encoding=encoding)
+                        # 컬럼명에 한글이 제대로 들어있는지 확인
+                        col_check = ''.join(str(c) for c in df.columns)
+                        if '계약' in col_check or '포스팅' in col_check or '시작일' in col_check:
+                            break  # 정상적으로 읽힌 경우
+                    except Exception:
+                        continue
+
+            if df is None:
                 continue
 
             col_names = list(df.columns)
