@@ -301,16 +301,20 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
                 # ID가 바뀌거나 계약 정보가 있는 행이면 계약 정보 저장
                 contract_count_val = row.get(col_mapping.get('contract_count', ''), '')
                 if pd.notna(contract_count_val) and str(contract_count_val).strip() and str(contract_count_val).strip() != '':
-                    contract_count = pd.to_numeric(contract_count_val, errors='coerce') or 0
+                    contract_count_num = pd.to_numeric(contract_count_val, errors='coerce')
+                    contract_count = 0 if pd.isna(contract_count_num) else int(contract_count_num)
                     if contract_count > 0:  # 계약 건수가 있는 행만 계약 정보로 저장
                         published_val = row.get(col_mapping.get('published_count', ''), 0)
-                        published_count = pd.to_numeric(published_val, errors='coerce') or 0
+                        published_num = pd.to_numeric(published_val, errors='coerce')
+                        published_count = 0 if pd.isna(published_num) else int(published_num)
 
                         carryover_val = row.get(col_mapping.get('carryover', ''), 0)
-                        carryover = pd.to_numeric(carryover_val, errors='coerce') or 0
+                        carryover_num = pd.to_numeric(carryover_val, errors='coerce')
+                        carryover = 0 if pd.isna(carryover_num) else int(carryover_num)
 
                         remaining_val = row.get(col_mapping.get('remaining', ''), 0)
-                        remaining = pd.to_numeric(remaining_val, errors='coerce') or 0
+                        remaining_num = pd.to_numeric(remaining_val, errors='coerce')
+                        remaining = 0 if pd.isna(remaining_num) else int(remaining_num)
 
                         start_date_val = row.get(col_mapping.get('start_date', ''), '')
                         start_date_str = str(start_date_val).strip() if pd.notna(start_date_val) else ''
@@ -319,10 +323,10 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
                         if start_month:
                             id_contracts[row_id] = {
                                 'start_month': start_month,
-                                'contract_count': int(contract_count),
-                                'published_count': int(published_count),
-                                'carryover': int(carryover),
-                                'remaining': int(remaining),
+                                'contract_count': contract_count,
+                                'published_count': published_count,
+                                'carryover': carryover,
+                                'remaining': remaining,
                                 'clinic': clinic if clinic and clinic.lower() != 'nan' else ''
                             }
 
