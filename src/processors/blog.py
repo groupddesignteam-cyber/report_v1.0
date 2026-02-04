@@ -226,11 +226,17 @@ def find_header_row_by_columns(df: pd.DataFrame, required_cols: List[str]) -> in
 
 
 def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
-    """Process work CSV: '[콘텐츠팀] 포스팅 업무 현황*.csv'"""
-    all_work = []
+    """Process work CSV: '[콘텐츠팀] 포스팅 업무 현황*.csv'
 
-    # Forward fill columns for Notion-style data
-    ffill_columns = ['*ID', '상태', '거래처 명', '계약상품', '계약 건수', '발행 완료 건수', '발행 완료', '남은 작업 건수', '지난달 이월 건수']
+    CSV 구조 (Notion 내보내기 형식):
+    - A열(*ID): 계약 그룹 ID (같은 ID = 같은 계약)
+    - E열(계약 건수): 계약된 포스팅 수
+    - G열(발행 완료 건수): 발행 완료된 포스팅 수
+    - L열(시작일): 계약 시작일 (월별 구분 기준)
+    - AB열(포스팅-업로드): 개별 포스팅 발행일
+    """
+    all_posts = []  # 개별 포스팅 목록
+    id_contracts = {}  # ID별 계약 정보 {id: {start_date, contract_count, published_count, ...}}
 
     for f in files:
         if not f.name.lower().endswith('.csv'):
@@ -246,189 +252,171 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
             else:
                 continue
 
-            # Forward fill for Notion-style grouped data
-            # IMPORTANT: ffill within *ID groups only to prevent cross-client data leakage
-            id_col = None
-            for c in df.columns:
-                if str(c).strip() == '*ID':
-                    id_col = c
-                    break
-            
-            if id_col:
-                # First, forward fill the ID column itself
-                df[id_col] = df[id_col].ffill()
-                
-                # Then forward fill other columns WITHIN each ID group
-                for col in ffill_columns:
-                    if col == '*ID':
-                        continue  # Already handled above
-                    matching_cols = [c for c in df.columns if col in str(c)]
-                    for mc in matching_cols:
-                        df[mc] = df.groupby(id_col)[mc].ffill()
-            else:
-                # Fallback: simple ffill if no ID column found
-                for col in ffill_columns:
-                    matching_cols = [c for c in df.columns if col in str(c)]
-                    for mc in matching_cols:
-                        df[mc] = df[mc].ffill()
+            # 컬럼 인덱스로 직접 매핑 (더 안정적)
+            col_names = list(df.columns)
 
-            # Find column mappings based on actual data
+            # 컬럼명으로 매핑 찾기
             col_mapping = {}
-            for col in df.columns:
+            for idx, col in enumerate(col_names):
                 col_str = str(col).strip()
-
-                if col_str == '포스팅-업로드':
-                    col_mapping['upload_date'] = col
-                elif col_str == '포스팅-작업완료일':
-                    col_mapping['complete_date'] = col
-                elif col_str == '포스팅-자료 수신일':
-                    col_mapping['receive_date'] = col
+                if col_str == '*ID':
+                    col_mapping['id'] = col
                 elif col_str == '거래처 명':
                     col_mapping['clinic'] = col
-                elif col_str == '계약 건수' and 'contract_count' not in col_mapping:
+                elif col_str == '계약 건수':
                     col_mapping['contract_count'] = col
-                elif (col_str == '발행 완료 건수' or col_str == '발행 완료') and 'published_count' not in col_mapping:
+                elif col_str == '발행 완료 건수':
                     col_mapping['published_count'] = col
-                elif col_str == '남은 작업 건수' and 'remaining_count' not in col_mapping:
-                    col_mapping['remaining_count'] = col
-                elif col_str == '지난달 이월 건수' and 'base_carryover' not in col_mapping:
-                    col_mapping['base_carryover'] = col
-                elif col_str == '시작일' and 'start_date' not in col_mapping:
+                elif col_str == '누적 이월 건수':
+                    col_mapping['carryover'] = col
+                elif col_str == '남은 작업 건수':
+                    col_mapping['remaining'] = col
+                elif col_str == '시작일':
                     col_mapping['start_date'] = col
-                elif (col_str == '상태' or col_str == '포스팅-상태') and 'status' not in col_mapping:
-                    col_mapping['status'] = col
-                elif col_str == '계약상품':
-                    col_mapping['contract_item'] = col
-                elif col_str == '포스팅-포스팅 URL':
-                    col_mapping['post_url'] = col
+                elif col_str == '포스팅-업로드':
+                    col_mapping['upload_date'] = col
                 elif col_str == '포스팅-게시물 제목':
                     col_mapping['post_title'] = col
+                elif col_str == '포스팅-포스팅 URL':
+                    col_mapping['post_url'] = col
+                elif col_str == '포스팅-상태':
+                    col_mapping['post_status'] = col
+                elif col_str == '계약상품':
+                    col_mapping['contract_item'] = col
 
+            # ID 컬럼 ffill (같은 계약 그룹 표시)
+            if 'id' in col_mapping:
+                df[col_mapping['id']] = df[col_mapping['id']].ffill()
+
+            current_id = None
             for _, row in df.iterrows():
-                # year_month 결정 로직:
-                # 1. 포스팅 행: upload_date (발행일) 기준
-                # 2. ID 그룹 대표 행: start_date 기준
-                year_month = None
-                upload_date_raw = ''
-                group_year_month = None  # ID 그룹의 대표 월 (start_date 기준)
-
-                # upload_date (발행일)을 우선 사용 - 각 포스팅의 실제 발행 월
-                if 'upload_date' in col_mapping:
-                    upload_val = row.get(col_mapping['upload_date'], '')
-                    if pd.notna(upload_val) and str(upload_val).strip() and str(upload_val).strip().lower() != 'nan':
-                        year_month = parse_date_to_year_month(upload_val)
-                        upload_date_raw = str(upload_val).strip()
-
-                # upload_date가 없으면 start_date 사용 (계약 시작 월)
-                if not year_month and 'start_date' in col_mapping:
-                    start_val = row.get(col_mapping['start_date'], '')
-                    if pd.notna(start_val) and str(start_val).strip() and str(start_val).strip().lower() != 'nan':
-                        year_month = parse_date_to_year_month(start_val)
-
-                # ID 그룹의 대표 월 (start_date 기준) - 계약 정보 집계용
-                if 'start_date' in col_mapping:
-                    start_val = row.get(col_mapping['start_date'], '')
-                    if pd.notna(start_val) and str(start_val).strip() and str(start_val).strip().lower() != 'nan':
-                        group_year_month = parse_date_to_year_month(start_val)
-
-                clinic = str(row.get(col_mapping.get('clinic', ''), '')).strip()
-                contract_item = str(row.get(col_mapping.get('contract_item', ''), '')).strip()
-                status = str(row.get(col_mapping.get('status', ''), '')).strip()
-                post_url = str(row.get(col_mapping.get('post_url', ''), '')).strip()
-                post_title = str(row.get(col_mapping.get('post_title', ''), '')).strip()
-
-                contract_count = pd.to_numeric(row.get(col_mapping.get('contract_count', ''), 0), errors='coerce') or 0
-                published_count = pd.to_numeric(row.get(col_mapping.get('published_count', ''), 0), errors='coerce') or 0
-                remaining_count = pd.to_numeric(row.get(col_mapping.get('remaining_count', ''), 0), errors='coerce') or 0
-                base_carryover = pd.to_numeric(row.get(col_mapping.get('base_carryover', ''), 0), errors='coerce') or 0
-
-                # Skip empty rows
-                if not clinic or clinic.lower() == 'nan':
+                # ID 가져오기
+                row_id = str(row.get(col_mapping.get('id', ''), '')).strip()
+                if not row_id or row_id.lower() == 'nan':
                     continue
 
-                all_work.append({
-                    'year_month': year_month,  # 발행일 기준 월 (포스팅 분류용)
-                    'group_year_month': group_year_month,  # 시작일 기준 월 (계약 정보 집계용)
-                    'clinic': clinic,
-                    'contract_item': contract_item if contract_item.lower() != 'nan' else '',
-                    'status': status if status.lower() != 'nan' else '',
-                    'post_url': post_url if post_url.lower() != 'nan' else '',
-                    'post_title': post_title if post_title.lower() != 'nan' else '',
-                    'upload_date': upload_date_raw if upload_date_raw.lower() != 'nan' else '',
-                    'contract_count': int(contract_count),
-                    'published_count': int(published_count),
-                    'remaining_count': int(remaining_count),
-                    'base_carryover': int(base_carryover)
-                })
+                # 거래처명 가져오기
+                clinic = str(row.get(col_mapping.get('clinic', ''), '')).strip()
+
+                # ID가 바뀌거나 계약 정보가 있는 행이면 계약 정보 저장
+                contract_count_val = row.get(col_mapping.get('contract_count', ''), '')
+                if pd.notna(contract_count_val) and str(contract_count_val).strip() and str(contract_count_val).strip() != '':
+                    contract_count = pd.to_numeric(contract_count_val, errors='coerce') or 0
+                    if contract_count > 0:  # 계약 건수가 있는 행만 계약 정보로 저장
+                        published_val = row.get(col_mapping.get('published_count', ''), 0)
+                        published_count = pd.to_numeric(published_val, errors='coerce') or 0
+
+                        carryover_val = row.get(col_mapping.get('carryover', ''), 0)
+                        carryover = pd.to_numeric(carryover_val, errors='coerce') or 0
+
+                        remaining_val = row.get(col_mapping.get('remaining', ''), 0)
+                        remaining = pd.to_numeric(remaining_val, errors='coerce') or 0
+
+                        start_date_val = row.get(col_mapping.get('start_date', ''), '')
+                        start_date_str = str(start_date_val).strip() if pd.notna(start_date_val) else ''
+                        start_month = parse_date_to_year_month(start_date_str) if start_date_str else None
+
+                        if start_month:
+                            id_contracts[row_id] = {
+                                'start_month': start_month,
+                                'contract_count': int(contract_count),
+                                'published_count': int(published_count),
+                                'carryover': int(carryover),
+                                'remaining': int(remaining),
+                                'clinic': clinic if clinic and clinic.lower() != 'nan' else ''
+                            }
+
+                # 포스팅 정보 추출 (포스팅-업로드 날짜가 있는 행)
+                upload_val = row.get(col_mapping.get('upload_date', ''), '')
+                upload_str = str(upload_val).strip() if pd.notna(upload_val) else ''
+
+                post_title = str(row.get(col_mapping.get('post_title', ''), '')).strip()
+                post_url = str(row.get(col_mapping.get('post_url', ''), '')).strip()
+                post_status = str(row.get(col_mapping.get('post_status', ''), '')).strip()
+
+                # 포스팅 제목이나 URL이 있으면 포스팅으로 저장
+                if (post_title and post_title.lower() != 'nan') or (post_url and post_url.lower() != 'nan'):
+                    upload_month = parse_date_to_year_month(upload_str) if upload_str and upload_str.lower() != 'nan' else None
+
+                    # 포스팅의 월은 upload_date 기준, 없으면 해당 ID의 start_month 사용
+                    post_month = upload_month
+                    if not post_month and row_id in id_contracts:
+                        post_month = id_contracts[row_id]['start_month']
+
+                    all_posts.append({
+                        'id': row_id,
+                        'year_month': post_month,
+                        'clinic': clinic if clinic and clinic.lower() != 'nan' else '',
+                        'post_title': post_title if post_title.lower() != 'nan' else '',
+                        'post_url': post_url if post_url.lower() != 'nan' else '',
+                        'upload_date': upload_str if upload_str.lower() != 'nan' else '',
+                        'status': post_status if post_status.lower() != 'nan' else ''
+                    })
 
         except Exception as e:
             print(f"Error processing work file {f.name}: {e}")
             continue
 
-    if not all_work:
-        return {}
+    # 월별 계약 정보 집계
+    monthly_summary_dict = {}
+    for id_key, contract_info in id_contracts.items():
+        month = contract_info['start_month']
+        if month not in monthly_summary_dict:
+            monthly_summary_dict[month] = {
+                'year_month': month,
+                'contract_count': 0,
+                'published_count': 0,
+                'carryover': 0,
+                'remaining': 0
+            }
+        monthly_summary_dict[month]['contract_count'] += contract_info['contract_count']
+        monthly_summary_dict[month]['published_count'] += contract_info['published_count']
+        monthly_summary_dict[month]['carryover'] += contract_info['carryover']
+        monthly_summary_dict[month]['remaining'] += contract_info['remaining']
 
-    work_df = pd.DataFrame(all_work)
+    monthly_summary = pd.DataFrame(list(monthly_summary_dict.values())) if monthly_summary_dict else pd.DataFrame()
 
-    # Get unique clinic summaries (first row per clinic)
-    clinic_summary = work_df.drop_duplicates(subset=['clinic'], keep='first')
-
-    # Aggregate by group_year_month (시작일 기준)
-    # 중요: ID 그룹별로 계약 정보는 첫 행에만 있으므로,
-    # group_year_month (시작일) 기준으로 집계해야 함
-    # year_month (발행일)는 포스팅 목록 분류에만 사용
-
-    # group_year_month가 있는 행만 사용 (계약 정보가 있는 ID 그룹 대표 행)
-    contract_info_rows = work_df[work_df['group_year_month'].notna()].copy()
-
-    if not contract_info_rows.empty:
-        # group_year_month 기준 월별 집계 (계약 정보)
-        # 중요: contract_count > 0인 행을 우선 사용 (max로 최대값 가져오기)
-        monthly_summary = contract_info_rows.groupby('group_year_month').agg({
-            'contract_count': 'max',  # 최대값 사용 (0이 아닌 값 우선)
-            'published_count': 'max',
-            'remaining_count': 'max',
-            'base_carryover': 'max'
-        }).reset_index()
-        monthly_summary = monthly_summary.rename(columns={'group_year_month': 'year_month'})
-
+    if not monthly_summary.empty:
         monthly_summary['completion_rate'] = np.where(
             monthly_summary['contract_count'] > 0,
             monthly_summary['published_count'] / monthly_summary['contract_count'] * 100,
             0
         )
+        # base_carryover 컬럼 추가 (하위 호환성)
+        monthly_summary['base_carryover'] = monthly_summary['carryover']
+        monthly_summary['remaining_count'] = monthly_summary['remaining']
 
-        # 상태별 건수 계산 (월별) - year_month (발행일) 기준으로 포스팅 수 계산
-        valid_work = work_df[work_df['year_month'].notna()]
+    # 포스팅 DataFrame 생성
+    posts_df = pd.DataFrame(all_posts) if all_posts else pd.DataFrame()
+
+    # 거래처 요약 (첫 번째 계약 정보 기준)
+    clinic_summary_list = []
+    seen_clinics = set()
+    for id_key, contract_info in id_contracts.items():
+        clinic = contract_info.get('clinic', '')
+        if clinic and clinic not in seen_clinics:
+            seen_clinics.add(clinic)
+            clinic_summary_list.append({
+                'clinic': clinic,
+                'contract_count': contract_info['contract_count'],
+                'published_count': contract_info['published_count'],
+                'remaining_count': contract_info['remaining']
+            })
+    clinic_summary = pd.DataFrame(clinic_summary_list) if clinic_summary_list else pd.DataFrame()
+
+    # 상태별 건수 계산 (월별) - posts_df 기준
+    if not monthly_summary.empty and not posts_df.empty:
         for ym in monthly_summary['year_month'].unique():
-            # 해당 월에 발행된 포스팅 수 (year_month 기준)
-            month_rows = valid_work[valid_work['year_month'] == ym]
-
-            # 상태별 필터링 (대소문자 및 공백 무시)
-            completed_count = len(month_rows[
-                month_rows['status'].str.strip().str.lower().isin(['완료', '발행완료', '발행 완료'])
-            ])
-            pending_data_count = len(month_rows[
-                month_rows['status'].str.strip().str.lower().isin(['자료대기', '자료 대기'])
-            ])
-
-            # monthly_summary에 추가
+            month_posts = posts_df[posts_df['year_month'] == ym]
+            completed_count = len(month_posts[
+                month_posts['status'].str.strip().str.lower().isin(['완료', '발행완료', '발행 완료'])
+            ]) if 'status' in month_posts.columns else 0
             monthly_summary.loc[monthly_summary['year_month'] == ym, 'completed_status_count'] = completed_count
-            monthly_summary.loc[monthly_summary['year_month'] == ym, 'pending_data_count'] = pending_data_count
-    else:
-        monthly_summary = pd.DataFrame()
-
-    # Get all individual work rows (for post_title, post_url display)
-    # Filter rows that have valid post_title or post_url
-    individual_posts = work_df[
-        (work_df['post_title'].notna() & (work_df['post_title'] != '')) |
-        (work_df['post_url'].notna() & (work_df['post_url'] != ''))
-    ].copy()
 
     return {
         'monthly_summary': monthly_summary.to_dict('records') if not monthly_summary.empty else [],
-        'work_summary': individual_posts.to_dict('records') if not individual_posts.empty else clinic_summary.to_dict('records'),
-        'by_clinic': clinic_summary[['clinic', 'contract_count', 'published_count', 'remaining_count']].to_dict('records')
+        'work_summary': posts_df.to_dict('records') if not posts_df.empty else [],
+        'by_clinic': clinic_summary.to_dict('records') if not clinic_summary.empty else []
     }
 
 
