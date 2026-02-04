@@ -433,17 +433,19 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
 
 def extract_month_from_filename(filename: str) -> Optional[str]:
     """Extract month from filename like '11월' or '12월' or date patterns."""
-    # Pattern: 11월, 12월
-    match = re.search(r'(\d{1,2})월', filename)
-    if match:
-        month = int(match.group(1))
-        # Assume current year context (2025)
-        return f"2025-{month:02d}"
+    from datetime import datetime
 
-    # Pattern: 2025-12, 202512
+    # Pattern: 2025-12, 202512, 2026-01 (연도 포함 패턴 우선)
     match = re.search(r'(\d{4})[-_]?(\d{2})', filename)
     if match:
         return f"{match.group(1)}-{match.group(2)}"
+
+    # Pattern: 11월, 12월 (연도 없는 경우 현재 연도 기준)
+    match = re.search(r'(\d{1,2})월', filename)
+    if match:
+        month = int(match.group(1))
+        current_year = datetime.now().year
+        return f"{current_year}-{month:02d}"
 
     return None
 
