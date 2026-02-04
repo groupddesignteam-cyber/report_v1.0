@@ -383,11 +383,12 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
 
     if not contract_info_rows.empty:
         # group_year_month 기준 월별 집계 (계약 정보)
+        # 중요: contract_count > 0인 행을 우선 사용 (max로 최대값 가져오기)
         monthly_summary = contract_info_rows.groupby('group_year_month').agg({
-            'contract_count': 'first',  # ID 그룹의 첫 행 값 사용
-            'published_count': 'first',
-            'remaining_count': 'first',
-            'base_carryover': 'first'
+            'contract_count': 'max',  # 최대값 사용 (0이 아닌 값 우선)
+            'published_count': 'max',
+            'remaining_count': 'max',
+            'base_carryover': 'max'
         }).reset_index()
         monthly_summary = monthly_summary.rename(columns={'group_year_month': 'year_month'})
 
