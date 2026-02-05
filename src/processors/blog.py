@@ -198,6 +198,38 @@ def parse_date_to_year_month(date_value) -> Optional[str]:
     return None
 
 
+def parse_start_date_to_month(date_value) -> Optional[str]:
+    """시작일을 월로 변환 (15일 규칙 적용).
+
+    - day < 15: 당월 (예: 2025-12-01 → 2025-12)
+    - day >= 15: 다음달 (예: 2025-11-28 → 2025-12)
+    """
+    if pd.isna(date_value):
+        return None
+
+    try:
+        date_str = str(date_value).strip()
+        if not date_str or date_str.lower() == 'nan':
+            return None
+
+        dt = pd.to_datetime(date_str, errors='coerce')
+        if pd.isna(dt):
+            return None
+
+        if dt.day >= 15:
+            # 다음 달로 이동
+            if dt.month == 12:
+                return f"{dt.year + 1}-01"
+            else:
+                return f"{dt.year}-{dt.month + 1:02d}"
+        else:
+            return dt.strftime('%Y-%m')
+    except Exception:
+        pass
+
+    return None
+
+
 def parse_date_range_to_year_month(range_str: str) -> Optional[str]:
     """Parse date range like '2025-12-01~2025-12-31' to YYYY-MM from start date."""
     if pd.isna(range_str):
@@ -343,7 +375,7 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
 
                         start_date_val = row.get(col_mapping.get('start_date', ''), '')
                         start_date_str = str(start_date_val).strip() if pd.notna(start_date_val) else ''
-                        start_month = parse_date_to_year_month(start_date_str) if start_date_str else None
+                        start_month = parse_start_date_to_month(start_date_str) if start_date_str else None
 
                         if start_month:
                             id_contracts[row_id] = {
