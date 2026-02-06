@@ -1105,9 +1105,6 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
                     'url': url if url and url.lower() != 'nan' else '',
                     'date': format_publish_date(write_date) if write_date else ''
                 })
-    # Limit to 10
-    posting_list = posting_list[:10]
-
     # 전월 포스팅 리스트 준비
     prev_posting_list = []
     raw_prev_posting_list = tables.get('prev_posting_list', [])
@@ -1127,8 +1124,6 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
                     'url': url if url and url.lower() != 'nan' else '',
                     'date': format_publish_date(write_date) if write_date else ''
                 })
-    # Limit to 10
-    prev_posting_list = prev_posting_list[:10]
 
     return {
         'prev_month': prev_month,
