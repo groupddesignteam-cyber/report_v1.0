@@ -86,22 +86,7 @@ HTML_TEMPLATE = """
                 {% endif %}
             </div>
 
-            <!-- CPA Banner (Ads only) -->
-            {% if dept.id == 'ads' and dept.cpa_banner %}
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-xl mb-6 flex items-center justify-between shadow-lg">
-                <div>
-                    <p class="text-xs opacity-80 uppercase font-bold tracking-wider">Cost Per Acquisition</p>
-                    <p class="text-3xl font-black mt-1">{{ dept.cpa_banner.cpa }}</p>
-                    {% if dept.cpa_banner.change_text %}
-                    <p class="text-xs mt-1 font-bold" style="color: {{ dept.cpa_banner.change_color }};">{{ dept.cpa_banner.change_text }}</p>
-                    {% endif %}
-                </div>
-                <div class="text-right">
-                    <p class="text-xs opacity-80 uppercase font-bold">실 예약</p>
-                    <p class="text-2xl font-bold mt-1">{{ dept.cpa_banner.actual_reservations }}건</p>
-                </div>
-            </div>
-            {% endif %}
+            <!-- CPA Banner hidden -->
 
             <!-- Ads: Impressions & Clicks Metrics -->
             {% if dept.id == 'ads' and dept.prev_metrics and dept.curr_metrics %}

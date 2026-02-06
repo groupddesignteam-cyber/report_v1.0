@@ -845,28 +845,7 @@ def render_ads_tab(result: Dict[str, Any]):
 
     st.subheader("📊 광고팀 성과")
 
-    # CPA 강조 배너 (환자 1인당 마케팅 비용)
-    if cpa > 0:
-        cpa_change_text = ""
-        cpa_change_color = "#64748b"
-        if prev_cpa > 0:
-            if cpa_growth < 0:
-                cpa_change_text = f"전월 대비 {abs(cpa_growth):.1f}% 절감"
-                cpa_change_color = "#22c55e"
-            elif cpa_growth > 0:
-                cpa_change_text = f"전월 대비 {cpa_growth:.1f}% 증가"
-                cpa_change_color = "#ef4444"
-            else:
-                cpa_change_text = "전월과 동일"
-
-        st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #0055FF 0%, #3b82f6 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; color: white; text-align: center;">
-                <p style="font-size: 14px; margin: 0 0 8px 0; opacity: 0.9;">💰 환자 1인당 마케팅 비용 (CPA)</p>
-                <p style="font-size: 36px; font-weight: 800; margin: 0;">₩{int(cpa):,}</p>
-                <p style="font-size: 12px; margin: 8px 0 0 0; opacity: 0.8;">실 예약 환자 {actual_reservations:,}명 기준</p>
-                {f'<p style="font-size: 13px; margin: 8px 0 0 0; color: {cpa_change_color}; background: white; display: inline-block; padding: 4px 12px; border-radius: 20px;">{cpa_change_text}</p>' if cpa_change_text else ''}
-            </div>
-        """, unsafe_allow_html=True)
+    # CPA 배너 숨김
 
     # Two columns for month comparison
     col_prev, col_curr = st.columns(2)
