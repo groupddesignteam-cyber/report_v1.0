@@ -1085,45 +1085,35 @@ def prepare_blog_data(result: Dict[str, Any]) -> Dict[str, Any]:
             pass
         return date_str
 
-    # Posting list (발행 완료 포스팅) - 당월 데이터
+    # Posting list (포스팅) - 당월 데이터 (제목이 있는 모든 포스팅)
     posting_list = []
-    # Use posting_list from tables (filtered by 완료 status)
     raw_posting_list = tables.get('posting_list', [])
 
     for post in raw_posting_list:
-        status = post.get('status', '').strip().lower()
-        # 발행 완료 상태만 표시
-        if status in ['완료', '발행완료', '발행 완료']:
-            title = post.get('title', '')
-            url = post.get('url', '')
-            if title and title.lower() != 'nan':
-                # 포스팅-업로드 날짜만 사용 (다른 소스 fallback 제거)
-                write_date = post.get('write_date', '')
+        title = post.get('title', '')
+        url = post.get('url', '')
+        if title and title.lower() != 'nan':
+            write_date = post.get('write_date', '')
+            posting_list.append({
+                'title': title,
+                'url': url if url and url.lower() != 'nan' else '',
+                'date': format_publish_date(write_date) if write_date else ''
+            })
 
-                posting_list.append({
-                    'title': title,
-                    'url': url if url and url.lower() != 'nan' else '',
-                    'date': format_publish_date(write_date) if write_date else ''
-                })
-    # 전월 포스팅 리스트 준비
+    # 전월 포스팅 리스트
     prev_posting_list = []
     raw_prev_posting_list = tables.get('prev_posting_list', [])
 
     for post in raw_prev_posting_list:
-        status = post.get('status', '').strip().lower()
-        # 발행 완료 상태만 표시
-        if status in ['완료', '발행완료', '발행 완료']:
-            title = post.get('title', '')
-            url = post.get('url', '')
-            if title and title.lower() != 'nan':
-                # 포스팅-업로드 날짜만 사용 (다른 소스 fallback 제거)
-                write_date = post.get('write_date', '')
-
-                prev_posting_list.append({
-                    'title': title,
-                    'url': url if url and url.lower() != 'nan' else '',
-                    'date': format_publish_date(write_date) if write_date else ''
-                })
+        title = post.get('title', '')
+        url = post.get('url', '')
+        if title and title.lower() != 'nan':
+            write_date = post.get('write_date', '')
+            prev_posting_list.append({
+                'title': title,
+                'url': url if url and url.lower() != 'nan' else '',
+                'date': format_publish_date(write_date) if write_date else ''
+            })
 
     return {
         'prev_month': prev_month,
