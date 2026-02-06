@@ -917,16 +917,25 @@ def process_blog(files: List[LoadedFile]) -> Dict[str, Any]:
     inflow_result = process_inflow_xlsx(files)
     views_monthly_result = process_views_monthly_xlsx(files)
 
-    # Determine months first (views_rank needs current_month for steady_seller detection)
-    all_months = set()
+    # Determine months - 계약 시작일(work) 기준 우선, 없으면 조회수(views) 기준
+    work_months = set()
     if work_result.get('monthly_summary'):
-        all_months.update([s['year_month'] for s in work_result['monthly_summary'] if s.get('year_month')])
-    if views_monthly_result.get('monthly_views'):
-        all_months.update([s['year_month'] for s in views_monthly_result['monthly_views']])
+        work_months.update([s['year_month'] for s in work_result['monthly_summary'] if s.get('year_month')])
 
-    sorted_months = sorted(all_months) if all_months else []
-    current_month = sorted_months[-1] if sorted_months else None
-    prev_month = sorted_months[-2] if len(sorted_months) >= 2 else None
+    views_months = set()
+    if views_monthly_result.get('monthly_views'):
+        views_months.update([s['year_month'] for s in views_monthly_result['monthly_views']])
+
+    # 계약 데이터 월이 있으면 그것을 기준으로 current/prev 결정
+    if work_months:
+        sorted_work = sorted(work_months)
+        current_month = sorted_work[-1]
+        prev_month = sorted_work[-2] if len(sorted_work) >= 2 else None
+    else:
+        all_months = views_months
+        sorted_months = sorted(all_months) if all_months else []
+        current_month = sorted_months[-1] if sorted_months else None
+        prev_month = sorted_months[-2] if len(sorted_months) >= 2 else None
 
     # Process views rank with analysis_month for steady seller detection
     views_rank_result = process_views_rank_xlsx(files, analysis_month=current_month)

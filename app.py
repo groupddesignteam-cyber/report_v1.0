@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.15"
+APP_VERSION = "v1.2.16"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -320,16 +320,112 @@ def render_analysis_selector():
 
 
 def filter_results_by_selection() -> dict:
-    """Filter processed_results by selected departments."""
+    """Filter processed_results by selected departments and months."""
+    import copy
     results = st.session_state.processed_results
     selected_depts = st.session_state.selected_departments
+    selected_months = sorted(st.session_state.selected_months)
 
     filtered = {}
     for dept_key in ['reservation', 'ads', 'blog', 'youtube', 'design', 'setting']:
-        if dept_key in selected_depts:
-            filtered[dept_key] = results.get(dept_key, {})
-        else:
+        if dept_key not in selected_depts:
             filtered[dept_key] = {}
+            continue
+
+        dept_data = results.get(dept_key, {})
+        if not dept_data or not selected_months or dept_key == 'setting':
+            filtered[dept_key] = dept_data
+            continue
+
+        target_current = selected_months[-1]
+        target_prev = selected_months[-2] if len(selected_months) >= 2 else None
+
+        # 이미 일치하면 그대로 사용
+        if dept_data.get('month') == target_current and dept_data.get('prev_month') == target_prev:
+            filtered[dept_key] = dept_data
+            continue
+
+        # 월 재매핑
+        remapped = copy.deepcopy(dept_data)
+        remapped['month'] = target_current
+        remapped['prev_month'] = target_prev
+
+        # work monthly_summary에서 해당 월 데이터 찾기
+        monthly_summaries = remapped.get('clean_data', {}).get('work', {}).get('monthly_summary', [])
+        curr_work = next((s for s in monthly_summaries if s.get('year_month') == target_current), {})
+        prev_work = next((s for s in monthly_summaries if s.get('year_month') == target_prev), {})
+
+        # current/prev month data 재매핑
+        if curr_work:
+            remapped['current_month_data'] = remapped.get('current_month_data', {}).copy()
+            remapped['current_month_data']['work'] = curr_work
+        if prev_work:
+            remapped['prev_month_data'] = remapped.get('prev_month_data', {}).copy()
+            remapped['prev_month_data']['work'] = prev_work
+
+        # 조회수 재매핑
+        views_by_month = remapped.get('clean_data', {}).get('views_monthly', {}).get('total_by_month', {})
+        curr_views = views_by_month.get(target_current, 0)
+        prev_views = views_by_month.get(target_prev, 0)
+        remapped.setdefault('current_month_data', {})['total_views'] = curr_views
+        remapped.setdefault('prev_month_data', {})['total_views'] = prev_views
+
+        # growth_rate 재계산
+        if prev_views > 0:
+            remapped['growth_rate'] = {'views': ((curr_views - prev_views) / prev_views) * 100}
+        else:
+            remapped['growth_rate'] = {'views': 0}
+
+        # KPI 재계산
+        contract_count = curr_work.get('contract_count', 0)
+        published_count = curr_work.get('published_count', 0)
+        carryover = curr_work.get('base_carryover', curr_work.get('carryover', 0))
+        completion_rate = (published_count / contract_count * 100) if contract_count > 0 else 0
+
+        remapped['kpi'] = {
+            'publish_completion_rate': round(completion_rate, 2),
+            'remaining_cnt': curr_work.get('remaining_count', curr_work.get('remaining', 0)),
+            'total_views': curr_views,
+            'views_mom_growth': round(remapped['growth_rate'].get('views', 0), 2),
+            'published_count': published_count,
+            'contract_count': contract_count,
+            'carryover_count': carryover,
+            'pending_data_count': curr_work.get('pending_data_count', 0),
+            'prev_published_count': prev_work.get('published_count', 0),
+            'prev_contract_count': prev_work.get('contract_count', 0),
+            'prev_carryover_count': prev_work.get('base_carryover', prev_work.get('carryover', 0)),
+            'prev_total_views': prev_views
+        }
+
+        # 포스팅 목록 재매핑
+        all_work_summary = remapped.get('tables', {}).get('work_summary', [])
+        if all_work_summary:
+            curr_posts = [w for w in all_work_summary if w.get('year_month') == target_current]
+            prev_posts = [w for w in all_work_summary if w.get('year_month') == target_prev]
+            remapped['tables']['curr_work_summary'] = curr_posts
+            remapped['tables']['prev_work_summary'] = prev_posts
+
+            remapped['tables']['posting_list'] = [
+                {'title': p.get('post_title', ''), 'url': p.get('post_url', ''),
+                 'status': p.get('status', ''), 'write_date': p.get('upload_date', '')}
+                for p in curr_posts
+                if p.get('post_title', '').lower() not in ('', 'nan')
+            ]
+            remapped['tables']['prev_posting_list'] = [
+                {'title': p.get('post_title', ''), 'url': p.get('post_url', ''),
+                 'status': p.get('status', ''), 'write_date': p.get('upload_date', '')}
+                for p in prev_posts
+                if p.get('post_title', '').lower() not in ('', 'nan')
+            ]
+
+        # TOP5 월별 데이터 재매핑
+        for key in ['views', 'traffic', 'source']:
+            monthly_data = remapped.get('tables', {}).get(f'monthly_{key}_top5', {})
+            if isinstance(monthly_data, dict):
+                remapped['tables'][f'{key}_top5'] = monthly_data.get(target_current, [])
+                remapped['tables'][f'prev_{key}_top5'] = monthly_data.get(target_prev, [])
+
+        filtered[dept_key] = remapped
 
     return filtered
 
