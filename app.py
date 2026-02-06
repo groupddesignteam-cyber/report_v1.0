@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.14"
+APP_VERSION = "v1.2.15"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -88,6 +88,14 @@ def initialize_session_state():
             'report_date': datetime.now().strftime('%Y년 %m월 %d일'),
             'report_title_prefix': '월간 분석 보고서'
         }
+
+    # Analysis selector state
+    if 'selected_months' not in st.session_state:
+        st.session_state.selected_months = []
+    if 'selected_departments' not in st.session_state:
+        st.session_state.selected_departments = []
+    if 'selector_confirmed' not in st.session_state:
+        st.session_state.selector_confirmed = False
 
 
 
@@ -139,7 +147,191 @@ def process_uploaded_files(uploaded_files):
 
     st.session_state.files_uploaded = True
     st.session_state.clinic_name_confirmed = False
+    st.session_state.selector_confirmed = False
     st.rerun()
+
+
+# Analysis selector constants
+ANALYSIS_OPTIONS = [
+    ('reservation', '예약 분석'),
+    ('ads', '광고 분석'),
+    ('blog', '블로그 분석'),
+    ('youtube', '유튜브 분석'),
+    ('design', '디자인 분석'),
+    ('setting', '세팅 현황'),
+]
+
+
+def format_month_label(ym: str) -> str:
+    """Convert 'YYYY-MM' to 'YYYY년 M월'."""
+    try:
+        parts = ym.split('-')
+        return f"{parts[0]}년 {int(parts[1])}월"
+    except Exception:
+        return ym
+
+
+def detect_available_months() -> list:
+    """Scan processed results to find all available YYYY-MM months."""
+    results = st.session_state.processed_results
+    months = set()
+
+    for dept_key, dept_data in results.items():
+        if not dept_data:
+            continue
+
+        # Primary: month and prev_month
+        if dept_data.get('month'):
+            months.add(dept_data['month'])
+        if dept_data.get('prev_month'):
+            months.add(dept_data['prev_month'])
+
+        # Charts monthly data
+        for chart_key in ['monthly_trend', 'views_trend', 'monthly_views',
+                          'monthly_content_totals', 'monthly_traffic_totals']:
+            for item in dept_data.get('charts', {}).get(chart_key, []):
+                if isinstance(item, dict) and item.get('year_month'):
+                    months.add(item['year_month'])
+
+        # Blog work monthly_summary
+        if dept_key == 'blog':
+            for item in dept_data.get('clean_data', {}).get('work', {}).get('monthly_summary', []):
+                if isinstance(item, dict) and item.get('year_month'):
+                    months.add(item['year_month'])
+
+        # Ads monthly_spend
+        if dept_key == 'ads':
+            for item in dept_data.get('tables', {}).get('monthly_spend', []):
+                if isinstance(item, dict) and item.get('year_month'):
+                    months.add(item['year_month'])
+
+    return sorted(months)
+
+
+def render_analysis_selector():
+    """Render month and department selector UI (Step 3)."""
+    results = st.session_state.processed_results
+    available_months = detect_available_months()
+
+    # Detect which departments have data
+    available_depts = []
+    for dept_key, dept_label in ANALYSIS_OPTIONS:
+        if results.get(dept_key):
+            available_depts.append((dept_key, dept_label))
+
+    if not available_depts:
+        st.warning("처리된 데이터가 없습니다.")
+        return
+
+    # Step 3 Header
+    st.markdown("""
+    <div style="display:flex; align-items:center; gap:10px; margin:1.5rem 0 1rem;">
+        <div style="width:30px; height:30px; background:linear-gradient(135deg, #10b981, #059669); color:white;
+                    border-radius:50%; display:flex; align-items:center; justify-content:center;
+                    font-weight:700; font-size:0.9rem; box-shadow:0 2px 8px rgba(16,185,129,0.3);">3</div>
+        <div style="font-weight:700; color:#0f172a; font-size:1.15rem; letter-spacing:-0.02em;">분석 범위 설정</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Month Selector
+    if available_months:
+        st.markdown("""
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.75rem;">
+            <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 기간 선택</div>
+            <div style="font-size:0.8rem; color:#64748b;">비교할 월을 선택하세요 (전월 + 당월)</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        month_labels = [format_month_label(m) for m in available_months]
+        month_map = dict(zip(month_labels, available_months))
+
+        # Default: last 2 months
+        default_months = month_labels[-2:] if len(month_labels) >= 2 else month_labels
+
+        selected_month_labels = st.multiselect(
+            "월 선택",
+            options=month_labels,
+            default=default_months,
+            key="month_selector_widget",
+            label_visibility="collapsed"
+        )
+
+        selected_months = [month_map[label] for label in selected_month_labels]
+    else:
+        selected_months = []
+
+    # Department Selector
+    st.markdown("""
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.75rem; margin-top:0.5rem;">
+        <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 항목 선택</div>
+        <div style="font-size:0.8rem; color:#64748b;">보고서에 포함할 분석 항목을 선택하세요</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    dept_labels = [label for _, label in available_depts]
+    dept_map = {label: key for key, label in available_depts}
+
+    selected_dept_labels = st.multiselect(
+        "분석 항목",
+        options=dept_labels,
+        default=dept_labels,
+        key="dept_selector_widget",
+        label_visibility="collapsed"
+    )
+
+    selected_depts = [dept_map[label] for label in selected_dept_labels]
+
+    # Visual chips
+    if selected_dept_labels:
+        chips_html = '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:0.5rem;">'
+        for label in selected_dept_labels:
+            dept_key = dept_map[label]
+            color = CATEGORY_META.get(dept_key, {}).get('color', '#64748b')
+            chips_html += f'''
+            <span style="display:inline-flex; align-items:center; gap:4px; padding:5px 14px;
+                         background:{color}15; border:1px solid {color}40; border-radius:20px;
+                         font-size:0.78rem; font-weight:600; color:{color};">
+                <span style="width:6px; height:6px; background:{color}; border-radius:50%;"></span>
+                {label}
+            </span>'''
+        chips_html += '</div>'
+        st.markdown(chips_html, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+
+    # Confirm button
+    if selected_depts:
+        month_text = ""
+        if selected_months:
+            month_text = f" ({', '.join(format_month_label(m) for m in sorted(selected_months))})"
+
+        if st.button(
+            f"보고서 생성{month_text}",
+            type="primary",
+            use_container_width=True,
+            key="confirm_analysis_selector"
+        ):
+            st.session_state.selected_months = sorted(selected_months)
+            st.session_state.selected_departments = selected_depts
+            st.session_state.selector_confirmed = True
+            st.rerun()
+    else:
+        st.info("최소 1개 분석 항목을 선택하세요.")
+
+
+def filter_results_by_selection() -> dict:
+    """Filter processed_results by selected departments."""
+    results = st.session_state.processed_results
+    selected_depts = st.session_state.selected_departments
+
+    filtered = {}
+    for dept_key in ['reservation', 'ads', 'blog', 'youtube', 'design', 'setting']:
+        if dept_key in selected_depts:
+            filtered[dept_key] = results.get(dept_key, {})
+        else:
+            filtered[dept_key] = {}
+
+    return filtered
 
 
 def render_upload_section():
@@ -287,9 +479,10 @@ def safe_int(value, default=0):
         return default
 
 
-def render_unified_data_view():
+def render_unified_data_view(results=None):
     """Unified data view with inline editing capability per department."""
-    results = st.session_state.processed_results
+    if results is None:
+        results = st.session_state.processed_results
 
     departments = [
         ('reservation', '예약', results.get('reservation', {})),
@@ -710,8 +903,16 @@ def render_dashboard():
             st.rerun()
         return
 
+    # Analysis selector (Step 3) - 분석 범위 선택
+    if not st.session_state.get('selector_confirmed'):
+        render_analysis_selector()
+        return
+
+    # Apply filtered results
+    filtered_results = filter_results_by_selection()
+
     # Header with actions
-    col_title, col_add, col_reset = st.columns([4, 1, 1])
+    col_title, col_change, col_add, col_reset = st.columns([3, 1, 1, 1])
     with col_title:
         st.markdown(f"""
         <div style="margin-bottom: 0.25rem;">
@@ -719,6 +920,10 @@ def render_dashboard():
             <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 2px;">{settings['report_date']} | 월간 마케팅 분석 보고서</p>
         </div>
         """, unsafe_allow_html=True)
+    with col_change:
+        if st.button("분석 변경", key="btn_change_analysis", use_container_width=True):
+            st.session_state.selector_confirmed = False
+            st.rerun()
     with col_add:
         if st.button("파일 추가", key="btn_add_files", use_container_width=True):
             st.session_state.show_additional_upload = not st.session_state.get('show_additional_upload', False)
@@ -730,15 +935,26 @@ def render_dashboard():
             st.session_state.all_loaded_files = []
             st.session_state.clinic_name_confirmed = False
             st.session_state.show_additional_upload = False
+            st.session_state.selector_confirmed = False
+            st.session_state.selected_months = []
+            st.session_state.selected_departments = []
             st.rerun()
 
-    # Data status indicator
-    results = st.session_state.processed_results
+    # Data status indicator (shows selected vs available)
+    results = filtered_results
     status_html = '<div style="display:flex; gap:12px; justify-content:center; padding:6px 0; margin-bottom:8px;">'
     for cat_key, meta in CATEGORY_META.items():
         has_data = bool(results.get(cat_key))
-        dot_color = meta['color'] if has_data else '#334155'
-        dot_char = '&#9679;' if has_data else '&#9675;'
+        has_original = bool(st.session_state.processed_results.get(cat_key))
+        if has_data:
+            dot_color = meta['color']
+            dot_char = '&#9679;'
+        elif has_original:
+            dot_color = '#94a3b8'
+            dot_char = '&#9675;'
+        else:
+            dot_color = '#334155'
+            dot_char = '&#9675;'
         status_html += f'<span style="font-size:0.72rem; color:{dot_color}; font-weight:600;">{dot_char} {meta["label"]}</span>'
     status_html += '</div>'
     st.markdown(status_html, unsafe_allow_html=True)
@@ -757,9 +973,9 @@ def render_dashboard():
                 st.session_state.show_additional_upload = False
                 st.rerun()
 
-    # Generate HTML report
+    # Generate HTML report (filtered)
     html_report = generate_html_report(
-        st.session_state.processed_results,
+        filtered_results,
         clinic_name=settings['clinic_name'],
         report_date=settings['report_date'],
         manager_comment=st.session_state.get('manager_comment', '')
@@ -787,7 +1003,7 @@ def render_dashboard():
         render_html_preview(html_report)
 
     with tab_data:
-        render_unified_data_view()
+        render_unified_data_view(filtered_results)
 
     # Bottom settings expander
     with st.expander("보고서 설정", expanded=False):
