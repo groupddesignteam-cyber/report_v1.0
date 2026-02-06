@@ -395,6 +395,21 @@ div {
 }
 
 /* ============================================
+   Multiselect Tag Styling
+   ============================================ */
+[data-baseweb="tag"] {
+    background-color: #e0e7ff !important;
+    color: #1e293b !important;
+    border: 1px solid #c7d2fe !important;
+}
+[data-baseweb="tag"] span {
+    color: #1e293b !important;
+}
+[data-baseweb="tag"] [data-baseweb="tag-action"] {
+    color: #64748b !important;
+}
+
+/* ============================================
    Warning Box
    ============================================ */
 .clinic-mismatch-warning {
