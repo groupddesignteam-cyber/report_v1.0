@@ -756,11 +756,17 @@ HTML_TEMPLATE = """
                         <span class="bg-indigo-600 text-[10px] px-2 py-0.5 rounded uppercase font-bold">Action Plan</span>
                         {{ summary.action_plan_month|default('') }} 실행 계획
                     </h3>
-                    <div class="grid md:grid-cols-2 gap-3">
+                    <div class="space-y-3">
+                        {% set dept_colors = {'예약': '#3b82f6', '블로그': '#10b981', '유튜브': '#ef4444', '디자인': '#f59e0b', '네이버 광고': '#8b5cf6'} %}
                         {% for item in summary.action_plan %}
-                        <div class="strategy-card bg-slate-800 p-4 rounded-xl" style="border-left-color: {% if loop.index == 1 %}#fbbf24{% elif loop.index == 2 %}#4ade80{% elif loop.index == 3 %}#60a5fa{% else %}#a78bfa{% endif %};">
-                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">{{ item.agenda|safe }}</p>
-                            <p class="text-sm text-slate-300">{{ item.plan|safe }}</p>
+                        <div class="strategy-card bg-slate-800 p-4 rounded-xl" style="border-left-color: {{ dept_colors.get(item.department, '#a78bfa') }};">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" style="background: {{ dept_colors.get(item.department, '#a78bfa') }}20; color: {{ dept_colors.get(item.department, '#a78bfa') }};">{{ item.department }}</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-300 mb-1">{{ item.agenda|safe }}</p>
+                            {% if item.plan %}
+                            <p class="text-sm text-slate-400">{{ item.plan|safe }}</p>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -1592,7 +1598,8 @@ def calculate_best_worst(results: Dict[str, Any]) -> tuple:
 def generate_html_report(results: Dict[str, Dict[str, Any]],
                          clinic_name: str = None,
                          report_date: str = None,
-                         manager_comment: str = None) -> str:
+                         manager_comment: str = None,
+                         action_plan_override: Dict = None) -> str:
     """Generate HTML report from processed results."""
     if clinic_name is None:
         clinic_name = '서울리멤버치과'
@@ -1627,8 +1634,11 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
     # Calculate executive summary data
     best_metric, worst_metric = calculate_best_worst(results)
 
-    # Generate summary
-    summary = generate_summary(results)
+    # Generate summary (use override if provided)
+    if action_plan_override and action_plan_override.get('action_plan'):
+        summary = action_plan_override
+    else:
+        summary = generate_summary(results)
 
     template = Template(HTML_TEMPLATE)
     return template.render(

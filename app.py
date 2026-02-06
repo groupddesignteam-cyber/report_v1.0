@@ -48,7 +48,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.17"
+APP_VERSION = "v1.2.18"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -96,6 +96,10 @@ def initialize_session_state():
         st.session_state.selected_departments = []
     if 'selector_confirmed' not in st.session_state:
         st.session_state.selector_confirmed = False
+
+    # Action plan editor state
+    if 'action_plan_items' not in st.session_state:
+        st.session_state.action_plan_items = {}  # {dept_key: [{'text': '...'}]}
 
 
 
@@ -148,6 +152,7 @@ def process_uploaded_files(uploaded_files):
     st.session_state.files_uploaded = True
     st.session_state.clinic_name_confirmed = False
     st.session_state.selector_confirmed = False
+    st.session_state.action_plan_items = {}
     st.rerun()
 
 
@@ -159,6 +164,15 @@ ANALYSIS_OPTIONS = [
     ('youtube', '유튜브 분석'),
     ('design', '디자인 분석'),
     ('setting', '세팅 현황'),
+]
+
+# Action plan team definitions
+ACTION_PLAN_TEAMS = [
+    ('reservation', '예약', '#3b82f6'),
+    ('blog', '블로그', '#10b981'),
+    ('youtube', '유튜브', '#ef4444'),
+    ('design', '디자인', '#f59e0b'),
+    ('ads', '네이버 광고', '#8b5cf6'),
 ]
 
 
@@ -905,6 +919,126 @@ def check_clinic_name_mismatch():
     return detected_names, source_names
 
 
+def initialize_action_plan(results):
+    """Auto-generate default action plan from data if not yet set."""
+    if st.session_state.action_plan_items:
+        return  # Already initialized
+
+    from src.processors.summary import generate_summary
+    summary = generate_summary(results)
+
+    items = {}
+    for ap in summary.get('action_plan', []):
+        dept = ap.get('department', '')
+        # Map department name to key
+        dept_key = None
+        for key, label, _ in ACTION_PLAN_TEAMS:
+            if label == dept or (dept == '네이버 광고' and key == 'ads'):
+                dept_key = key
+                break
+        if dept_key:
+            # Strip HTML tags for editable text
+            import re
+            agenda = re.sub(r'<[^>]+>', '', ap.get('agenda', ''))
+            plan = ap.get('plan', '')
+            text = f"{agenda}\n{plan}" if agenda else plan
+            if dept_key not in items:
+                items[dept_key] = []
+            items[dept_key].append({'text': text})
+
+    st.session_state.action_plan_items = items
+
+
+def render_action_plan_editor():
+    """Render editable action plan editor with +/- buttons per team."""
+    items = st.session_state.action_plan_items
+
+    st.markdown("""
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px 24px; margin-bottom:16px;">
+            <p style="font-size:15px; font-weight:700; color:#1e293b; margin:0 0 4px 0;">실행 계획 편집</p>
+            <p style="font-size:12px; color:#64748b; margin:0;">각 팀별 코멘트를 추가/수정/삭제할 수 있습니다. 변경 사항은 보고서에 바로 반영됩니다.</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    changed = False
+
+    for dept_key, dept_label, dept_color in ACTION_PLAN_TEAMS:
+        # Team header with color indicator
+        st.markdown(f"""
+            <div style="display:flex; align-items:center; gap:8px; margin:16px 0 8px 0;">
+                <span style="display:inline-block; width:4px; height:20px; background:{dept_color}; border-radius:2px;"></span>
+                <span style="font-size:14px; font-weight:700; color:#1e293b;">{dept_label}</span>
+                <span style="font-size:11px; color:#94a3b8;">({len(items.get(dept_key, []))}개)</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        team_items = items.get(dept_key, [])
+
+        # Render existing items
+        indices_to_remove = []
+        for i, item in enumerate(team_items):
+            col_text, col_del = st.columns([12, 1])
+            with col_text:
+                new_text = st.text_area(
+                    f"{dept_label} #{i+1}",
+                    value=item['text'],
+                    height=80,
+                    key=f"ap_{dept_key}_{i}",
+                    label_visibility="collapsed"
+                )
+                if new_text != item['text']:
+                    item['text'] = new_text
+                    changed = True
+            with col_del:
+                st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+                if st.button("✕", key=f"ap_del_{dept_key}_{i}", help="삭제"):
+                    indices_to_remove.append(i)
+
+        # Remove deleted items (reverse to keep indices valid)
+        if indices_to_remove:
+            for idx in sorted(indices_to_remove, reverse=True):
+                team_items.pop(idx)
+            items[dept_key] = team_items
+            st.rerun()
+
+        # Add button
+        if st.button(f"＋ {dept_label} 코멘트 추가", key=f"ap_add_{dept_key}", type="secondary"):
+            if dept_key not in items:
+                items[dept_key] = []
+            items[dept_key].append({'text': ''})
+            st.rerun()
+
+    st.session_state.action_plan_items = items
+
+
+def get_action_plan_for_report():
+    """Convert session state action plan items to report format."""
+    from src.processors.summary import get_next_month_seasonality
+    season_info = get_next_month_seasonality()
+
+    action_plan = []
+    for dept_key, dept_label, _ in ACTION_PLAN_TEAMS:
+        team_items = st.session_state.action_plan_items.get(dept_key, [])
+        for item in team_items:
+            text = item.get('text', '').strip()
+            if not text:
+                continue
+            # Split first line as agenda, rest as plan
+            lines = text.split('\n', 1)
+            agenda = f"<strong>{lines[0].strip()}</strong>"
+            plan = lines[1].strip() if len(lines) > 1 else ''
+            action_plan.append({
+                'department': dept_label,
+                'agenda': agenda,
+                'plan': plan
+            })
+
+    return {
+        'action_plan': action_plan,
+        'action_plan_month': f"{season_info['month']}월"
+    }
+
+
 def render_dashboard():
     """Render the main dashboard after data processing."""
     settings = st.session_state.report_settings
@@ -1034,6 +1168,7 @@ def render_dashboard():
             st.session_state.selector_confirmed = False
             st.session_state.selected_months = []
             st.session_state.selected_departments = []
+            st.session_state.action_plan_items = {}
             st.rerun()
 
     # Data status indicator (shows selected vs available)
@@ -1069,12 +1204,17 @@ def render_dashboard():
                 st.session_state.show_additional_upload = False
                 st.rerun()
 
-    # Generate HTML report (filtered)
+    # Initialize action plan from data (auto-generate defaults)
+    initialize_action_plan(filtered_results)
+
+    # Generate HTML report (filtered) with user-edited action plan
+    custom_action_plan = get_action_plan_for_report()
     html_report = generate_html_report(
         filtered_results,
         clinic_name=settings['clinic_name'],
         report_date=settings['report_date'],
-        manager_comment=st.session_state.get('manager_comment', '')
+        manager_comment=st.session_state.get('manager_comment', ''),
+        action_plan_override=custom_action_plan
     )
     filename = get_report_filename(settings['clinic_name'])
 
@@ -1092,14 +1232,17 @@ def render_dashboard():
 
     st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
 
-    # 2 Tabs: Preview / Data
-    tab_preview, tab_data = st.tabs(["보고서 미리보기", "데이터 확인 및 수정"])
+    # 3 Tabs: Preview / Data / Action Plan
+    tab_preview, tab_data, tab_action = st.tabs(["보고서 미리보기", "데이터 확인 및 수정", "실행 계획 편집"])
 
     with tab_preview:
         render_html_preview(html_report)
 
     with tab_data:
         render_unified_data_view(filtered_results)
+
+    with tab_action:
+        render_action_plan_editor()
 
     # Bottom settings expander
     with st.expander("보고서 설정", expanded=False):
