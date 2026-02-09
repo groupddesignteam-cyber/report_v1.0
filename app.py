@@ -110,6 +110,14 @@ def initialize_session_state():
         st.session_state.feedback_result = None
     if 'feedback_file_uploaded' not in st.session_state:
         st.session_state.feedback_file_uploaded = False
+    if 'feedback_raw_df' not in st.session_state:
+        st.session_state.feedback_raw_df = None
+    if 'feedback_available_months' not in st.session_state:
+        st.session_state.feedback_available_months = []
+    if 'feedback_selected_months' not in st.session_state:
+        st.session_state.feedback_selected_months = []
+    if 'feedback_month_confirmed' not in st.session_state:
+        st.session_state.feedback_month_confirmed = False
 
 
 
@@ -1525,21 +1533,118 @@ def render_feedback_upload():
         except Exception:
             st.info("파일을 읽는 중 미리보기를 표시할 수 없습니다. 분석은 정상 진행됩니다.")
 
-        if st.button("분석 시작", type="primary", use_container_width=True):
+        if st.button("파일 업로드", type="primary", use_container_width=True):
             loaded = load_uploaded_file(uploaded)
-            with st.spinner("피드백 데이터 분석 중..."):
-                result = process_feedback([loaded])
-            if result.get('error'):
-                st.error(result['error'])
+            from src.processors.feedback import load_feedback_file, detect_months
+            raw_df = load_feedback_file(loaded)
+            if raw_df is None or len(raw_df) == 0:
+                st.error("유효한 피드백 데이터를 찾을 수 없습니다.")
             else:
-                st.session_state.feedback_result = result
+                months = detect_months(raw_df)
+                st.session_state.feedback_raw_df = raw_df
+                st.session_state.feedback_available_months = months
+                st.session_state.feedback_selected_months = months  # 기본: 전체 선택
+                st.session_state.feedback_month_confirmed = False
                 st.session_state.feedback_file_uploaded = True
+                st.session_state.feedback_result = None
                 st.rerun()
+
+
+def render_feedback_month_selector():
+    """Render month selector for feedback mode."""
+    import pandas as pd
+
+    available_months = st.session_state.feedback_available_months
+
+    if not available_months:
+        # 타임스탬프 컬럼이 없으면 바로 분석 진행
+        st.session_state.feedback_month_confirmed = True
+        raw_df = st.session_state.feedback_raw_df
+        with st.spinner("피드백 데이터 분석 중..."):
+            result = process_feedback([], df_override=raw_df)
+        st.session_state.feedback_result = result
+        st.rerun()
+        return
+
+    st.markdown("""
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px 24px; margin:16px 0;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <div style="width:28px; height:28px; background:#f59e0b; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:13px;">2</div>
+            <div>
+                <p style="font-size:14px; font-weight:700; color:#1e293b; margin:0;">분석 기간 선택</p>
+                <p style="font-size:11px; color:#64748b; margin:0;">원하는 월을 선택하세요. 선택한 월의 응답만 분석됩니다.</p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Month labels
+    def format_month(ym):
+        try:
+            parts = ym.split('-')
+            return f"{parts[0]}년 {int(parts[1])}월"
+        except Exception:
+            return ym
+
+    month_labels = [format_month(m) for m in available_months]
+
+    selected_labels = st.multiselect(
+        "분석할 월 선택",
+        options=month_labels,
+        default=month_labels,
+        key="fb_month_select"
+    )
+
+    # Map labels back to YYYY-MM
+    label_to_ym = dict(zip(month_labels, available_months))
+    selected_months = [label_to_ym[l] for l in selected_labels if l in label_to_ym]
+
+    # Show count per month
+    raw_df = st.session_state.feedback_raw_df
+    if raw_df is not None:
+        from src.processors.feedback import classify_column
+        for col in raw_df.columns:
+            if classify_column(raw_df[col], col) == 'timestamp':
+                try:
+                    dt_series = pd.to_datetime(raw_df[col], errors='coerce')
+                    month_counts = dt_series.dt.strftime('%Y-%m').value_counts().sort_index()
+                    counts_html = '<div style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0;">'
+                    for ym in available_months:
+                        cnt = month_counts.get(ym, 0)
+                        is_selected = ym in selected_months
+                        bg = '#fef3c7' if is_selected else '#f1f5f9'
+                        border = '#f59e0b' if is_selected else '#e2e8f0'
+                        color = '#92400e' if is_selected else '#94a3b8'
+                        counts_html += f'<span style="padding:4px 12px; background:{bg}; border:1px solid {border}; border-radius:8px; font-size:12px; color:{color}; font-weight:600;">{format_month(ym)}: {cnt}건</span>'
+                    counts_html += '</div>'
+                    st.markdown(counts_html, unsafe_allow_html=True)
+                except Exception:
+                    pass
+                break
+
+    if not selected_months:
+        st.warning("최소 1개 월을 선택하세요.")
+        return
+
+    if st.button("분석 시작", type="primary", use_container_width=True):
+        from src.processors.feedback import filter_df_by_months
+        filtered_df = filter_df_by_months(raw_df, selected_months)
+        st.session_state.feedback_selected_months = selected_months
+        st.session_state.feedback_month_confirmed = True
+        with st.spinner("피드백 데이터 분석 중..."):
+            result = process_feedback([], df_override=filtered_df)
+        st.session_state.feedback_result = result
+        st.rerun()
 
 
 def render_feedback_dashboard():
     """Render the feedback analysis dashboard."""
     import pandas as pd
+
+    # Month selector step
+    if not st.session_state.feedback_month_confirmed:
+        render_feedback_month_selector()
+        return
 
     result = st.session_state.feedback_result
     if not result:
@@ -1548,22 +1653,45 @@ def render_feedback_dashboard():
 
     overview = result.get('overview', {})
 
+    # Selected months label
+    selected = st.session_state.feedback_selected_months
+    available = st.session_state.feedback_available_months
+    if selected and available and len(selected) < len(available):
+        def fmt(ym):
+            try:
+                parts = ym.split('-')
+                return f"{int(parts[1])}월"
+            except Exception:
+                return ym
+        month_label = ', '.join([fmt(m) for m in selected])
+    else:
+        month_label = '전체'
+
     # Header
-    col_title, col_reset = st.columns([4, 1])
+    col_title, col_month, col_reset = st.columns([3, 1, 1])
     with col_title:
         st.markdown(f"""
         <div style="margin-bottom: 0.25rem;">
             <h1 style="margin-bottom: 0; font-size: 1.4rem; color: #f1f5f9;">고객 피드백 분석 결과</h1>
             <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">
-                응답 {overview.get('response_count', 0)}건
+                응답 {overview.get('response_count', 0)}건 ({month_label})
                 {(' | ' + overview.get('date_range', '')) if overview.get('date_range') else ''}
             </p>
         </div>
         """, unsafe_allow_html=True)
+    with col_month:
+        if st.button("기간 변경", key="fb_change_month", use_container_width=True):
+            st.session_state.feedback_month_confirmed = False
+            st.session_state.feedback_result = None
+            st.rerun()
     with col_reset:
         if st.button("새로 시작", key="fb_reset", use_container_width=True):
             st.session_state.feedback_file_uploaded = False
             st.session_state.feedback_result = None
+            st.session_state.feedback_raw_df = None
+            st.session_state.feedback_available_months = []
+            st.session_state.feedback_selected_months = []
+            st.session_state.feedback_month_confirmed = False
             st.rerun()
 
     # Generate HTML report

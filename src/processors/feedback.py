@@ -387,17 +387,57 @@ def generate_recommendations(analysis: Dict[str, Any]) -> List[str]:
     return recs
 
 
-def process_feedback(files: list) -> Dict[str, Any]:
+def detect_months(df: pd.DataFrame) -> List[str]:
+    """DataFrame에서 타임스탬프 컬럼을 찾아 YYYY-MM 월 목록 반환."""
+    months = set()
+    for col in df.columns:
+        col_type = classify_column(df[col], col)
+        if col_type == 'timestamp':
+            try:
+                dt_series = pd.to_datetime(df[col], errors='coerce').dropna()
+                for dt in dt_series:
+                    months.add(dt.strftime('%Y-%m'))
+            except Exception:
+                pass
+            break  # 첫 번째 타임스탬프 컬럼만 사용
+    return sorted(months)
+
+
+def filter_df_by_months(df: pd.DataFrame, selected_months: List[str]) -> pd.DataFrame:
+    """타임스탬프 컬럼을 기준으로 선택된 월만 필터링."""
+    if not selected_months:
+        return df
+
+    for col in df.columns:
+        col_type = classify_column(df[col], col)
+        if col_type == 'timestamp':
+            try:
+                dt_series = pd.to_datetime(df[col], errors='coerce')
+                month_series = dt_series.dt.strftime('%Y-%m')
+                mask = month_series.isin(selected_months)
+                return df[mask].reset_index(drop=True)
+            except Exception:
+                pass
+            break
+
+    return df
+
+
+def process_feedback(files: list, df_override: pd.DataFrame = None) -> Dict[str, Any]:
     """
     메인 피드백 처리 함수.
     파일 읽기 → 컬럼 분류 → 타입별 분석 → 개선 제안 생성.
+    df_override가 있으면 파일 읽기를 건너뛰고 해당 DataFrame 사용.
     """
-    # 첫 번째 유효한 파일 읽기
-    df = None
-    for f in files:
-        df = load_feedback_file(f)
-        if df is not None and len(df) > 0:
-            break
+    if df_override is not None:
+        df = df_override
+    else:
+        # 첫 번째 유효한 파일 읽기
+        df = None
+        for f in files:
+            df = load_feedback_file(f)
+            if df is not None and len(df) > 0:
+                break
 
     if df is None or len(df) == 0:
         return {'error': '유효한 피드백 데이터를 찾을 수 없습니다.'}
