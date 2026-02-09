@@ -228,7 +228,7 @@ FEEDBACK_HTML_TEMPLATE = """
             <div class="space-y-2">
                 <p class="text-[10px] font-bold text-slate-400 uppercase">대표 응답</p>
                 {% for sample in data.samples[:5] %}
-                <div class="bg-slate-50 rounded-lg p-3 border-l-3 border-slate-200">
+                <div class="bg-slate-50 rounded-lg p-3 border-l-[3px] border-slate-200">
                     <p class="text-xs text-slate-600 leading-relaxed">{{ sample }}</p>
                 </div>
                 {% endfor %}
