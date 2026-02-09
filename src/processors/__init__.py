@@ -8,6 +8,7 @@ from .reservation import process_reservation
 from .blog import process_blog
 from .youtube import process_youtube
 from .setting import process_setting
+from .feedback import process_feedback
 
 __all__ = [
     'process_ads',
@@ -15,5 +16,6 @@ __all__ = [
     'process_reservation',
     'process_blog',
     'process_youtube',
-    'process_setting'
+    'process_setting',
+    'process_feedback'
 ]

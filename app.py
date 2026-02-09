@@ -14,8 +14,10 @@ from src.processors import (
     process_reservation,
     process_blog,
     process_youtube,
-    process_setting
+    process_setting,
+    process_feedback
 )
+from src.reporting.feedback_report import generate_feedback_html_report, get_feedback_report_filename
 
 # Import utilities
 from src.utils import route_files, LoadedFile, load_uploaded_file, classify_file
@@ -48,7 +50,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.2.18"
+APP_VERSION = "v1.3.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -100,6 +102,14 @@ def initialize_session_state():
     # Action plan editor state
     if 'action_plan_items' not in st.session_state:
         st.session_state.action_plan_items = {}  # {dept_key: [{'text': '...'}]}
+
+    # Feedback mode state
+    if 'app_mode' not in st.session_state:
+        st.session_state.app_mode = 'marketing'
+    if 'feedback_result' not in st.session_state:
+        st.session_state.feedback_result = None
+    if 'feedback_file_uploaded' not in st.session_state:
+        st.session_state.feedback_file_uploaded = False
 
 
 
@@ -1420,6 +1430,285 @@ def render_intro():
     """, unsafe_allow_html=True)
 
 
+def render_mode_switcher():
+    """Render mode selection toggle at the top of the app."""
+    col_left, col_center, col_right = st.columns([1, 2, 1])
+    with col_center:
+        st.markdown("""
+        <style>
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] .mode-switcher) {
+            margin-bottom: 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        mode_labels = {"marketing": "마케팅 리포트", "feedback": "고객 피드백 분석"}
+        selected = st.radio(
+            "모드 선택",
+            options=list(mode_labels.keys()),
+            format_func=lambda x: mode_labels[x],
+            horizontal=True,
+            key="mode_radio",
+            label_visibility="collapsed"
+        )
+
+        if selected != st.session_state.app_mode:
+            st.session_state.app_mode = selected
+            st.rerun()
+
+
+def render_feedback_upload():
+    """Render the feedback mode upload page."""
+    import pandas as pd
+
+    st.markdown(f"""
+    <div style="text-align: center; padding: 2.5rem 0 1.5rem;">
+        <div style="display:inline-block; padding:0.35rem 0.9rem; background:#fef3c7;
+                    border-radius:20px; color:#d97706; font-weight:700; font-size:0.75rem;
+                    margin-bottom:0.8rem; letter-spacing:0.05em;">
+            FEEDBACK ANALYSIS
+        </div>
+        <h1 style="font-size: 2rem; font-weight: 900; color: #f1f5f9; margin: 0;
+                    letter-spacing: -0.03em; line-height:1.3;">
+            고객 피드백<br>
+            <span style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                         -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                분석 리포트
+            </span>
+        </h1>
+        <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.8rem; font-weight:500;">
+            {APP_CREATOR} <span style="color:#cbd5e1; margin:0 8px;">|</span> {APP_VERSION}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px;
+                padding:1rem; margin-bottom:1rem;">
+        <div style="font-weight:600; color:#92400e; font-size:0.85rem; margin-bottom:4px;">
+            설문/피드백 파일을 업로드하세요
+        </div>
+        <div style="font-size:0.78rem; color:#a16207;">
+            xlsx 또는 csv 형식 지원. 1행이 컬럼 헤더로 사용되며, 컬럼 유형(점수, 객관식, 주관식 등)은 자동 감지됩니다.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        "피드백 파일 업로드",
+        type=['xlsx', 'csv'],
+        accept_multiple_files=False,
+        key="feedback_upload",
+        label_visibility="collapsed"
+    )
+
+    if uploaded:
+        # Quick preview
+        try:
+            raw = uploaded.read()
+            uploaded.seek(0)
+            from io import BytesIO
+            if uploaded.name.endswith('.xlsx') or uploaded.name.endswith('.xls'):
+                preview_df = pd.read_excel(BytesIO(raw))
+            else:
+                preview_df = pd.read_csv(BytesIO(raw), encoding='utf-8-sig')
+
+            st.markdown(f"**감지된 컬럼 ({len(preview_df.columns)}개):**")
+            cols_html = '<div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px;">'
+            for col in preview_df.columns:
+                cols_html += f'<span style="padding:2px 8px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; font-size:11px; color:#475569;">{col[:30]}</span>'
+            cols_html += '</div>'
+            st.markdown(cols_html, unsafe_allow_html=True)
+
+            st.markdown(f"**데이터 미리보기** ({len(preview_df)}행)")
+            st.dataframe(preview_df.head(5), use_container_width=True, height=200)
+        except Exception:
+            st.info("파일을 읽는 중 미리보기를 표시할 수 없습니다. 분석은 정상 진행됩니다.")
+
+        if st.button("분석 시작", type="primary", use_container_width=True):
+            loaded = load_uploaded_file(uploaded)
+            with st.spinner("피드백 데이터 분석 중..."):
+                result = process_feedback([loaded])
+            if result.get('error'):
+                st.error(result['error'])
+            else:
+                st.session_state.feedback_result = result
+                st.session_state.feedback_file_uploaded = True
+                st.rerun()
+
+
+def render_feedback_dashboard():
+    """Render the feedback analysis dashboard."""
+    import pandas as pd
+
+    result = st.session_state.feedback_result
+    if not result:
+        st.warning("분석 결과가 없습니다.")
+        return
+
+    overview = result.get('overview', {})
+
+    # Header
+    col_title, col_reset = st.columns([4, 1])
+    with col_title:
+        st.markdown(f"""
+        <div style="margin-bottom: 0.25rem;">
+            <h1 style="margin-bottom: 0; font-size: 1.4rem; color: #f1f5f9;">고객 피드백 분석 결과</h1>
+            <p style="color: #94a3b8; font-size: 0.78rem; margin-top: 2px;">
+                응답 {overview.get('response_count', 0)}건
+                {(' | ' + overview.get('date_range', '')) if overview.get('date_range') else ''}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_reset:
+        if st.button("새로 시작", key="fb_reset", use_container_width=True):
+            st.session_state.feedback_file_uploaded = False
+            st.session_state.feedback_result = None
+            st.rerun()
+
+    # Generate HTML report
+    html_report = generate_feedback_html_report(result)
+    filename = get_feedback_report_filename()
+
+    # Download button
+    st.markdown("<div style='height: 0.25rem;'></div>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.download_button(
+            label="피드백 보고서 다운로드 (HTML)",
+            data=html_report.encode('utf-8'),
+            file_name=filename,
+            mime="text/html",
+            use_container_width=True
+        )
+
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+
+    # 3 Tabs
+    tab_preview, tab_dashboard, tab_detail = st.tabs([
+        "보고서 미리보기", "대시보드", "응답자별 상세"
+    ])
+
+    with tab_preview:
+        render_html_preview(html_report)
+
+    with tab_dashboard:
+        render_feedback_streamlit_view(result)
+
+    with tab_detail:
+        render_respondent_detail_view(result)
+
+
+def render_feedback_streamlit_view(result: dict):
+    """Render interactive feedback analysis in Streamlit."""
+    import pandas as pd
+
+    columns = result.get('columns', [])
+    overview = result.get('overview', {})
+
+    # Overview metrics
+    metric_cols = st.columns(3)
+    with metric_cols[0]:
+        st.metric("총 응답 수", f"{overview.get('response_count', 0)}건")
+    with metric_cols[1]:
+        avg_sat = overview.get('avg_satisfaction', 0)
+        st.metric("전체 평균 만족도", f"{avg_sat}점" if avg_sat > 0 else "-")
+    with metric_cols[2]:
+        st.metric("분석 컬럼 수", f"{overview.get('column_count', 0)}개")
+
+    # Score analysis
+    score_data = result.get('score_analysis', {})
+    if score_data:
+        st.markdown("### 영역별 만족도")
+        for col_name, data in score_data.items():
+            label = data.get('short_label', col_name[:30])
+            mean = data.get('mean', 0)
+            color = '#ef4444' if mean < 3 else '#f59e0b' if mean < 4 else '#10b981'
+
+            col_label, col_bar, col_score = st.columns([2, 5, 1])
+            with col_label:
+                st.markdown(f"**{label}**")
+            with col_bar:
+                st.progress(min(mean / 5.0, 1.0))
+            with col_score:
+                st.markdown(f"<span style='font-weight:800; color:{color};'>{mean}점</span>", unsafe_allow_html=True)
+
+    # Multi-select analysis
+    ms_data = result.get('multiselect_analysis', {})
+    if ms_data:
+        for col_name, data in ms_data.items():
+            st.markdown(f"### 객관식 분석")
+            st.caption(col_name)
+            for opt in data.get('options', [])[:10]:
+                col_opt, col_cnt = st.columns([5, 1])
+                with col_opt:
+                    st.markdown(f"- {opt['label']}")
+                with col_cnt:
+                    st.markdown(f"**{opt['count']}건** ({opt['pct']}%)")
+
+    # Single-select analysis
+    ss_data = result.get('singleselect_analysis', {})
+    if ss_data:
+        for col_name, data in ss_data.items():
+            st.markdown(f"### 응답 분포")
+            st.caption(col_name)
+            vals = data.get('values', [])
+            if vals:
+                chart_df = pd.DataFrame(vals)
+                st.bar_chart(chart_df.set_index('label')['count'])
+
+    # Free text analysis
+    ft_data = result.get('freetext_analysis', {})
+    if ft_data:
+        st.markdown("### 주관식 응답 요약")
+        for col_name, data in ft_data.items():
+            with st.expander(f"{col_name} ({data.get('response_count', 0)}건)"):
+                keywords = data.get('top_keywords', [])
+                if keywords:
+                    kw_html = '<div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px;">'
+                    for kw in keywords[:12]:
+                        kw_html += f'<span style="padding:2px 8px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; font-size:12px;">{kw["word"]} <span style="color:#94a3b8;">{kw["count"]}</span></span>'
+                    kw_html += '</div>'
+                    st.markdown(kw_html, unsafe_allow_html=True)
+
+                st.markdown("**대표 응답:**")
+                for sample in data.get('samples', [])[:5]:
+                    st.markdown(f"> {sample}")
+
+    # Recommendations
+    recs = result.get('recommendations', [])
+    if recs:
+        st.markdown("### 개선 제안")
+        for rec in recs:
+            st.info(rec)
+
+
+def render_respondent_detail_view(result: dict):
+    """Render per-respondent detail view."""
+    import pandas as pd
+
+    details = result.get('respondent_details', [])
+    columns = result.get('columns', [])
+    id_col_name = result.get('overview', {}).get('identifier_col', '')
+
+    if not details:
+        st.info("응답자 데이터가 없습니다.")
+        return
+
+    for i, row in enumerate(details):
+        label = str(row.get(id_col_name, f"응답자 {i+1}")) if id_col_name else f"응답자 {i+1}"
+        if label.lower() == 'nan' or not label.strip():
+            label = f"응답자 {i+1}"
+
+        with st.expander(f"{label}"):
+            for col_info in columns:
+                col_name = col_info['name']
+                value = row.get(col_name, '')
+                val_str = str(value).strip()
+                if val_str and val_str.lower() not in ('nan', 'nat', 'none', ''):
+                    st.markdown(f"**{col_name}:** {val_str}")
+
+
 def main():
     """Main application entry point."""
     initialize_session_state()
@@ -1429,12 +1718,21 @@ def main():
         st.session_state.intro_shown = True
         render_intro()
 
-    if not st.session_state.files_uploaded:
-        render_upload_section()
-    else:
-        render_dashboard()
+    # Mode switcher
+    render_mode_switcher()
+
+    # Route to selected mode
+    if st.session_state.app_mode == 'marketing':
+        if not st.session_state.files_uploaded:
+            render_upload_section()
+        else:
+            render_dashboard()
+    elif st.session_state.app_mode == 'feedback':
+        if not st.session_state.feedback_file_uploaded:
+            render_feedback_upload()
+        else:
+            render_feedback_dashboard()
 
 
 if __name__ == "__main__":
     main()
-# git initial tracking trigger
