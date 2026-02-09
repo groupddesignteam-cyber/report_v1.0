@@ -24,6 +24,29 @@ KOREAN_STOPWORDS = {
 }
 
 
+def extract_short_name(col_name: str) -> str:
+    """긴 컬럼명에서 짧은 표시명을 추출."""
+    # [대괄호 내용] 추출
+    match = re.search(r'\[(.+?)\]', col_name)
+    if match:
+        return match.group(1)
+
+    # Qn. 패턴에서 첫 구문 추출
+    q_match = re.match(r'(Q\d+)[.．]\s*(.+)', col_name)
+    if q_match:
+        q_num = q_match.group(1)
+        rest = q_match.group(2)
+        short = re.split(r'[,，?？]', rest)[0].strip()
+        if len(short) > 25:
+            short = short[:25] + '…'
+        return f"{q_num}. {short}"
+
+    # 일반: 30자 이하로
+    if len(col_name) > 30:
+        return col_name[:30] + '…'
+    return col_name
+
+
 def load_feedback_file(file) -> Optional[pd.DataFrame]:
     """xlsx 또는 csv 피드백 파일을 읽어 DataFrame으로 반환."""
     try:
@@ -205,9 +228,8 @@ def analyze_scores(df: pd.DataFrame, score_cols: List[Dict]) -> Dict[str, Any]:
         for v in range(1, 6):
             distribution[v] = int((values == v).sum())
 
-        # 짧은 라벨 추출 (컬럼명에서 대괄호 안 내용)
-        label_match = re.search(r'\[(.+?)\]', col_name)
-        short_label = label_match.group(1) if label_match else col_name[:30]
+        # 짧은 라벨 추출 (대괄호 → Q번호+첫구문 → 30자 이하)
+        short_label = extract_short_name(col_name)
 
         result[col_name] = {
             'short_label': short_label,
@@ -330,9 +352,14 @@ def generate_recommendations(analysis: Dict[str, Any]) -> List[str]:
             f"이 강점을 대외 마케팅 포인트 및 신규 거래처 영업 시 활용하세요."
         )
 
-    # 2. 최다 불만 사유
+    # 2. 최다 불만 사유 (불만/원인 관련 컬럼만)
     ms_data = analysis.get('multiselect_analysis', {})
+    complaint_keywords = ['이유', '원인', '사유', '미흡', '아쉬', '불만', '중단', '문제']
     for col_name, data in ms_data.items():
+        # 불만/원인 관련 컬럼인지 확인
+        is_complaint_col = any(kw in col_name for kw in complaint_keywords)
+        if not is_complaint_col:
+            continue
         options = data.get('options', [])
         if options:
             top = options[0]
@@ -466,6 +493,7 @@ def process_feedback(files: list, df_override: pd.DataFrame = None) -> Dict[str,
         columns.append({
             'name': col,
             'col_type': col_type,
+            'short_name': extract_short_name(col),
             'stats': stats
         })
 
