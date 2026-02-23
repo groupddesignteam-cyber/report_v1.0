@@ -180,3 +180,10 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Temp / local files
+*.pid
+*.url
+nul
+test_report.html
+*.log
