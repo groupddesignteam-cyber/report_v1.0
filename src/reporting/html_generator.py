@@ -66,6 +66,19 @@ HTML_TEMPLATE = """
             </div>
         </header>
 
+        <!-- AI Executive Summary (1분 승인용 3줄 요약) -->
+        {% if ai_exec_summary %}
+        <div class="card p-6 md:p-8 bg-indigo-50 border-2 border-indigo-200 fade-in delay-1 mt-6 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-indigo-100 p-2 rounded-lg"><i data-lucide="bot" class="w-5 h-5 text-indigo-600"></i></div>
+                <h2 class="text-lg font-bold text-indigo-900">팀장용 1분 승인 AI 3줄 요약본</h2>
+            </div>
+            <div class="text-indigo-800 text-sm md:text-base leading-relaxed font-bold whitespace-pre-line border-l-4 border-indigo-400 pl-4 py-2">
+                {{ ai_exec_summary }}
+            </div>
+        </div>
+        {% endif %}
+
         <!-- 2. Department Sections -->
         {% for dept in departments %}
         {% if dept.has_data %}
@@ -757,7 +770,10 @@ HTML_TEMPLATE = """
                         {{ summary.action_plan_month|default('') }} 실행 계획
                     </h3>
                     <div class="space-y-3">
-                        {% set dept_colors = {'예약': '#3b82f6', '블로그': '#10b981', '유튜브': '#ef4444', '디자인': '#f59e0b', '네이버 광고': '#8b5cf6'} %}
+                        {% set dept_colors = {
+                            '예약': '#3b82f6', '블로그': '#10b981', '유튜브': '#ef4444', '디자인': '#f59e0b', '네이버 광고': '#8b5cf6',
+                            '마케팅팀': '#3b82f6', '디자인팀': '#f59e0b', '영상팀': '#ef4444', '전략기획팀': '#8b5cf6', '광고팀': '#10b981', '콘텐츠팀': '#06b6d4'
+                        } %}
                         {% for item in summary.action_plan %}
                         <div class="strategy-card bg-slate-800 p-4 rounded-xl" style="border-left-color: {{ dept_colors.get(item.department, '#a78bfa') }};">
                             <div class="flex items-center gap-2 mb-1">
@@ -1584,7 +1600,8 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
                          clinic_name: str = None,
                          report_date: str = None,
                          manager_comment: str = None,
-                         action_plan_override: Dict = None) -> str:
+                         action_plan_override: Dict = None,
+                         ai_exec_summary: str = None) -> str:
     """Generate HTML report from processed results."""
     if clinic_name is None:
         clinic_name = '서울리멤버치과'
@@ -1634,7 +1651,8 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
         summary=summary,
         best_metric=best_metric,
         worst_metric=worst_metric,
-        manager_comment=manager_comment or ''
+        manager_comment=manager_comment or '',
+        ai_exec_summary=ai_exec_summary
     )
 
 
