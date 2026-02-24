@@ -18,7 +18,11 @@ from src.processors import (
     process_feedback
 )
 from src.reporting.feedback_report import generate_feedback_html_report, get_feedback_report_filename
-from src.llm.llm_client import generate_department_draft_and_strategy, generate_executive_summary
+from src.llm.llm_client import (
+    generate_department_draft_and_strategy,
+    generate_executive_summary,
+    has_llm_client_configured,
+)
 
 # Import utilities
 from src.utils import route_files, LoadedFile, load_uploaded_file, classify_file
@@ -31,6 +35,8 @@ from src.utils import route_files, LoadedFile, load_uploaded_file, classify_file
 
 # Import HTML generator
 from src.reporting.html_generator import generate_html_report, get_report_filename
+
+APP_DEPLOY_TAG = "release-2026.02.23-policy-flow"
 
 
 # Page configuration
@@ -131,15 +137,25 @@ def process_uploaded_files(uploaded_files):
     if not uploaded_files:
         return
 
+    from src.utils import LoadedFile
+
     # Add new files to session state (avoid duplicates by name)
     existing_names = {f.name for f in st.session_state.all_loaded_files}
     new_files_count = 0
     
-    for uf in uploaded_files:
-        if uf.name not in existing_names:
-            st.session_state.all_loaded_files.append(load_uploaded_file(uf))
-            existing_names.add(uf.name)
-            new_files_count += 1
+    if isinstance(uploaded_files, dict):
+        for name, file_bytes in uploaded_files.items():
+            if name not in existing_names:
+                st.session_state.all_loaded_files.append(LoadedFile(name=name, raw_bytes=file_bytes))
+                existing_names.add(name)
+                new_files_count += 1
+    else:
+        for uf in uploaded_files:
+            if hasattr(uf, "name"):
+                if uf.name not in existing_names:
+                    st.session_state.all_loaded_files.append(load_uploaded_file(uf))
+                    existing_names.add(uf.name)
+                    new_files_count += 1
     
     if not st.session_state.all_loaded_files:
         st.warning("처리할 파일이 없습니다.")
@@ -283,53 +299,57 @@ def render_analysis_selector():
     </div>
     """, unsafe_allow_html=True)
 
-    # Month Selector
-    if available_months:
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Month Selector
+        if available_months:
+            st.markdown("""
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.75rem;">
+                <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 기간 선택</div>
+                <div style="font-size:0.8rem; color:#64748b;">비교할 월 선택 (전월 + 당월)</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+            month_labels = [format_month_label(m) for m in available_months]
+            month_map = dict(zip(month_labels, available_months))
+    
+            # Default: last 2 months
+            default_months = month_labels[-2:] if len(month_labels) >= 2 else month_labels
+    
+            selected_month_labels = st.multiselect(
+                "월 선택",
+                options=month_labels,
+                default=default_months,
+                key="month_selector_widget",
+                label_visibility="collapsed"
+            )
+    
+            selected_months = [month_map[label] for label in selected_month_labels]
+        else:
+            selected_months = []
+
+    with col2:
+        # Department Selector
         st.markdown("""
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.75rem;">
-            <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 기간 선택</div>
-            <div style="font-size:0.8rem; color:#64748b;">비교할 월을 선택하세요 (전월 + 당월)</div>
+            <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 항목 선택</div>
+            <div style="font-size:0.8rem; color:#64748b;">보고서에 포함할 항목 선택</div>
         </div>
         """, unsafe_allow_html=True)
-
-        month_labels = [format_month_label(m) for m in available_months]
-        month_map = dict(zip(month_labels, available_months))
-
-        # Default: last 2 months
-        default_months = month_labels[-2:] if len(month_labels) >= 2 else month_labels
-
-        selected_month_labels = st.multiselect(
-            "월 선택",
-            options=month_labels,
-            default=default_months,
-            key="month_selector_widget",
+    
+        dept_labels = [label for _, label in available_depts]
+        dept_map = {label: key for key, label in available_depts}
+    
+        selected_dept_labels = st.multiselect(
+            "분석 항목",
+            options=dept_labels,
+            default=dept_labels,
+            key="dept_selector_widget",
             label_visibility="collapsed"
         )
-
-        selected_months = [month_map[label] for label in selected_month_labels]
-    else:
-        selected_months = []
-
-    # Department Selector
-    st.markdown("""
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.25rem; margin-bottom:0.75rem; margin-top:0.5rem;">
-        <div style="font-weight:600; color:#1e293b; font-size:0.95rem; margin-bottom:4px;">분석 항목 선택</div>
-        <div style="font-size:0.8rem; color:#64748b;">보고서에 포함할 분석 항목을 선택하세요</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    dept_labels = [label for _, label in available_depts]
-    dept_map = {label: key for key, label in available_depts}
-
-    selected_dept_labels = st.multiselect(
-        "분석 항목",
-        options=dept_labels,
-        default=dept_labels,
-        key="dept_selector_widget",
-        label_visibility="collapsed"
-    )
-
-    selected_depts = [dept_map[label] for label in selected_dept_labels]
+    
+        selected_depts = [dept_map[label] for label in selected_dept_labels]
 
     # Visual chips
     if selected_dept_labels:
@@ -542,26 +562,49 @@ def render_upload_section():
 
     # File uploader (label hidden, drop zone only)
     uploaded_files = st.file_uploader(
-        "파일 업로드",
-        type=['xlsx', 'csv'],
+        "파일 업로드 (여러 카테고리의 폴더 전체를 올리시려면 ZIP 파일로 압축해서 1개만 올려주세요)",
+        type=['xlsx', 'csv', 'zip'],
         accept_multiple_files=True,
         key="unified_upload",
         label_visibility="collapsed"
     )
 
-    # Classification preview + action button
+    # Initialize accumulated files in session state if not present
+    if "pending_uploads" not in st.session_state:
+        st.session_state.pending_uploads = {}
+
+    import zipfile
+    import os
+
+    # Process newly uploaded files into pending_uploads (to handle multiple subsequent uploads)
     if uploaded_files:
+        for uf in uploaded_files:
+            if uf.name.lower().endswith('.zip'):
+                try:
+                    with zipfile.ZipFile(uf) as z:
+                        for filename in z.namelist():
+                            if filename.lower().endswith(('.csv', '.xlsx')) and not filename.startswith('__MACOSX'):
+                                base_name = os.path.basename(filename)
+                                if base_name:
+                                    st.session_state.pending_uploads[base_name] = z.read(filename)
+                except Exception as e:
+                    st.error(f"ZIP 압축 해제 중 오류 발생: {e}")
+            else:
+                st.session_state.pending_uploads[uf.name] = uf.getvalue()
+
+    # Classification preview + action button
+    if st.session_state.pending_uploads:
         st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
         
         # Classify files in real-time
         classification = {}
         unclassified = []
-        for uf in uploaded_files:
-            category = classify_file(uf.name)
+        for filename in st.session_state.pending_uploads.keys():
+            category = classify_file(filename)
             if category:
-                classification.setdefault(category, []).append(uf.name)
+                classification.setdefault(category, []).append(filename)
             else:
-                unclassified.append(uf.name)
+                unclassified.append(filename)
 
         # Show classification grid
         cols = st.columns(6)
@@ -599,16 +642,23 @@ def render_upload_section():
         if unclassified:
             st.warning(f"⚠️ 분류 불가 파일 ({len(unclassified)}건): {', '.join(unclassified)}")
 
-        # Action Button
+        # Action Button Area
         st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-        valid_count = len(uploaded_files) - len(unclassified)
+        valid_count = len(st.session_state.pending_uploads) - len(unclassified)
         
-        # Primary Action Button
-        if valid_count > 0:
-            if st.button(f"🚀  데이터 분석 시작 ({valid_count}개 파일)", type="primary", use_container_width=True):
-                process_uploaded_files(uploaded_files)
-        else:
-            st.button("파일을 업로드해주세요", disabled=True, use_container_width=True)
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("🗑️ 선택 초기화", use_container_width=True):
+                st.session_state.pending_uploads = {}
+                st.rerun()
+                
+        with col2:
+            if valid_count > 0:
+                if st.button(f"🚀  데이터 분석 시작 ({valid_count}개 파일)", type="primary", use_container_width=True):
+                    process_uploaded_files(st.session_state.pending_uploads)
+                    st.session_state.pending_uploads = {} # Clear after tracking
+            else:
+                st.button("분석할 파일이 없습니다.", disabled=True, use_container_width=True)
 
 
 
@@ -1355,9 +1405,17 @@ def render_dashboard():
 
     # Download button & AI Summary Generation button
     st.markdown("<div style='height: 0.25rem;'></div>", unsafe_allow_html=True)
+    llm_ready = has_llm_client_configured()
+    if not llm_ready:
+        st.info("AI 요약은 Streamlit Secrets에 ANTHROPIC_API_KEY 또는 OPENAI_API_KEY를 등록하면 활성화됩니다.")
     col1, col2, col3, col4 = st.columns([1, 2, 2, 1])
     with col2:
-        if st.button("✨ 팀장용 1분 AI 3줄 요약 자동생성", use_container_width=True):
+        if st.button(
+            "✨ 팀장용 1분 AI 3줄 요약 자동생성",
+            use_container_width=True,
+            disabled=not llm_ready,
+            help="ANTHROPIC_API_KEY 또는 OPENAI_API_KEY가 설정되어야 실행됩니다.",
+        ):
             with st.spinner("전체 데이터를 분석하여 3줄 총평을 생성하는 중입니다..."):
                 st.session_state.ai_exec_summary = generate_executive_summary(filtered_results)
             st.rerun()
@@ -4878,23 +4936,21 @@ def _render_report_context_bar_v3():
             )
         rows_block = "\n".join(row_html)
     else:
-        rows_block = """
+        import textwrap
+        rows_block = textwrap.dedent("""
         <div class="report-row">
             <span class="report-box"></span>
             <p class="report-row-title">액션 아이템이 아직 생성되지 않았습니다. 분석 범위를 선택하면 자동 생성됩니다.</p>
             <span class="report-row-tag">안내</span>
         </div>
-        """
+        """).strip()
 
-    st.markdown(
-        f"""
-        <div class="report-action-card">
-            <p class="report-action-title"><span class="report-title-dot">•</span>약속한 액션 아이템</p>
-            <div class="report-chip-wrap">
-                <span class="report-chip green">진행중 ({checked_count})</span>
-                <span class="report-chip gray">대기 ({pending})</span>
-                <span class="report-chip alert">전체 ({total_count})</span>
-            </div>
+    import textwrap
+    expander_title = f"📌 약속한 액션 아이템 (진행중 {checked_count} / 대기 {pending} / 전체 {total_count})"
+    with st.expander(expander_title, expanded=False):
+        import textwrap
+        html_content = textwrap.dedent(f"""
+        <div class="report-action-card" style="box-shadow:none; padding:0; background:transparent; border:none; margin-top:0;">
             <div class="report-list">
                 {rows_block}
             </div>
@@ -4910,6 +4966,283 @@ def _render_report_context_bar_v3():
                 </div>
             </div>
         </div>
+        """).strip()
+        
+        st.markdown(html_content, unsafe_allow_html=True)
+
+
+def _inject_toss_button_style():
+    st.markdown(
+        """
+        <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
+        :root {
+            --toss-bg: #f3f6fb;
+            --toss-card: #ffffff;
+            --toss-border: #dbe6f3;
+            --toss-text: #111827;
+            --toss-text-muted: #617089;
+            --toss-primary: #2563eb;
+            --toss-primary-strong: #1d4ed8;
+            --toss-primary-soft: #eaf2ff;
+            --toss-shadow: 0 10px 28px -18px rgba(37, 99, 235, 0.45);
+            --toss-shadow-hover: 0 14px 28px -16px rgba(37, 99, 235, 0.45);
+        }
+        html, body, [class*="css"] {
+            font-family: "Pretendard Variable", "Noto Sans KR", -apple-system, sans-serif !important;
+        }
+        .stApp {
+            background: var(--toss-bg) !important;
+        }
+        .main .block-container {
+            max-width: 1240px !important;
+            padding-top: 0.9rem !important;
+            padding-bottom: 1.8rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        [data-testid="stSidebar"] {
+            min-width: 250px !important;
+            background: #ffffff !important;
+            border-right: 1px solid var(--toss-border) !important;
+        }
+        [data-testid="stSidebar"] .block-container {
+            padding-top: 0.85rem !important;
+            padding-left: 0.85rem !important;
+            padding-right: 0.85rem !important;
+        }
+        [data-testid="stHeader"] {
+            background: transparent !important;
+        }
+        #MainMenu, footer {
+            visibility: hidden !important;
+        }
+        .stButton > button,
+        .stDownloadButton > button {
+            min-height: 42px !important;
+            border-radius: 12px !important;
+            border: 1px solid transparent !important;
+            background: linear-gradient(180deg, #3b82f6 0%, #2f6ef2 100%) !important;
+            color: #ffffff !important;
+            font-size: 15px !important;
+            font-weight: 740 !important;
+            letter-spacing: -0.01em !important;
+            box-shadow: var(--toss-shadow) !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+        }
+        .stButton > button:hover,
+        .stDownloadButton > button:hover {
+            transform: translateY(-1px) !important;
+            background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+            box-shadow: var(--toss-shadow-hover) !important;
+        }
+        .stButton > button:active,
+        .stDownloadButton > button:active {
+            transform: translateY(0px) !important;
+            box-shadow: inset 0 2px 0 rgba(15, 23, 42, 0.12) !important;
+            background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%) !important;
+        }
+        .stButton > button:disabled,
+        .stDownloadButton > button:disabled {
+            background: #cbd5e1 !important;
+            border-color: #94a3b8 !important;
+            color: #475569 !important;
+            box-shadow: none !important;
+            cursor: not-allowed !important;
+        }
+        .stButton > button[kind="secondary"],
+        .stButton > button[kind="secondary"]:hover {
+            background: #ffffff !important;
+            border: 1px solid #d2dced !important;
+            color: #1e3a8a !important;
+        }
+        .stButton > button[kind="primary"] {
+            background: linear-gradient(180deg, var(--toss-primary) 0%, var(--toss-primary-strong) 100%) !important;
+        }
+        .stFileUploader {
+            border-radius: 14px !important;
+        }
+        [data-testid="stFileUploader"] {
+            border: 1px dashed #bfd7ff !important;
+            background: #ffffff !important;
+            border-radius: 14px !important;
+            padding: 1.5rem 1rem !important;
+        }
+        [data-testid="stFileUploader"] section {
+            padding: 0.7rem !important;
+        }
+        [data-baseweb="input"] > div,
+        [data-baseweb="select"] > div,
+        [data-testid="stTextInput"] > div > div,
+        [data-testid="stTextArea"] textarea,
+        [data-testid="stDateInput"] input,
+        [data-testid="stSelectbox"] > div > div,
+        [data-testid="stNumberInput"] > div > div {
+            border-radius: 10px !important;
+            border-color: var(--toss-border) !important;
+            background: #ffffff !important;
+        }
+        [data-testid="stSelectbox"] > div {
+            min-height: 42px !important;
+        }
+        [data-testid="stAlert"] {
+            border-radius: 11px !important;
+            border: 1px solid #dbeafe !important;
+            background: #eff6ff !important;
+        }
+        [data-testid="stTabs"] {
+            margin-top: 0.1rem !important;
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px !important;
+            padding: 4px !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            border: 1px solid var(--toss-border) !important;
+            margin-bottom: 0.85rem !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 40px !important;
+            border-radius: 10px !important;
+            padding: 0 15px !important;
+            border: 1px solid transparent !important;
+            color: #4f5f76 !important;
+            font-weight: 680 !important;
+            font-size: 13px !important;
+        }
+        .stTabs [data-baseweb="tab"]:hover {
+            border-color: #bfdbfe !important;
+            color: #1e40af !important;
+        }
+        .stTabs [aria-selected="true"] {
+            color: #1d4ed8 !important;
+            background: #eff6ff !important;
+            border-color: #bfdbfe !important;
+            font-weight: 760 !important;
+        }
+        .stTab [data-baseweb="tab-highlight"] {
+            display: none !important;
+        }
+        [data-testid="stExpander"] {
+            border: 1px solid #dde7f3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
+        }
+        [data-testid="stExpander"] summary {
+            padding: 0.9rem 0.9rem 0.75rem 0.9rem !important;
+            color: #1f3c67 !important;
+            font-weight: 700 !important;
+        }
+        [data-testid="stDataFrame"] {
+            border: 1px solid #dbe7f3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+        }
+        [data-testid="stMetric"] {
+            border: 1px solid #d6e2f3 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            padding: 12px 12px 10px 12px !important;
+            box-shadow: 0 4px 12px -12px rgba(30, 64, 175, 0.28) !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: var(--toss-text-muted) !important;
+            font-size: 12px !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: #152f55 !important;
+            font-weight: 780 !important;
+        }
+        .report-topbar,
+        .clap-topbar {
+            border: 1px solid var(--toss-border) !important;
+            border-radius: 14px !important;
+            background: #ffffff !important;
+            box-shadow: 0 10px 22px -16px rgba(30, 64, 175, 0.35) !important;
+        }
+        .report-profile,
+        .clap-hero,
+        .report-action-card,
+        .clap-card {
+            border: 1px solid var(--toss-border) !important;
+            border-radius: 14px !important;
+            background: #ffffff !important;
+            box-shadow: 0 10px 22px -18px rgba(37, 99, 235, 0.35) !important;
+        }
+        .report-side-card {
+            border: 1px solid var(--toss-border) !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+        }
+        .report-meta-grid,
+        .report-side-item,
+        .report-chip-wrap,
+        .clap-meta-item {
+            color: #4e5e74 !important;
+        }
+        .clap-pill,
+        .report-pill,
+        .status-pill {
+            color: #1d4ed8 !important;
+            background: var(--toss-primary-soft) !important;
+            border: 1px solid #bfdbfe !important;
+            border-radius: 999px !important;
+            padding: 4px 10px !important;
+            font-weight: 700 !important;
+        }
+        .policy-team-card,
+        .policy-studio-wrap,
+        .policy-studio-wrap *,
+        .report-action-title,
+        .policy-team-title,
+        .policy-team-sub {
+            color: #1f3f72 !important;
+        }
+        .policy-studio-wrap {
+            border: 1px solid var(--toss-border) !important;
+            border-radius: 14px !important;
+            background: linear-gradient(180deg, #f8fbff 0%, #f3f7ff 100%) !important;
+            box-shadow: 0 14px 24px -22px rgba(37, 99, 235, 0.4) !important;
+        }
+        .policy-studio-wrap .policy-chip {
+            background: #f0f5ff !important;
+            border-color: #bed7ff !important;
+            color: #1d3f83 !important;
+        }
+        .clap-side-group,
+        .clap-side-card {
+            border: 1px solid var(--toss-border) !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            padding: 10px 11px !important;
+            margin-bottom: 8px !important;
+        }
+        .clap-side-brand {
+            color: #163b6c !important;
+            font-weight: 820 !important;
+        }
+        @media (max-width: 768px) {
+            .stButton > button,
+            .stDownloadButton > button {
+                min-height: 44px !important;
+            }
+            .main .block-container {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 6px !important;
+                overflow-x: auto !important;
+                white-space: nowrap !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                height: 36px !important;
+                padding: 0 12px !important;
+                font-size: 12px !important;
+            }
+        }
+        </style>
         """,
         unsafe_allow_html=True,
     )
@@ -5321,6 +5654,8 @@ def get_action_plan_for_report():
 def main():
     """Main application entry point."""
     initialize_session_state()
+    st.sidebar.caption(f"버전: {APP_DEPLOY_TAG}")
+    _inject_toss_button_style()
 
     # Show intro animation on first visit
     if 'intro_shown' not in st.session_state:
