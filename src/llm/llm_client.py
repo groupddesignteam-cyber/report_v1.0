@@ -109,6 +109,14 @@ def get_claude_client():
         )
         if key and _is_anthropic_key(key) and Anthropic is not None:
             return "anthropic", Anthropic(api_key=key)
+        # Fallback: if provider is set to anthropic but key is missing/invalid,
+        # try OpenAI key as a compatibility fallback (keeps behavior resilient).
+        key = _get_value(
+            ("OPENAI_API_KEY", "OPENAI_KEY", "GPT_API_KEY"),
+            ("OPENAI_API_KEY", "OPENAI_KEY", "GPT_API_KEY"),
+        )
+        if key and _is_openai_key(key) and OpenAI is not None:
+            return "openai", OpenAI(api_key=key)
         return None, None
 
     if provider in {"openai", "gpt", "chatgpt"}:
@@ -118,6 +126,14 @@ def get_claude_client():
         )
         if key and _is_openai_key(key) and OpenAI is not None:
             return "openai", OpenAI(api_key=key)
+        # Fallback: if provider is set to openai but key is missing/invalid,
+        # try Anthropic key as a secondary option.
+        key = _get_value(
+            ("ANTHROPIC_API_KEY", "ANTHROPIC_KEY", "CLAUDE_API_KEY"),
+            ("ANTHROPIC_API_KEY", "ANTHROPIC_KEY", "CLAUDE_API_KEY"),
+        )
+        if key and _is_anthropic_key(key) and Anthropic is not None:
+            return "anthropic", Anthropic(api_key=key)
         return None, None
 
     # Auto-detect: Anthropic key first, then OpenAI.
@@ -181,6 +197,11 @@ def _call_llm(prompt: str, max_tokens: int, temperature: float, *, json_mode: bo
     return None
 
 
+def has_llm_client_configured() -> bool:
+    provider, client = get_claude_client()
+    return bool(provider and client)
+
+
 def generate_department_draft_and_strategy(dept_name: str, kpis: dict, previous_kpis: dict) -> dict:
     prompt = f"""당신은 병원 전문 마케팅 기획자(PM)입니다.
 '{dept_name}' 부서의 이번 달 KPI 성과와 이전 달 성과를 바탕으로 1) 보고서에 들어갈 성과 총평(draft)과 2) 다음 달에 우리 부서 팀원들이 치과(클라이언트)를 위해 '실무적으로 직접 해줄 수 있는 핵심 서비스/업무' 5가지를 도출해주세요.
@@ -215,7 +236,7 @@ def generate_department_draft_and_strategy(dept_name: str, kpis: dict, previous_
         text = _call_llm(prompt, max_tokens=1000, temperature=0.7, json_mode=True)
         if not text:
             return {
-                "draft": "API key is not configured correctly. Set ANTHROPIC_API_KEY (sk-ant-...) or OPENAI_API_KEY (sk-proj-...).",
+                "draft": "API key가 설정되지 않았습니다. Streamlit의 Secrets(ANTHROPIC_API_KEY 또는 OPENAI_API_KEY)에 값을 넣고 재시도하세요.",
                 "action_plan": [{"text": "Please check API key and retry."}],
             }
 
@@ -345,7 +366,7 @@ Data:
     try:
         text = _call_llm(prompt, max_tokens=500, temperature=0.5, json_mode=False)
         if not text:
-            return "API key is not configured correctly. Set ANTHROPIC_API_KEY (sk-ant-...) or OPENAI_API_KEY (sk-proj-...)."
+            return "API key가 설정되지 않았습니다. Streamlit의 Secrets(ANTHROPIC_API_KEY 또는 OPENAI_API_KEY)에 값을 넣고 재시도하세요."
         return text
     except Exception as e:
         return f"Summary generation failed: {str(e)}"
