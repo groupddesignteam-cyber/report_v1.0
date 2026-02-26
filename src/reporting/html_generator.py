@@ -161,21 +161,7 @@ HTML_TEMPLATE = """
             <div class="mt-6" style="height: 1px; background: linear-gradient(90deg, var(--v5-accent), var(--v5-border), transparent);"></div>
         </header>
 
-        <!-- AI Executive Summary (V5) -->
-        {% if ai_exec_summary %}
-        <div class="card p-8 fade-in delay-1 mt-4 mb-8" style="background: linear-gradient(135deg, var(--v5-card) 0%, rgba(49,130,246,0.02) 100%);">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="p-2.5 rounded-xl" style="background: var(--v5-accent-bg);"><i data-lucide="bot" class="w-6 h-6" style="color: var(--v5-accent);"></i></div>
-                <div>
-                    <h2 class="text-xl font-bold" style="color: var(--v5-text);">AI 핵심 요약 & 팀장 제안</h2>
-                    <p class="text-[10px] font-bold uppercase tracking-wider mt-0.5" style="color: var(--v5-text-muted);">Executive Summary</p>
-                </div>
-            </div>
-            <div class="text-base leading-relaxed font-semibold whitespace-pre-line pl-5 py-1" style="color: var(--v5-text-sub); border-left: 4px solid var(--v5-accent);">
-                {{ ai_exec_summary }}
-            </div>
-        </div>
-        {% endif %}
+        <!-- AI Executive Summary → 하단 종합 분석 섹션으로 이동 (summary.content로 전달) -->
 
         <!-- 2. Department Sections -->
         {% for dept in departments %}
@@ -829,7 +815,7 @@ HTML_TEMPLATE = """
 
                 <!-- Summary Content -->
                 {% if summary.content %}
-                <div class="p-6 mb-8 text-[15px] font-medium leading-relaxed" style="background: var(--v5-bg); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); color: var(--v5-text-sub);">
+                <div class="p-6 mb-8 text-[15px] font-medium leading-relaxed" style="background: var(--v5-bg); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); color: var(--v5-text-sub); white-space: pre-line;">
                     {{ summary.content|safe }}
                 </div>
                 {% endif %}

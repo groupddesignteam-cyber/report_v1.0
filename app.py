@@ -58,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v3.3.0"
+APP_VERSION = "v3.4.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -1407,6 +1407,10 @@ def render_dashboard():
 
     # Generate HTML report (filtered) with user-edited action plan
     custom_action_plan = get_action_plan_for_report()
+    # AI 요약이 있으면 하단 '종합 분석 및 전략' 섹션에 포함
+    if st.session_state.ai_exec_summary:
+        custom_action_plan['content'] = st.session_state.ai_exec_summary
+        custom_action_plan['title'] = 'AI 핵심 요약 & 실행 계획'
     html_report = generate_html_report(
         filtered_results,
         clinic_name=settings['clinic_name'],
@@ -3925,7 +3929,7 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
         return
 
     all_items = _normalize_product_items(st.session_state.action_plan_items)
-    all_items[team_key] = _normalize_product_items(items)
+    all_items[team_key] = items
     st.session_state.action_plan_items = all_items
     st.session_state[done_key] = True
     st.toast(f"{dept_label} 선택 완료: {len(items)}개 항목 저장됨")
