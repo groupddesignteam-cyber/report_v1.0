@@ -17,63 +17,161 @@ HTML_TEMPLATE = """
     <title>{{ report_title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
     <style>
-        body { font-family: 'Noto Sans KR', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); }
-        .card { background: white; border-radius: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -2px rgba(0,0,0,0.04); overflow: hidden; transition: box-shadow 0.3s ease; }
-        .card:hover { box-shadow: 0 20px 40px -8px rgba(0,0,0,0.12), 0 8px 16px -4px rgba(0,0,0,0.06); }
-        .fade-in { animation: fadeIn 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards; opacity: 0; transform: translateY(12px); }
+        /* V5 Design Tokens */
+        :root {
+            --v5-bg: #f8fafc;
+            --v5-card: #ffffff;
+            --v5-border: #e2e8f0;
+            --v5-border-hover: #bfdbfe;
+            --v5-text: #1e293b;
+            --v5-text-sub: #4e5968;
+            --v5-text-muted: #94a3b8;
+            --v5-accent: #3182f6;
+            --v5-accent-bg: rgba(49,130,246,0.06);
+            --v5-accent-glow: 0 0 15px rgba(49,130,246,0.12);
+            --v5-shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --v5-shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --v5-shadow-lg: 0 10px 24px rgba(0,0,0,0.08);
+            --v5-radius: 16px;
+            --v5-radius-lg: 20px;
+            --v5-radius-full: 9999px;
+        }
+        body {
+            font-family: 'Pretendard Variable', -apple-system, sans-serif;
+            letter-spacing: -0.01em;
+            line-height: 1.6;
+            word-break: keep-all;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .card {
+            background: var(--v5-card);
+            border-radius: var(--v5-radius-lg);
+            border: 1px solid var(--v5-border);
+            box-shadow: var(--v5-shadow-sm);
+            overflow: hidden;
+            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1), border-color 0.25s ease;
+        }
+        .card:hover {
+            box-shadow: var(--v5-shadow-md);
+            border-color: var(--v5-border-hover);
+        }
+        .fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(16px); }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-        .delay-1 { animation-delay: 0.15s; }
-        .delay-2 { animation-delay: 0.3s; }
-        .delay-3 { animation-delay: 0.45s; }
-        .delay-4 { animation-delay: 0.6s; }
-        .strategy-card { border-left: 4px solid; transition: transform 0.2s, box-shadow 0.2s; }
-        .strategy-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        /* V5 Action Plan Cards */
+        .v5-action-wrap {
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid var(--v5-border);
+            border-radius: var(--v5-radius-lg);
+            padding: 28px 24px;
+        }
+        .v5-action-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px; padding-bottom: 14px;
+            border-bottom: 1px solid var(--v5-border);
+        }
+        .v5-action-badge {
+            background: var(--v5-accent); color: #fff;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 12px; border-radius: 8px;
+            text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .v5-action-title {
+            font-size: 16px; font-weight: 800; color: var(--v5-text);
+        }
+        .v5-action-card {
+            background: var(--v5-card);
+            border: 1px solid var(--v5-border);
+            border-radius: var(--v5-radius);
+            padding: 18px 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .v5-action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--v5-shadow-md);
+            border-color: var(--v5-border-hover);
+        }
+        .v5-dept-tag {
+            display: inline-block;
+            font-size: 11px; font-weight: 700;
+            padding: 3px 10px; border-radius: var(--v5-radius-full);
+            margin-bottom: 8px;
+        }
+        .v5-action-card h4 {
+            font-size: 15px; font-weight: 700; color: var(--v5-text);
+            margin: 0 0 4px 0; line-height: 1.4;
+        }
+        .v5-action-card p {
+            font-size: 13px; font-weight: 500; color: var(--v5-text-sub);
+            margin: 0; line-height: 1.6;
+        }
+
+        .strategy-card { border-left: 4px solid; background: #fafafa; transition: transform 0.2s, box-shadow 0.2s; }
+        .strategy-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
         .section-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0.625rem; border-radius: 9999px; }
-        .metric-highlight { position: relative; }
-        .metric-highlight::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; border-radius: 2px; background: currentColor; opacity: 0.2; }
-        .glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.3); }
         @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
         details summary::-webkit-details-marker { display: none; }
         details[open] > summary .toggle-arrow { transform: rotate(90deg); }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+
         @media print {
             .fade-in { opacity: 1 !important; transform: none !important; animation: none !important; }
-            .card { box-shadow: none !important; border: 1px solid #e2e8f0; }
-            .card:hover { box-shadow: none !important; }
+            .card {
+                border: 1px solid var(--v5-border);
+                border-radius: var(--v5-radius);
+                box-shadow: none !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                margin-bottom: 24px;
+            }
+            .v5-action-card { break-inside: avoid; }
+            .v5-action-card:hover { transform: none; box-shadow: none; }
             body { background: white !important; }
         }
     </style>
 </head>
-<body class="p-4 md:p-8 text-slate-800 bg-slate-100">
+<body class="p-6" style="background: var(--v5-bg); color: var(--v5-text);">
 
     <div class="max-w-5xl mx-auto space-y-6">
 
-        <!-- 1. Header -->
-        <header class="gradient-bg text-white p-8 md:p-12 rounded-3xl shadow-2xl relative overflow-hidden fade-in">
-            <div class="absolute top-0 right-0 w-80 h-80 bg-indigo-500/15 rounded-full blur-3xl -mr-20 -mt-20"></div>
-            <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-400/10 rounded-full blur-2xl -ml-12 -mb-12"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-tr from-indigo-600/5 to-cyan-400/5 rounded-full blur-3xl"></div>
-            <div class="relative z-10">
-                <div class="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-xs font-bold mb-4 border border-white/10 backdrop-blur-sm">
-                    <span class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></span>
+        <!-- 1. Header (V5) -->
+        <header class="py-8 fade-in relative">
+            <div class="flex flex-row items-end justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color: var(--v5-accent); letter-spacing: 0.1em;">Monthly Marketing Report</p>
+                    <h1 class="text-[42px] font-[900] tracking-tight leading-tight mb-2" style="color: var(--v5-text);">{{ report_title }}</h1>
+                    <p class="font-semibold text-xl" style="color: var(--v5-text-sub);">{{ clinic_name }} <span style="color: var(--v5-text-muted);">|</span> {{ report_date }}</p>
+                </div>
+                <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold" style="background: var(--v5-accent-bg); color: var(--v5-accent); border: 1px solid rgba(49,130,246,0.15); box-shadow: var(--v5-shadow-sm);">
+                    <span class="w-2 h-2 rounded-full pulse-dot" style="background: var(--v5-accent);"></span>
                     MARKETING REPORT
                 </div>
-                <h1 class="text-3xl md:text-4xl font-black tracking-tight mb-2 bg-clip-text">{{ report_title }}</h1>
-                <p class="text-slate-300 font-light text-sm md:text-base">{{ clinic_name }} | {{ report_date }}</p>
             </div>
+            <div class="mt-6" style="height: 1px; background: linear-gradient(90deg, var(--v5-accent), var(--v5-border), transparent);"></div>
         </header>
 
-        <!-- AI Executive Summary (1분 승인용 3줄 요약) -->
+        <!-- AI Executive Summary (V5) -->
         {% if ai_exec_summary %}
-        <div class="card p-6 md:p-8 bg-indigo-50 border-2 border-indigo-200 fade-in delay-1 mt-6 mb-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="bg-indigo-100 p-2 rounded-lg"><i data-lucide="bot" class="w-5 h-5 text-indigo-600"></i></div>
-                <h2 class="text-lg font-bold text-indigo-900">팀장용 1분 승인 AI 3줄 요약본</h2>
+        <div class="card p-8 fade-in delay-1 mt-4 mb-8" style="background: linear-gradient(135deg, var(--v5-card) 0%, rgba(49,130,246,0.02) 100%);">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2.5 rounded-xl" style="background: var(--v5-accent-bg);"><i data-lucide="bot" class="w-6 h-6" style="color: var(--v5-accent);"></i></div>
+                <div>
+                    <h2 class="text-xl font-bold" style="color: var(--v5-text);">AI 핵심 요약 & 팀장 제안</h2>
+                    <p class="text-[10px] font-bold uppercase tracking-wider mt-0.5" style="color: var(--v5-text-muted);">Executive Summary</p>
+                </div>
             </div>
-            <div class="text-indigo-800 text-sm md:text-base leading-relaxed font-bold whitespace-pre-line border-l-4 border-indigo-400 pl-4 py-2">
+            <div class="text-base leading-relaxed font-semibold whitespace-pre-line pl-5 py-1" style="color: var(--v5-text-sub); border-left: 4px solid var(--v5-accent);">
                 {{ ai_exec_summary }}
             </div>
         </div>
@@ -82,20 +180,20 @@ HTML_TEMPLATE = """
         <!-- 2. Department Sections -->
         {% for dept in departments %}
         {% if dept.has_data %}
-        <div class="card p-6 md:p-8 fade-in delay-2">
-            <!-- Section Header -->
-            <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+        <div class="card p-6 fade-in delay-2">
+            <!-- Section Header (V5) -->
+            <div class="flex items-center justify-between mb-6 pb-4" style="border-bottom: 1px solid var(--v5-border);">
                 <div class="flex items-center gap-3">
-                    <div class="p-2.5 rounded-xl shadow-sm" style="background: {{ dept.color_bg }};">
+                    <div class="p-2.5 rounded-xl" style="background: {{ dept.color_bg }}; box-shadow: var(--v5-shadow-sm);">
                         <span class="text-lg">{{ dept.icon }}</span>
                     </div>
                     <div>
-                        <h2 class="text-lg font-bold text-slate-800">{{ dept.name }}</h2>
-                        <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{% if dept.id == 'setting' %}Channel Setting Analysis{% else %}Performance Analysis{% endif %}</p>
+                        <h2 class="text-lg font-bold" style="color: var(--v5-text);">{{ dept.name }}</h2>
+                        <p class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--v5-text-muted);">{% if dept.id == 'setting' %}Channel Setting Analysis{% else %}Performance Analysis{% endif %}</p>
                     </div>
                 </div>
                 {% if dept.prev_month and dept.curr_month %}
-                <span class="section-badge bg-slate-100 text-slate-500 border border-slate-200">{{ dept.prev_month }} → {{ dept.curr_month }}</span>
+                <span class="section-badge" style="background: var(--v5-accent-bg); color: var(--v5-accent); border: 1px solid rgba(49,130,246,0.12);">{{ dept.prev_month }} → {{ dept.curr_month }}</span>
                 {% endif %}
             </div>
 
@@ -103,7 +201,7 @@ HTML_TEMPLATE = """
 
             <!-- Ads: Impressions & Clicks Metrics -->
             {% if dept.id == 'ads' and dept.prev_metrics and dept.curr_metrics %}
-            <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
                     <h4 class="text-sm font-bold text-slate-500 mb-3 pb-2 border-b border-slate-200">{{ dept.prev_month }}</h4>
                     <div class="grid grid-cols-2 gap-3">
@@ -137,7 +235,7 @@ HTML_TEMPLATE = """
 
             <!-- Month Comparison Metrics -->
             {% if dept.prev_month and dept.curr_month and dept.id not in ['ads', 'design'] %}
-            <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
                 <!-- Previous Month -->
                 <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
                     <h4 class="text-sm font-bold text-slate-500 mb-3 pb-2 border-b border-slate-200">{{ dept.prev_month }}</h4>
@@ -223,7 +321,7 @@ HTML_TEMPLATE = """
                     </div>
                     <h3 class="text-sm font-bold text-slate-700">{{ section.title }}</h3>
                 </div>
-                <div class="grid md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Previous Month TOP5 -->
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
@@ -236,7 +334,7 @@ HTML_TEMPLATE = """
                             <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
                             {% endif %}
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
-                            <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="w-16 h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                 <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#f87171{% elif section.bar_color == 'green' %}#6ee7b7{% elif section.bar_color == 'purple' %}#c4b5fd{% elif section.bar_color == 'amber' %}#fcd34d{% elif section.bar_color == 'blue' %}#93c5fd{% else %}#94a3b8{% endif %};"></div>
                             </div>
                             <span class="text-[10px] font-bold text-slate-600 w-14 text-right">{{ item.value_display }}</span>
@@ -258,7 +356,7 @@ HTML_TEMPLATE = """
                             <span class="text-[10px] font-bold w-4" style="color: {% if section.bar_color == 'red' %}#f87171{% elif section.bar_color == 'green' %}#4ade80{% elif section.bar_color == 'purple' %}#a78bfa{% elif section.bar_color == 'amber' %}#fbbf24{% else %}#60a5fa{% endif %};">{{ loop.index }}</span>
                             {% endif %}
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
-                            <div class="w-16 h-1.5 rounded-full overflow-hidden" style="background: {% if section.bar_color == 'red' %}#fee2e2{% elif section.bar_color == 'green' %}#dcfce7{% elif section.bar_color == 'purple' %}#f3e8ff{% elif section.bar_color == 'amber' %}#fef3c7{% else %}#dbeafe{% endif %};">
+                            <div class="w-16 h-2.5 rounded-full overflow-hidden shadow-inner" style="background: {% if section.bar_color == 'red' %}#fee2e2{% elif section.bar_color == 'green' %}#dcfce7{% elif section.bar_color == 'purple' %}#f3e8ff{% elif section.bar_color == 'amber' %}#fef3c7{% else %}#dbeafe{% endif %};">
                                 <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#ef4444{% elif section.bar_color == 'green' %}#22c55e{% elif section.bar_color == 'purple' %}#8b5cf6{% elif section.bar_color == 'amber' %}#f59e0b{% else %}#3b82f6{% endif %};"></div>
                             </div>
                             <span class="text-[10px] font-bold w-14 text-right" style="color: {% if section.bar_color == 'red' %}#b91c1c{% elif section.bar_color == 'green' %}#15803d{% elif section.bar_color == 'purple' %}#6d28d9{% elif section.bar_color == 'amber' %}#92400e{% else %}#1d4ed8{% endif %};">{{ item.value_display }}</span>
@@ -277,7 +375,7 @@ HTML_TEMPLATE = """
             {% if dept.id == 'blog' and dept.key_insights %}
             <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-5 mb-6 relative">
                 <span class="absolute -top-2 left-4 bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">KEY INSIGHT</span>
-                <div class="grid md:grid-cols-2 gap-4 mt-2">
+                <div class="grid grid-cols-2 gap-4 mt-2">
                     {% if dept.key_insights.top_post %}
                     <div class="bg-white p-3 rounded-lg border border-amber-100">
                         <p class="text-[10px] font-bold text-amber-700 uppercase mb-1">Best Post</p>
@@ -302,7 +400,7 @@ HTML_TEMPLATE = """
                 <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <i data-lucide="list" class="w-4 h-4 text-slate-400"></i> 발행 포스팅 목록
                 </h3>
-                <div class="grid md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Prev Month Posts -->
                     <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                         <div class="bg-slate-100 px-4 py-2">
@@ -349,7 +447,7 @@ HTML_TEMPLATE = """
 
             <!-- Ads: Keyword Ranking Grid -->
             {% if dept.id == 'ads' and dept.ads_ranking_data %}
-            <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
                 <!-- Prev Impressions -->
                 <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                     <div class="bg-slate-100 px-4 py-2 flex justify-between items-center">
@@ -361,7 +459,7 @@ HTML_TEMPLATE = """
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
-                            <div class="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="w-12 h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                 <div class="h-full bg-indigo-400 rounded-full" style="width: {{ item.pct }}%;"></div>
                             </div>
                             <span class="text-[10px] font-bold text-slate-500 w-14 text-right">{{ item.impressions }}</span>
@@ -383,7 +481,7 @@ HTML_TEMPLATE = """
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] font-bold text-slate-400 w-4">{{ loop.index }}</span>
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
-                            <div class="w-12 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="w-12 h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                 <div class="h-full bg-green-400 rounded-full" style="width: {{ item.pct }}%;"></div>
                             </div>
                             <span class="text-[10px] font-bold text-slate-500 w-14 text-right">{{ item.clicks }}</span>
@@ -405,7 +503,7 @@ HTML_TEMPLATE = """
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
-                            <div class="w-12 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                            <div class="w-12 h-2.5 bg-blue-100 rounded-full overflow-hidden shadow-inner">
                                 <div class="h-full bg-indigo-500 rounded-full" style="width: {{ item.pct }}%;"></div>
                             </div>
                             <span class="text-[10px] font-bold text-indigo-700 w-14 text-right">{{ item.impressions }}</span>
@@ -427,7 +525,7 @@ HTML_TEMPLATE = """
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] font-bold text-blue-400 w-4">{{ loop.index }}</span>
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.keyword }}</span>
-                            <div class="w-12 h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                            <div class="w-12 h-2.5 bg-blue-100 rounded-full overflow-hidden shadow-inner">
                                 <div class="h-full bg-green-500 rounded-full" style="width: {{ item.pct }}%;"></div>
                             </div>
                             <span class="text-[10px] font-bold text-green-700 w-14 text-right">{{ item.clicks }}</span>
@@ -448,7 +546,7 @@ HTML_TEMPLATE = """
                 <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <i data-lucide="clapperboard" class="w-4 h-4 text-slate-400"></i> 제작 현황
                 </h3>
-                <div class="grid md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
                         <div class="grid grid-cols-2 gap-3">
@@ -487,7 +585,7 @@ HTML_TEMPLATE = """
                 <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i> 영상 종류별 제작 분포
                 </h3>
-                <div class="grid md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <!-- Prev -->
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-3">{{ dept.prev_month }}</p>
@@ -570,7 +668,7 @@ HTML_TEMPLATE = """
 
             <!-- Design: Task Tables -->
             {% if dept.id == 'design' %}
-            <div class="grid {% if dept.prev_month %}md:grid-cols-2{% endif %} gap-4">
+            <div class="grid {% if dept.prev_month %}grid-cols-2{% endif %} gap-4">
                 {% if dept.prev_month %}
                 <!-- Prev Month Tasks -->
                 <div class="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
@@ -647,10 +745,10 @@ HTML_TEMPLATE = """
 
                 <!-- Platform Cards Grid -->
                 {% if clinic.platform_groups %}
-                <div class="grid md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-3 gap-3">
                     {% for group in clinic.platform_groups %}
                     {% set is_wide = group.channels|length > 4 %}
-                    <details class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group/platform {% if is_wide %}md:col-span-3{% endif %}" open>
+                    <details class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group/platform {% if is_wide %}col-span-3{% endif %}" open>
                         <!-- Platform Header (clickable toggle) -->
                         <summary class="px-3 py-2 border-b border-slate-100 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors" style="border-top: 3px solid {% if group.completion_rate >= 100 %}#06b6d4{% elif group.completion_rate >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
                             <div class="flex items-center justify-between">
@@ -666,9 +764,9 @@ HTML_TEMPLATE = """
                             </div>
                         </summary>
                         <!-- Channel groups with sub-tasks -->
-                        <div class="{% if is_wide %}grid md:grid-cols-2 gap-0{% endif %}">
+                        <div class="{% if is_wide %}grid grid-cols-2 gap-0{% endif %}">
                             {% for ch in group.channels %}
-                            <div class="px-3 py-2 {% if is_wide %}border-b border-slate-100 {% if loop.index is odd and not loop.last %}md:border-r{% endif %}{% else %}{% if not loop.last %}border-b border-slate-100{% endif %}{% endif %}">
+                            <div class="px-3 py-2 {% if is_wide %}border-b border-slate-100 {% if loop.index is odd and not loop.last %}border-r{% endif %}{% else %}{% if not loop.last %}border-b border-slate-100{% endif %}{% endif %}">
                                 <!-- Channel name header -->
                                 <div class="flex items-center justify-between mb-1">
                                     <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">{{ ch.channel }}</span>
@@ -715,36 +813,34 @@ HTML_TEMPLATE = """
         {% endif %}
         {% endfor %}
 
-        <!-- 4. Summary & Action Plan -->
-        {% if summary %}
-        <div class="card p-6 md:p-10 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden fade-in delay-3">
-            <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl -mr-24 -mt-24"></div>
-            <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -ml-16 -mb-16"></div>
+        <!-- 4. Summary & Action Plan (V5) -->
+        {% if summary and (summary.content or summary.analysis_sections or summary.diagnosis or summary.action_plan) %}
+        <div class="card p-8 relative overflow-hidden fade-in delay-3 mt-8" style="background: var(--v5-card);">
             <div class="relative z-10">
-                <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+                <div class="flex items-center justify-between mb-8 pb-4" style="border-bottom: 1px solid var(--v5-border);">
                     <div class="flex items-center gap-3">
-                        <div class="bg-gradient-to-br from-yellow-400/20 to-amber-500/20 p-2.5 rounded-xl border border-yellow-400/20"><i data-lucide="compass" class="w-6 h-6 text-yellow-400"></i></div>
+                        <div class="p-2.5 rounded-xl" style="background: var(--v5-accent-bg);"><i data-lucide="compass" class="w-6 h-6" style="color: var(--v5-accent);"></i></div>
                         <div>
-                            <h2 class="text-xl font-bold text-white">{{ summary.title|default('종합 분석 및 전략') }}</h2>
-                            <p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">Strategic Analysis & Action Plan</p>
+                            <h2 class="text-xl font-bold" style="color: var(--v5-text);">{{ summary.title|default('종합 분석 및 전략') }}</h2>
+                            <p class="text-[11px] font-bold uppercase tracking-wider mt-1" style="color: var(--v5-text-muted);">Strategic Analysis & Action Plan</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Summary Content -->
                 {% if summary.content %}
-                <div class="bg-white/5 p-5 rounded-xl border border-white/10 mb-6 text-sm text-slate-300 leading-relaxed">
+                <div class="p-6 mb-8 text-[15px] font-medium leading-relaxed" style="background: var(--v5-bg); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); color: var(--v5-text-sub);">
                     {{ summary.content|safe }}
                 </div>
                 {% endif %}
 
                 <!-- Analysis Sections -->
                 {% if summary.analysis_sections %}
-                <div class="space-y-4 mb-6">
+                <div class="space-y-4 mb-8">
                     {% for section in summary.analysis_sections %}
-                    <div class="bg-white/10 p-5 rounded-xl border border-white/5">
-                        <h3 class="font-bold text-slate-200 mb-2">{{ section.title }}</h3>
-                        <div class="text-sm text-slate-300 leading-relaxed">{{ section.content|safe }}</div>
+                    <div class="p-6 transition-shadow" style="background: var(--v5-card); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); box-shadow: var(--v5-shadow-sm);">
+                        <h3 class="font-bold text-lg mb-3" style="color: var(--v5-text);">{{ section.title }}</h3>
+                        <div class="text-[14px] font-medium leading-relaxed" style="color: var(--v5-text-sub);">{{ section.content|safe }}</div>
                     </div>
                     {% endfor %}
                 </div>
@@ -752,62 +848,65 @@ HTML_TEMPLATE = """
 
                 <!-- Diagnosis -->
                 {% if summary.diagnosis %}
-                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-2 gap-4 mb-8">
                     {% for item in summary.diagnosis %}
-                    <div class="bg-white/10 p-5 rounded-xl border border-white/5">
-                        <p class="font-bold text-sm mb-2 {% if loop.index == 1 %}text-green-400{% else %}text-red-400{% endif %}">{{ item.title }}</p>
-                        <div class="text-sm text-slate-300 leading-relaxed">{{ item.content|safe }}</div>
+                    <div class="p-5" style="background: var(--v5-card); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); box-shadow: var(--v5-shadow-sm);">
+                        <p class="font-bold text-sm mb-2" style="color: {% if loop.index == 1 %}var(--v5-accent){% else %}#f04452{% endif %};">{{ item.title }}</p>
+                        <div class="text-[14px] font-medium leading-relaxed" style="color: var(--v5-text-sub);">{{ item.content|safe }}</div>
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
 
-                <!-- Action Plan -->
+                <!-- Action Plan (V5) -->
                 {% if summary.action_plan %}
-                <div>
-                    <h3 class="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
-                        <span class="bg-indigo-600 text-[10px] px-2 py-0.5 rounded uppercase font-bold">Action Plan</span>
-                        {{ summary.action_plan_month|default('') }} 실행 계획
-                    </h3>
-                    <div class="space-y-3">
-                        {% set dept_colors = {
-                            '예약': '#3b82f6', '블로그': '#10b981', '유튜브': '#ef4444', '디자인': '#f59e0b', '네이버 광고': '#8b5cf6',
-                            '마케팅팀': '#3b82f6', '디자인팀': '#f59e0b', '영상팀': '#ef4444', '전략기획팀': '#8b5cf6', '광고팀': '#10b981', '콘텐츠팀': '#06b6d4'
-                        } %}
-                        {% for item in summary.action_plan %}
-                        <div class="strategy-card bg-slate-800 p-4 rounded-xl" style="border-left-color: {{ dept_colors.get(item.department, '#a78bfa') }};">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" style="background: {{ dept_colors.get(item.department, '#a78bfa') }}20; color: {{ dept_colors.get(item.department, '#a78bfa') }};">{{ item.department }}</span>
-                            </div>
-                            <p class="text-xs font-bold text-slate-300 mb-1">{{ item.agenda|safe }}</p>
-                            {% if item.plan %}
-                            <p class="text-sm text-slate-400">{{ item.plan|safe }}</p>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+                {% set dept_colors = {
+                    '예약': '#3182f6', '블로그': '#00b06b', '유튜브': '#f04452', '디자인': '#ff9b00', '네이버 광고': '#8b5cf6',
+                    '마케팅팀': '#3182f6', '디자인팀': '#ff9b00', '영상팀': '#f04452', '전략기획팀': '#8b5cf6', '광고팀': '#10b981', '콘텐츠팀': '#06b6d4'
+                } %}
+                <div class="v5-action-wrap">
+                    <div class="v5-action-header">
+                        <span class="v5-action-badge">Action Plan</span>
+                        <span class="v5-action-title">{{ summary.action_plan_month|default('') }} 실행 계획</span>
                     </div>
+                    {% set ns = namespace(prev_dept='') %}
+                    {% for item in summary.action_plan %}
+                    {% set color = dept_colors.get(item.department, '#3182f6') %}
+                    {% if item.department != ns.prev_dept %}
+                    {% if not loop.first %}<div style="height:6px;"></div>{% endif %}
+                    {% set ns.prev_dept = item.department %}
+                    {% endif %}
+                    <div class="v5-action-card" style="border-left-color: {{ color }};">
+                        <span class="v5-dept-tag" style="background: {{ color }}10; color: {{ color }};">{{ item.department }}</span>
+                        <h4>{{ item.agenda|safe }}</h4>
+                        {% if item.plan %}
+                        <p>{{ item.plan|safe }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
                 {% endif %}
             </div>
         </div>
         {% else %}
-        <!-- Default Summary -->
-        <div class="card p-6 md:p-8 bg-slate-900 text-white fade-in delay-3">
+        <!-- Default Summary (V5) -->
+        <div class="card p-6 fade-in delay-3 mt-8" style="background: var(--v5-card);">
             <div class="flex items-center gap-3 mb-4">
-                <div class="bg-white/10 p-2 rounded-lg"><i data-lucide="file-text" class="w-5 h-5 text-slate-300"></i></div>
-                <h2 class="text-lg font-bold">종합 요약</h2>
+                <div class="p-2 rounded-lg" style="background: var(--v5-bg);"><i data-lucide="file-text" class="w-5 h-5" style="color: var(--v5-text-muted);"></i></div>
+                <h2 class="text-lg font-bold" style="color: var(--v5-text);">종합 요약</h2>
             </div>
-            <p class="text-sm text-slate-300">전반적인 데이터 분석 결과, 각 채널별로 유의미한 성과와 개선점이 확인되었습니다.</p>
-            <p class="text-sm text-slate-400 mt-2">위 데이터를 바탕으로 다음 달 마케팅 전략을 수립하시기 바랍니다.</p>
+            <p class="text-sm font-medium" style="color: var(--v5-text-sub);">전반적인 데이터 분석 결과, 각 채널별로 유의미한 성과와 개선점이 확인되었습니다.</p>
+            <p class="text-sm font-medium mt-2" style="color: var(--v5-text-muted);">위 데이터를 바탕으로 다음 달 마케팅 전략을 수립하시기 바랍니다.</p>
         </div>
         {% endif %}
 
-        <!-- 5. Footer -->
-        <footer class="text-center py-8 fade-in delay-4">
-            <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-sm border border-slate-200">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
-                <p class="text-xs text-slate-500 font-medium">Generated by Marketing Analytics System | Powered by <span class="font-bold text-slate-600">(주)그룹디</span></p>
+        <!-- 5. Footer (V5) -->
+        <footer class="text-center py-10 fade-in delay-4">
+            <div class="inline-flex items-center gap-2 px-6 py-3" style="background: var(--v5-card); border-radius: var(--v5-radius-full); box-shadow: var(--v5-shadow-sm); border: 1px solid var(--v5-border);">
+                <i data-lucide="sparkles" class="w-4 h-4" style="color: var(--v5-accent);"></i>
+                <p class="text-[13px] font-medium" style="color: var(--v5-text-sub);">Generated by Analytics System <span class="mx-2" style="color: var(--v5-border);">|</span> Powered by <span class="font-bold tracking-tight" style="color: var(--v5-text);">그룹디</span></p>
             </div>
+            <p class="text-[10px] mt-3 font-medium" style="color: var(--v5-text-muted);">V5 Design System · Pretendard Variable</p>
         </footer>
 
     </div>
@@ -1636,8 +1735,8 @@ def generate_html_report(results: Dict[str, Dict[str, Any]],
     # Calculate executive summary data
     best_metric, worst_metric = calculate_best_worst(results)
 
-    # Generate summary (use override if provided)
-    if action_plan_override and action_plan_override.get('action_plan'):
+    # Generate summary (use override if provided, empty dict = skip summary)
+    if action_plan_override is not None:
         summary = action_plan_override
     else:
         summary = generate_summary(results)

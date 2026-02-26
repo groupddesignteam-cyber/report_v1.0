@@ -4,6 +4,11 @@ import re
 
 import streamlit as st
 
+
+def is_llm_test_mode() -> bool:
+    """LLM 테스트 모드 여부. True이면 API 호출 스킵."""
+    return bool(st.session_state.get("llm_test_mode", False))
+
 try:
     from anthropic import Anthropic
 except Exception:
@@ -198,11 +203,19 @@ def _call_llm(prompt: str, max_tokens: int, temperature: float, *, json_mode: bo
 
 
 def has_llm_client_configured() -> bool:
+    if is_llm_test_mode():
+        return False
     provider, client = get_claude_client()
     return bool(provider and client)
 
 
 def generate_department_draft_and_strategy(dept_name: str, kpis: dict, previous_kpis: dict) -> dict:
+    if is_llm_test_mode():
+        return {
+            "draft": f"[테스트 모드] {dept_name} 성과 총평 placeholder",
+            "action_plan": [{"title": f"{dept_name} 테스트 항목 {i+1}", "detail": "테스트 모드 — LLM 호출 스킵"} for i in range(5)],
+        }
+
     prompt = f"""당신은 병원 전문 마케팅 기획자(PM)입니다.
 '{dept_name}' 부서의 이번 달 KPI 성과와 이전 달 성과를 바탕으로 1) 보고서에 들어갈 성과 총평(draft)과 2) 다음 달에 우리 부서 팀원들이 치과(클라이언트)를 위해 '실무적으로 직접 해줄 수 있는 핵심 서비스/업무' 5가지를 도출해주세요.
 
@@ -261,6 +274,9 @@ def generate_team_product_recommendations(
     Recommend up to max_items service/product items per team using KPI + catalog context.
     Returns: [{"title": "...", "detail": "...", "source_item": "...", ...}, ...]
     """
+    if is_llm_test_mode():
+        return [{"title": f"{team_name} 추천 {i+1}", "detail": "테스트 모드", "source_item": "", "category": "", "owner_dept": team_name, "status": "가능", "executor": "", "replacement_per_posting": 0, "estimated_needed_count": 0} for i in range(min(max_items, 3))]
+
     if not catalog_candidates:
         return []
 
@@ -349,6 +365,9 @@ Output format:
 
 
 def generate_executive_summary(dept_results: dict) -> str:
+    if is_llm_test_mode():
+        return "[테스트 모드] AI 요약이 비활성화되었습니다.\n이 모드에서는 LLM API 호출을 건너뛰어 빠르게 UI를 테스트할 수 있습니다.\n사이드바에서 테스트 모드를 해제하면 실제 AI 요약이 생성됩니다."
+
     context = ""
     for dept, data in dept_results.items():
         if not data:
@@ -357,10 +376,17 @@ def generate_executive_summary(dept_results: dict) -> str:
         kpi = data.get("kpi", {})
         context += f"-[{dept}]: {current}, KPI: {kpi}\n"
 
-    prompt = f"""Write a concise 3-line executive summary for leadership in Korean.
+    prompt = f"""당신은 병원 전문 마케팅 총괄 디렉터입니다.
+다음은 각 마케팅/디자인/영상 팀의 이번 달 성과 및 핵심 KPI 데이터입니다.
 
 Data:
 {context}
+
+[요청 사항]
+1. 위 데이터를 바탕으로 전체 성과에 대한 핵심 3줄 요약을 작성해 주세요.
+2. 단순한 기계적 수치 나열(예: 포스팅 10건, 지출 1만원)은 절대 금지합니다.
+3. 이 데이터를 근거로, 각 팀의 팀장들이 다음 달에 고객(병원)에게 어떤 '실행 상품 제안(Action Plan)'을 기획하고 집중해야 하는지 전략적이고 구체적인 인사이트를 포함해 주세요.
+4. 반드시 3줄의 한국어 문장으로 명확하고 친근한 비즈니스 톤으로 작성해 주세요 (번호 매기기 없이 줄바꿈으로만 3줄 구분).
 """
 
     try:

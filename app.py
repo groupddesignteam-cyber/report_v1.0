@@ -6,6 +6,7 @@ Clean UI with Centralized Upload & Data Aggregation
 import streamlit as st
 from datetime import datetime
 import os
+import re
 
 # Import processors
 from src.processors import (
@@ -57,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v1.3.0"
+APP_VERSION = "v3.3.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -109,6 +110,19 @@ def initialize_session_state():
     # Action plan editor state
     if 'action_plan_items' not in st.session_state:
         st.session_state.action_plan_items = {}  # {dept_key: [{'text': '...'}]}
+
+    # Ensure package-based action plan registry is synced with latest catalog file.
+    _sync_team_package_registry_from_catalog()
+
+    # Initialize package selection state for catalog-driven teams.
+    for _tkey, _tcfg in TEAM_PACKAGE_REGISTRY.items():
+        for _mkey in _tcfg["modes"]:
+            _sk = f"{_tkey}_{_mkey}_selections"
+            if _sk not in st.session_state:
+                st.session_state[_sk] = []
+        _dk = f"{_tkey}_proposal_done"
+        if _dk not in st.session_state:
+            st.session_state[_dk] = False
 
     # AI executive summary cache
     if 'ai_exec_summary' not in st.session_state:
@@ -2402,11 +2416,12 @@ def _find_replacement_catalog_path():
     if local_download.exists():
         candidates.extend(local_download.glob("*대체상품*액션플랜*.xlsx"))
 
-    for p in candidates:
-        if p.name.startswith("~$"):
-            continue
-        return str(p)
-    return None
+    valid = [f for f in candidates if not f.name.startswith("~$")]
+    if not valid:
+        return None
+
+    valid.sort(key=lambda path: (path.stat().st_mtime, path.name))
+    return str(valid[-1])
 
 
 @st.cache_data(show_spinner=False)
@@ -2924,6 +2939,246 @@ DESIGN_PM_POLICY = {
         ],
     },
 }
+
+
+TEAM_PACKAGE_REGISTRY_CATALOG_TEAMS = {
+    "content": {"label": "콘텐츠팀", "icon": "📝", "color": "#06b6d4"},
+    "youtube": {"label": "영상팀", "icon": "🎬", "color": "#ef4444"},
+    "ads": {"label": "광고팀", "icon": "📣", "color": "#10b981"},
+}
+
+# ---------------------------------------------------------------------------
+# Marketing Team: PM 제안 상품 정책 (엑셀 '대체상품 및 액션플랜' 기준)
+# ---------------------------------------------------------------------------
+MARKETING_PM_POLICY = {
+    # -- 방문자리뷰 --
+    "review_kakaomap": {"title": "카카오맵 리뷰", "price": 10000, "tasks": ["건당 대체 20건"]},
+    "review_gangnam": {"title": "강남언니 리뷰", "price": 20000, "tasks": ["건당 대체 10건"]},
+    # -- 블로그리뷰 --
+    "blogreview_experience": {"title": "체험단", "price": 200000, "tasks": ["밑작업 2건+후기글 1건+마무리 1건", "건당 대체 1건"]},
+    "blogreview_deploy": {"title": "배포형 게시물", "price": 10000, "tasks": ["건당 대체 20건"]},
+    # -- 맘카페 --
+    "momcafe_qa": {"title": "맘카페 (질문형/후기형)", "price": 50000, "tasks": ["김도영 대표측 실행", "건당 대체 4건"]},
+    # -- 지식in --
+    "knowledge_hidoc": {"title": "하이닥-지식인 연동", "price": 50000, "tasks": ["건당 대체 4건"]},
+    # -- 네이버 인물등록 --
+    "naverperson_all": {"title": "전 채널 연결 (네이버 인물등록)", "price": 50000, "tasks": ["건당 대체 4건"]},
+    # -- 추가 플랫폼 세팅(입점) --
+    "platform_modudoc": {"title": "모두닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_gangnam": {"title": "강남언니 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_babitalk": {"title": "바비톡 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_cashidoc": {"title": "캐시닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_yeoshin": {"title": "여신티켓 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_safedoc": {"title": "세이프닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
+    "platform_danggeun": {"title": "당근 입점", "price": 100000, "tasks": ["광고/추가 컨텐츠 별도", "건당 대체 2건"]},
+    "platform_insta": {"title": "인스타그램 세팅", "price": 100000, "tasks": ["프로필/하이라이트/고정 포스트 3개", "건당 대체 2건"]},
+    # -- 추가 콘텐츠 --
+    "addcontent_kakao": {"title": "카카오 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"]},
+    "addcontent_danggeun": {"title": "당근 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"]},
+    # -- 언론배포 --
+    "press_internet": {"title": "인터넷 기사 (언론배포)", "price": 600000, "tasks": ["언론사별 상이", "건당 대체 0.33건"]},
+    # -- 온라인 광고 --
+    "onlinead_image_powerlink": {"title": "이미지 파워링크", "price": 200000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1건"]},
+    "onlinead_powercontent": {"title": "파워컨텐츠", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    "onlinead_brand": {"title": "브랜드광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    "onlinead_danggeun": {"title": "당근 광고", "price": 100000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 2건"]},
+    "onlinead_gfa": {"title": "GFA 광고", "price": 150000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1.33건"]},
+    "onlinead_meta": {"title": "Meta 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    "onlinead_google": {"title": "구글 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    "onlinead_kakao": {"title": "카카오 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    # -- 오프라인 광고 --
+    "offlinead_mail": {"title": "생활우편", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_bus": {"title": "버스광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_busstop": {"title": "정류장광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_subway": {"title": "지하철광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_truck": {"title": "탑차광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_elevator": {"title": "엘리베이터광고", "price": 300000, "tasks": ["의료광고 심의 항목", "건당 대체 0.67건"]},
+    "offlinead_mart": {"title": "마트광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_cinema": {"title": "영화관광고", "price": 500000, "tasks": ["의료광고 심의 항목", "건당 대체 0.4건"]},
+    "offlinead_flyer": {"title": "전단지", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+}
+
+
+TEAM_PACKAGE_REGISTRY = {
+    "design": {
+        "label": "디자인팀",
+        "icon": "🎨",
+        "color": "#f59e0b",
+        "modes": {
+            "carryover": {
+                "label": "이월전환",
+                "icon": "🔄",
+                "desc": "디자인팀에서 적용 가능한 이월 기반 제안 패키지입니다.",
+                "policy": {
+                    "homepage_10": {
+                        "title": DESIGN_CARRYOVER_POLICY["homepage_10"]["title"],
+                        "price": DESIGN_CARRYOVER_POLICY["homepage_10"]["price"],
+                        "tasks": DESIGN_CARRYOVER_POLICY["homepage_10"]["tasks"],
+                    },
+                    "draft_10": {
+                        "title": DESIGN_CARRYOVER_POLICY["draft_10"]["title"],
+                        "price": DESIGN_CARRYOVER_POLICY["draft_10"]["price"],
+                        "tasks": DESIGN_CARRYOVER_POLICY["draft_10"]["tasks"],
+                    },
+                },
+                "source_tag": "design_carryover_policy",
+                "requires_carryover": True,
+            },
+            "pm": {
+                "label": "PM 제안",
+                "icon": "🧩",
+                "desc": "홈페이지/랜딩 페이지 기준 PM 제안 패키지입니다.",
+                "policy": {
+                    "homepage_5": {
+                        "title": DESIGN_PM_POLICY["homepage_5"]["title"],
+                        "price": DESIGN_PM_POLICY["homepage_5"]["price"],
+                        "tasks": DESIGN_PM_POLICY["homepage_5"]["tasks"],
+                    },
+                    "homepage_10": {
+                        "title": DESIGN_PM_POLICY["homepage_10"]["title"],
+                        "price": DESIGN_PM_POLICY["homepage_10"]["price"],
+                        "tasks": DESIGN_PM_POLICY["homepage_10"]["tasks"],
+                    },
+                },
+                "source_tag": "design_pm_policy",
+                "requires_carryover": False,
+            },
+        },
+        "groups": [
+            {"prefix": "homepage", "label": "홈페이지"},
+            {"prefix": "draft", "label": "드래프트"},
+        ],
+    },
+    "marketing": {
+        "label": "마케팅팀",
+        "icon": "📈",
+        "color": "#3b82f6",
+        "modes": {
+            "pm": {
+                "label": "PM 제안",
+                "icon": "💡",
+                "desc": "블로그 계약 건수 기반 마케팅 대체상품 제안입니다.",
+                "policy": MARKETING_PM_POLICY,
+                "source_tag": "marketing_pm_policy",
+                "requires_carryover": False,
+            },
+        },
+        "groups": [
+            {"prefix": "review", "label": "방문자리뷰"},
+            {"prefix": "blogreview", "label": "블로그리뷰"},
+            {"prefix": "momcafe", "label": "맘카페"},
+            {"prefix": "knowledge", "label": "지식in"},
+            {"prefix": "naverperson", "label": "네이버 인물등록"},
+            {"prefix": "platform", "label": "추가 플랫폼 세팅 (입점)"},
+            {"prefix": "addcontent", "label": "추가 콘텐츠"},
+            {"prefix": "press", "label": "언론배포"},
+            {"prefix": "onlinead", "label": "온라인 광고"},
+            {"prefix": "offlinead", "label": "오프라인 광고"},
+        ],
+    },
+}
+
+
+def _team_policy_group_slug(value: str) -> str:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return "misc"
+    slug = re.sub(r"[^0-9a-zA-Z가-힣]+", "_", raw)
+    slug = slug.strip("_")
+    return slug or "misc"
+
+
+def _build_catalog_package_policy(dept_key: str, max_items: int = 10):
+    blog_counts = _extract_blog_counts(st.session_state.get("processed_results", {}))
+    contract_count = float(blog_counts.get("contract_count", 0.0))
+    rows = _get_replacement_catalog_rows()
+    candidates = _catalog_candidates_for_team(rows, dept_key, contract_count)
+
+    policy = {}
+    if not candidates:
+        return policy, []
+
+    seen = set()
+    group_count = {}
+    for idx, cand in enumerate(candidates):
+        item = str(cand.get("item", "")).strip()
+        if not item:
+            continue
+        category = str(cand.get("category", "")).strip() or "기타"
+        dedupe_key = (category, item)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        slug = _team_policy_group_slug(category)
+        policy_key = f"{slug}_{idx:02d}"
+        group_count.setdefault(slug, {"label": category, "prefix": slug, "count": 0})
+        group_count[slug]["count"] += 1
+
+        rpp = _product_safe_float(cand.get("replacement_per_posting"))
+        price = _product_safe_float(cand.get("price_vat_excl"))
+        if price is None:
+            price = _product_safe_float(cand.get("cost_excl_labor"))
+        if price is None:
+            price = _extract_unit_price_krw(item)
+        if price is None:
+            price = 0.0
+
+        tasks = [category]
+        if rpp is not None:
+            tasks.append(f"건당 {rpp:g}배치")
+        status = str(cand.get("status", "")).strip()
+        if status:
+            tasks.append(f"상태: {status}")
+        note = str(cand.get("note", "")).strip()
+        if note:
+            tasks.append(note[:40])
+
+        policy[policy_key] = {
+            "title": item if category == "기타" else f"{item} ({category})",
+            "price": float(price),
+            "tasks": tasks[:3],
+        }
+        if len(policy) >= max_items:
+            break
+
+    groups = [
+        {"prefix": meta["prefix"], "label": meta["label"]}
+        for meta in sorted(group_count.values(), key=lambda x: x["count"], reverse=True)
+    ]
+    return policy, groups
+
+
+def _build_catalog_team_package_entry(dept_key: str, meta: dict) -> dict:
+    policy, groups = _build_catalog_package_policy(dept_key)
+    if not groups:
+        groups = [{"prefix": "etc", "label": "기타 제안"}]
+    return {
+        "label": str(meta.get("label", dept_key)),
+        "icon": str(meta.get("icon", "🧰")),
+        "color": str(meta.get("color", "#6b7280")),
+        "modes": {
+            "catalog": {
+                "label": "카탈로그 제안",
+                "icon": "🧾",
+                "desc": "대체상품 목록 기반으로 구성된 제안입니다.",
+                "policy": policy,
+                "source_tag": f"{dept_key}_catalog_policy",
+                "requires_carryover": False,
+            }
+        },
+        "groups": groups,
+    }
+
+
+def _sync_team_package_registry_from_catalog():
+    # 정적 등록 팀(design, marketing 등)은 보존하고 카탈로그 팀만 동적 추가
+    static_keys = set(TEAM_PACKAGE_REGISTRY.keys())
+    dynamic_entries = {
+        dept_key: _build_catalog_team_package_entry(dept_key, meta)
+        for dept_key, meta in TEAM_PACKAGE_REGISTRY_CATALOG_TEAMS.items()
+        if dept_key not in static_keys
+    }
+    TEAM_PACKAGE_REGISTRY.update(dynamic_entries)
 
 
 def _extract_blog_counts(results: dict) -> dict:
@@ -3533,6 +3788,212 @@ def _get_content_option_settings():
         "include_service": bool(st.session_state.content_include_service),
         "apply_special_ratio": bool(st.session_state.content_apply_special_ratio),
     }
+
+def _format_replacement_units(units: float) -> str:
+    try:
+        return f"{float(units):.1f}"
+    except Exception:
+        return "0.0"
+
+
+def _calculate_carryover_mode_usage(policy_dict: dict, selected_keys: list) -> dict:
+    used_replacement_units = 0.0
+    selected_count = 0
+    for pk in selected_keys if isinstance(selected_keys, list) else []:
+        pkg = (policy_dict or {}).get(pk) if isinstance(policy_dict, dict) else None
+        if not isinstance(pkg, dict):
+            continue
+        selected_count += 1
+        used_replacement_units += _product_safe_float(pkg.get("price", 0.0)) or 0.0
+    return {
+        "selected_count": selected_count,
+        "used_replacement_units": used_replacement_units,
+        "used_carryover_count": used_replacement_units * 2.0,
+    }
+
+
+_PACKAGE_CARD_CSS = """
+<style>
+.pkg-team-hdr {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; font-size: 13px; font-weight: 800; letter-spacing: -0.3px; padding: 5px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 6px 0;}
+.pkg-grp {font-size: 11px; font-weight: 700; color: #9ca3af; margin: 12px 0 6px 0;}
+.pkg-card {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 12px 14px; margin-bottom: 8px;}
+.pkg-card.sel {border-color: #818cf8; background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);}
+.pkg-card-head {display:flex; justify-content: space-between; align-items: center; margin-bottom: 6px;}
+.pkg-card-title {font-size: 13px; font-weight: 700; color: #1f2937;}
+.pkg-card-price {font-size: 13px; font-weight: 800; color: #6366f1; white-space: nowrap;}
+.pkg-card-tasks {display:flex; flex-wrap: wrap; gap: 4px 8px;}
+.pkg-card-task {font-size: 11px; color: #6b7280; line-height: 1.5; background: #f3f4f6; padding: 2px 8px; border-radius: 4px;}
+.pkg-card.sel .pkg-card-task {background: #e0e7ff; color: #4338ca;}
+.pkg-done-banner {border: 1.5px solid #22c55e; border-radius: 10px; background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%); padding: 10px 14px; display: flex; align-items: center; gap: 8px;}
+</style>
+"""
+
+
+def _render_team_package_cards(team_key: str, mode_key: str, policy_dict: dict, groups: list):
+    st.markdown(_PACKAGE_CARD_CSS, unsafe_allow_html=True)
+    config = TEAM_PACKAGE_REGISTRY.get(team_key, {})
+    team_color = config.get("color", "#6b7280")
+    team_label = config.get("label", team_key)
+    team_icon = config.get("icon", "🏢")
+    sel_key = f"{team_key}_{mode_key}_selections"
+    current_sel = list(st.session_state.get(sel_key, []))
+    changed = False
+
+    st.markdown(
+        f'<div class="pkg-team-hdr" style="color:{team_color}; background:{team_color}12;">'
+        f'{team_icon} {team_label}</div>',
+        unsafe_allow_html=True,
+    )
+
+    for grp in groups:
+        prefix = grp["prefix"]
+        pkgs = {k: v for k, v in policy_dict.items() if k.startswith(prefix)}
+        if not pkgs:
+            continue
+        st.markdown(f'<p class="pkg-grp">{grp["label"]}</p>', unsafe_allow_html=True)
+        cols = st.columns(2)
+        for idx, (pk, pdata) in enumerate(pkgs.items()):
+            with cols[idx % 2]:
+                is_sel = pk in current_sel
+                price = pdata.get("price", 0.0)
+                price_str = f"{int(price // 10000)}만원" if isinstance(price, (int, float)) and price > 0 else "-"
+                tasks = pdata.get("tasks", [])
+                task_chips = "".join(f'<span class="pkg-card-task">{t}</span>' for t in tasks)
+                cls = "pkg-card sel" if is_sel else "pkg-card"
+                st.markdown(
+                    f'<div class="{cls}">'
+                    f'  <div class="pkg-card-head"><span class="pkg-card-title">{pdata["title"]}</span><span class="pkg-card-price">{price_str}</span></div>'
+                    f'  <div class="pkg-card-tasks">{task_chips}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                new_val = st.checkbox("선택" if not is_sel else "선택됨", value=is_sel, key=f"pkg_{team_key}_{mode_key}_{pk}")
+                if new_val != is_sel:
+                    if new_val:
+                        current_sel.append(pk)
+                    else:
+                        current_sel.remove(pk)
+                    changed = True
+
+    if changed:
+        dedup = []
+        seen = set()
+        for key in current_sel:
+            if key in seen:
+                continue
+            seen.add(key)
+            dedup.append(key)
+        st.session_state[sel_key] = dedup
+
+
+def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: dict):
+    modes = config["modes"]
+    dept_label = config["label"]
+    done_key = f"{team_key}_proposal_done"
+    contract_count = float(blog_counts.get("contract_count", 0.0))
+    carryover_count = float(blog_counts.get("carryover_count", 0.0))
+    carryover_units = carryover_count * 0.5
+
+    items = []
+    for mode_key, mode_cfg in modes.items():
+        sel_key = f"{team_key}_{mode_key}_selections"
+        policy_dict = mode_cfg.get("policy", {})
+        selected_keys = st.session_state.get(sel_key, [])
+        if not selected_keys:
+            continue
+        source_tag = mode_cfg.get("source_tag", f"{team_key}_{mode_key}_policy")
+        for pk in selected_keys:
+            pkg = policy_dict.get(pk)
+            if not pkg:
+                continue
+            if mode_cfg.get("requires_carryover"):
+                detail = (
+                    f"디자인 이월 {carryover_count:g}건 기준, 사용량 {carryover_units:g}건(1건=0.5). "
+                    f"실행: {', '.join(pkg['tasks'])}"
+                )
+            else:
+                detail = f"계약 {contract_count:g}건 기준. 실행: {', '.join(pkg['tasks'])}"
+            items.append({
+                "title": pkg["title"],
+                "detail": detail,
+                "selected": True,
+                "source": source_tag,
+                "team": dept_label,
+            })
+    if not items:
+        st.warning("패키지를 선택해 주세요.")
+        return
+
+    all_items = _normalize_product_items(st.session_state.action_plan_items)
+    all_items[team_key] = _normalize_product_items(items)
+    st.session_state.action_plan_items = all_items
+    st.session_state[done_key] = True
+    st.toast(f"{dept_label} 선택 완료: {len(items)}개 항목 저장됨")
+    st.rerun()
+
+
+def _render_team_proposal_flow(team_key: str, filtered_results):
+    config = TEAM_PACKAGE_REGISTRY.get(team_key)
+    if not config:
+        return
+
+    blog_counts = _extract_blog_counts(filtered_results)
+    carryover_count = float(blog_counts.get("carryover_count", 0.0))
+    carryover_cap_units = carryover_count * 0.5
+    modes = config["modes"]
+    groups = config["groups"]
+    team_label = config["label"]
+    done_key = f"{team_key}_proposal_done"
+
+    if st.session_state.get(done_key, False):
+        current_items = _normalize_product_items(st.session_state.action_plan_items)
+        team_items = current_items.get(team_key, [])
+        count = len(team_items)
+        titles = ", ".join(it.get("title", "")[:20] for it in team_items[:3])
+        if count > 3:
+            titles += f" +{count - 3}개"
+        st.markdown(
+            f"""
+            <div class="pkg-done-banner">
+                <span style="font-size:13px; font-weight:800; color:#16a34a;">✅ {team_label} 제안 완료</span>
+                <span style="font-size:11px; color:#4e5968; margin-left:6px;">{count}개 제안 | {titles}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("초기화 후 다시 고르기", key=f"pkg_{team_key}_reset"):
+            st.session_state[done_key] = False
+            for mk in modes:
+                st.session_state[f"{team_key}_{mk}_selections"] = []
+            all_items = _normalize_product_items(st.session_state.action_plan_items)
+            all_items[team_key] = []
+            st.session_state.action_plan_items = all_items
+            st.rerun()
+        return
+
+    for mode_key, mode_cfg in modes.items():
+        sel_key = f"{team_key}_{mode_key}_selections"
+        sel_count = len(st.session_state.get(sel_key, []))
+        expander_label = f'{mode_cfg.get("icon", "🔖")} {mode_cfg.get("label", mode_key)}'
+        if sel_count > 0:
+            expander_label += f"  ({sel_count}개 선택)"
+        with st.expander(expander_label, expanded=False):
+            if mode_cfg.get("requires_carryover") and carryover_count <= 0:
+                st.info("이월 데이터가 없으면 이월 기반 제안은 비활성화됩니다.")
+                continue
+            if mode_cfg.get("requires_carryover"):
+                st.caption(f"이월 {carryover_count:g}건, 사용 가능량 {carryover_cap_units:g}건(1건=0.5). 기본 10개, 최대 20개.")
+            _render_team_package_cards(team_key, mode_key, mode_cfg.get("policy", {}), groups)
+
+    total = sum(len(st.session_state.get(f"{team_key}_{mk}_selections", [])) for mk in modes)
+    if st.button(
+        f"선택 완료 ({total}개)" if total > 0 else "선택 완료",
+        key=f"pkg_{team_key}_confirm",
+        use_container_width=True,
+        type="primary",
+        disabled=(total == 0),
+    ):
+        _confirm_team_package_selection(team_key, config, blog_counts)
 
 
 def _build_content_policy_items_with_options(results: dict, blog_counts: dict, dept_label: str, settings: dict):
@@ -5267,6 +5728,7 @@ COUNT_ONLY_SOURCES = {
     "template",
     "design_carryover_policy",
     "design_pm_policy",
+    "marketing_pm_policy",
     "content_carryover_policy",
     "content_contract_policy",
 }
@@ -5615,33 +6077,52 @@ def render_action_plan_editor(filtered_results):
     sanitized = _sanitize_action_plan_items_count_only(items, filtered_results)
     if sanitized != items:
         st.session_state.action_plan_items = sanitized
-    _render_action_plan_editor_with_options(filtered_results)
+
+    _sync_team_package_registry_from_catalog()
+
+    st.markdown("<h3 style='margin:0 0 10px 0;'>실행계획 제안 카탈로그</h3>", unsafe_allow_html=True)
+    for dept_key, _, _ in ACTION_PLAN_TEAMS:
+        if dept_key in TEAM_PACKAGE_REGISTRY:
+            _render_team_proposal_flow(dept_key, filtered_results)
 
 
 def get_action_plan_for_report():
-    """Export selected action plans with count-only details for external report."""
+    """Export selected action plans for report — PM 확정 팀만 포함."""
     from src.processors.summary import get_next_month_seasonality
     season_info = get_next_month_seasonality()
 
-    current_items = st.session_state.action_plan_items if isinstance(st.session_state.action_plan_items, dict) else {}
-    analysis_results = st.session_state.get("analysis_results", {}) or {}
-    items = _sanitize_action_plan_items_count_only(current_items, analysis_results)
-    st.session_state.action_plan_items = items
+    raw_items = st.session_state.action_plan_items if isinstance(st.session_state.action_plan_items, dict) else {}
+
+    # PM이 "선택 완료"한 팀만 보고서에 포함
+    confirmed_teams = {
+        tk for tk in TEAM_PACKAGE_REGISTRY
+        if st.session_state.get(f"{tk}_proposal_done", False)
+    }
 
     action_plan = []
     for dept_key, dept_label, _ in ACTION_PLAN_TEAMS:
-        for item in items.get(dept_key, []):
+        if dept_key not in confirmed_teams:
+            continue
+        for item in raw_items.get(dept_key, []):
             if not item.get("selected", True):
                 continue
             title = str(item.get("title", "")).strip()
-            detail = str(item.get("detail", "")).strip()
             if not title:
                 continue
+            # 작업내용(tasks) 목록을 보기 좋게 HTML 포맷
+            detail = str(item.get("detail", "")).strip()
+            tasks_html = ""
+            if "실행:" in detail:
+                tasks_part = detail.split("실행:")[-1].strip()
+                task_list = [t.strip() for t in tasks_part.split(",") if t.strip()]
+                if task_list:
+                    tasks_html = " · ".join(task_list)
+            plan_text = tasks_html if tasks_html else detail
             action_plan.append(
                 {
                     "department": dept_label,
                     "agenda": f"<strong>{title}</strong>",
-                    "plan": detail,
+                    "plan": plan_text,
                 }
             )
 
