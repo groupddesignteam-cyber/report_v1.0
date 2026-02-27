@@ -106,6 +106,12 @@ HTML_TEMPLATE = """
             padding: 3px 10px; border-radius: var(--v5-radius-full);
             margin-bottom: 8px;
         }
+        .v5-type-tag {
+            display: inline-block;
+            font-size: 10px; font-weight: 700;
+            padding: 2px 8px; border-radius: var(--v5-radius-full);
+            margin-bottom: 8px; margin-left: 4px;
+        }
         .v5-action-card h4 {
             font-size: 15px; font-weight: 700; color: var(--v5-text);
             margin: 0 0 4px 0; line-height: 1.4;
@@ -800,7 +806,7 @@ HTML_TEMPLATE = """
         {% endfor %}
 
         <!-- 4. Summary & Action Plan (V5) -->
-        {% if summary and (summary.content or summary.analysis_sections or summary.diagnosis or summary.action_plan) %}
+        {% if manager_comment or (summary and (summary.content or summary.analysis_sections or summary.diagnosis or summary.action_plan)) %}
         <div class="card p-8 relative overflow-hidden fade-in delay-3 mt-8" style="background: var(--v5-card);">
             <div class="relative z-10">
                 <div class="flex items-center justify-between mb-8 pb-4" style="border-bottom: 1px solid var(--v5-border);">
@@ -813,10 +819,21 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- Summary Content -->
+                <!-- Summary Content (AI 요약) -->
                 {% if summary.content %}
                 <div class="p-6 mb-8 text-[15px] font-medium leading-relaxed" style="background: var(--v5-bg); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); color: var(--v5-text-sub); white-space: pre-line;">
                     {{ summary.content|safe }}
+                </div>
+                {% endif %}
+
+                <!-- 담당자 코멘트 -->
+                {% if manager_comment %}
+                <div style="background: var(--v5-accent-bg); border-left: 4px solid var(--v5-accent); border-radius: 0 var(--v5-radius) var(--v5-radius) 0; padding: 16px 20px; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i data-lucide="message-square" class="w-4 h-4" style="color: var(--v5-accent);"></i>
+                        <span style="font-size: 13px; font-weight: 700; color: var(--v5-accent);">담당자 코멘트</span>
+                    </div>
+                    <p style="font-size: 14px; font-weight: 500; color: var(--v5-text-sub); margin: 0; white-space: pre-line;">{{ manager_comment }}</p>
                 </div>
                 {% endif %}
 
@@ -863,13 +880,29 @@ HTML_TEMPLATE = """
                     {% set ns.prev_dept = item.department %}
                     {% endif %}
                     <div class="v5-action-card" style="border-left-color: {{ color }};">
-                        <span class="v5-dept-tag" style="background: {{ color }}10; color: {{ color }};">{{ item.department }}</span>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <span class="v5-dept-tag" style="background: {{ color }}10; color: {{ color }};">{{ item.department }}</span>
+                                {% if item.item_type %}
+                                <span class="v5-type-tag" style="background:{% if item.item_type == '계약포함' %}#ecfdf5{% else %}#fff7ed{% endif %}; color:{% if item.item_type == '계약포함' %}#059669{% else %}#ea580c{% endif %};">{{ item.item_type }}</span>
+                                {% endif %}
+                            </div>
+                            {% if item.price and item.price > 0 %}
+                            <span style="font-size:13px; font-weight:700; color:#64748b; white-space:nowrap;">{{ (item.price / 10000)|int }}만원</span>
+                            {% endif %}
+                        </div>
                         <h4>{{ item.agenda|safe }}</h4>
                         {% if item.plan %}
                         <p>{{ item.plan|safe }}</p>
                         {% endif %}
                     </div>
                     {% endfor %}
+                    {% if summary.total_extra_cost and summary.total_extra_cost > 0 %}
+                    <div style="margin-top:12px; padding:14px 20px; background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:13px; font-weight:700; color:#ea580c;">추가 제안 비용 합계</span>
+                        <span style="font-size:16px; font-weight:800; color:#ea580c;">{{ (summary.total_extra_cost / 10000)|int }}만원</span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>

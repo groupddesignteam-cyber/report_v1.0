@@ -58,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v3.4.0"
+APP_VERSION = "v3.5.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -2220,6 +2220,8 @@ def _normalize_product_items(raw_items):
                 "detail": detail,
                 "selected": bool(item.get("selected", True)),
                 "source": item.get("source", "manual"),
+                "price": item.get("price", 0),
+                "mode_type": item.get("mode_type", ""),
             })
         normalized[dept_key] = out
     return normalized
@@ -3923,6 +3925,8 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
                 "selected": True,
                 "source": source_tag,
                 "team": dept_label,
+                "price": pkg.get("price", 0),
+                "mode_type": mode_key,
             })
     if not items:
         st.warning("패키지를 선택해 주세요.")
@@ -3990,8 +3994,9 @@ def _render_team_proposal_flow(team_key: str, filtered_results):
             _render_team_package_cards(team_key, mode_key, mode_cfg.get("policy", {}), groups)
 
     total = sum(len(st.session_state.get(f"{team_key}_{mk}_selections", [])) for mk in modes)
+    btn_label = f"Step 2: 선택 완료 ({total}개 선택됨)" if total > 0 else "Step 2: 선택 완료 (상품을 먼저 선택해주세요)"
     if st.button(
-        f"선택 완료 ({total}개)" if total > 0 else "선택 완료",
+        btn_label,
         key=f"pkg_{team_key}_confirm",
         use_container_width=True,
         type="primary",
@@ -6063,9 +6068,18 @@ def _sanitize_action_plan_items_count_only(items: dict, results: dict):
     contract_count = float(blog_counts.get("contract_count", 0.0))
     carryover_count = float(blog_counts.get("carryover_count", 0.0))
 
+    # PM이 "선택 완료"한 팀은 원본 유지 (예상 제안 X건으로 치환 방지)
+    confirmed_teams = {
+        tk for tk in TEAM_PACKAGE_REGISTRY
+        if st.session_state.get(f"{tk}_proposal_done", False)
+    }
+
     out = {}
     for dept_key, _, _ in ACTION_PLAN_TEAMS:
         team_items = normalized.get(dept_key, [])
+        if dept_key in confirmed_teams:
+            out[dept_key] = team_items
+            continue
         team_out = []
         for item in team_items:
             team_out.append(_to_count_only_item(item, contract_count, carryover_count))
@@ -6085,6 +6099,15 @@ def render_action_plan_editor(filtered_results):
     _sync_team_package_registry_from_catalog()
 
     st.markdown("<h3 style='margin:0 0 10px 0;'>실행계획 제안 카탈로그</h3>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px; padding:14px 18px; margin-bottom:16px;">
+        <p style="font-size:12px; font-weight:600; color:#1e40af; margin:0; line-height:1.8;">
+            <strong>Step 1.</strong> 각 팀별 카드에서 제안할 상품을 선택하세요<br>
+            <strong>Step 2.</strong> '선택 완료' 버튼을 눌러 보고서에 반영합니다<br>
+            <span style="color:#6b7280;">→ 선택한 상품은 보고서 하단 '실행 계획'에 가격·유형과 함께 표시됩니다</span>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     for dept_key, _, _ in ACTION_PLAN_TEAMS:
         if dept_key in TEAM_PACKAGE_REGISTRY:
             _render_team_proposal_flow(dept_key, filtered_results)
@@ -6122,17 +6145,31 @@ def get_action_plan_for_report():
                 if task_list:
                     tasks_html = " · ".join(task_list)
             plan_text = tasks_html if tasks_html else detail
+            # 유형 판별: 이월치환=계약포함, PM제안=추가제안
+            source = str(item.get("source", "")).strip()
+            mode_type = str(item.get("mode_type", "")).strip()
+            if "carryover" in source or mode_type == "carryover":
+                type_label = "계약포함"
+            else:
+                type_label = "추가제안"
+            price_val = item.get("price", 0) or 0
             action_plan.append(
                 {
                     "department": dept_label,
                     "agenda": f"<strong>{title}</strong>",
                     "plan": plan_text,
+                    "price": price_val,
+                    "item_type": type_label,
                 }
             )
 
+    total_extra_cost = sum(
+        ap.get("price", 0) for ap in action_plan if ap.get("item_type") == "추가제안"
+    )
     return {
         "action_plan": action_plan,
         "action_plan_month": f"{season_info['month']}월",
+        "total_extra_cost": total_extra_cost,
     }
 
 
