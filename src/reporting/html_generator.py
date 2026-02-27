@@ -902,8 +902,8 @@ HTML_TEMPLATE = """
                                 <span class="v5-type-tag" style="background:{% if item.item_type == '계약포함' %}#ecfdf5{% else %}#fff7ed{% endif %}; color:{% if item.item_type == '계약포함' %}#059669{% else %}#ea580c{% endif %};">{{ item.item_type }}</span>
                                 {% endif %}
                             </div>
-                            {% if item.price and item.price > 0 %}
-                            <span style="font-size:13px; font-weight:700; color:#64748b; white-space:nowrap;">{{ (item.price / 10000)|int }}만원</span>
+                            {% if item.count_label %}
+                            <span style="font-size:13px; font-weight:700; color:#64748b; white-space:nowrap;">{{ item.count_label }}</span>
                             {% endif %}
                         </div>
                         <h4>{{ item.agenda|safe }}</h4>
@@ -912,12 +912,6 @@ HTML_TEMPLATE = """
                         {% endif %}
                     </div>
                     {% endfor %}
-                    {% if summary.total_extra_cost and summary.total_extra_cost > 0 %}
-                    <div style="margin-top:12px; padding:14px 20px; background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:13px; font-weight:700; color:#ea580c;">추가 제안 비용 합계</span>
-                        <span style="font-size:16px; font-weight:800; color:#ea580c;">{{ (summary.total_extra_cost / 10000)|int }}만원</span>
-                    </div>
-                    {% endif %}
                 </div>
                 {% endif %}
             </div>

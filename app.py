@@ -2247,6 +2247,7 @@ def _normalize_product_items(raw_items):
                 "price": item.get("price", 0),
                 "mode_type": item.get("mode_type", ""),
                 "desc": item.get("desc", ""),
+                "count_label": item.get("count_label", ""),
             })
         normalized[dept_key] = out
     return normalized
@@ -3975,6 +3976,12 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
                 )
             else:
                 detail = f"계약 {contract_count:g}건 기준. 실행: {', '.join(pkg['tasks'])}"
+            # tasks에서 "건당 대체 X건" 추출
+            count_label = ""
+            for t in pkg.get("tasks", []):
+                if "건당 대체" in t:
+                    count_label = t.replace("건당 대체 ", "").strip()
+                    break
             items.append({
                 "title": pkg["title"],
                 "detail": detail,
@@ -3984,6 +3991,7 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
                 "team": dept_label,
                 "price": pkg.get("price", 0),
                 "mode_type": mode_key,
+                "count_label": count_label,
             })
     if not items:
         st.warning("패키지를 선택해 주세요.")
@@ -4092,6 +4100,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                 "source": "content_carryover_policy",
                 "team": dept_label,
                 "desc": CONTENT_CARRYOVER_POLICY["base_10"].get("desc", ""),
+                "count_label": f"치환 {carryover_units:g}건",
             }
         )
         if include_20:
@@ -4103,6 +4112,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                     "source": "content_carryover_policy",
                     "team": dept_label,
                     "desc": CONTENT_CARRYOVER_POLICY["exception_20"].get("desc", ""),
+                    "count_label": f"치환 {carryover_units:g}건",
                 }
             )
 
@@ -4136,6 +4146,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                     "source": "content_contract_policy",
                     "team": dept_label,
                     "desc": row.get("desc", ""),
+                    "count_label": f"예상 {expected_count:g}건",
                 }
             )
 
@@ -6217,6 +6228,7 @@ def get_action_plan_for_report():
             else:
                 type_label = "추가제안"
             price_val = item.get("price", 0) or 0
+            count_label = str(item.get("count_label", "")).strip()
             action_plan.append(
                 {
                     "department": dept_label,
@@ -6224,6 +6236,7 @@ def get_action_plan_for_report():
                     "plan": plan_text,
                     "price": price_val,
                     "item_type": type_label,
+                    "count_label": count_label,
                 }
             )
 
