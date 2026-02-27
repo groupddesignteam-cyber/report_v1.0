@@ -31,9 +31,10 @@ HTML_TEMPLATE = """
             --v5-accent: #3182f6;
             --v5-accent-bg: rgba(49,130,246,0.06);
             --v5-accent-glow: 0 0 15px rgba(49,130,246,0.12);
-            --v5-shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
-            --v5-shadow-md: 0 4px 12px rgba(0,0,0,0.06);
-            --v5-shadow-lg: 0 10px 24px rgba(0,0,0,0.08);
+            --v5-shadow-xs: 0 1px 2px rgba(0,0,0,0.03);
+            --v5-shadow-sm: 0 2px 6px rgba(0,0,0,0.04);
+            --v5-shadow-md: 0 4px 14px rgba(0,0,0,0.06);
+            --v5-shadow-lg: 0 12px 28px rgba(0,0,0,0.08);
             --v5-radius: 16px;
             --v5-radius-lg: 20px;
             --v5-radius-full: 9999px;
@@ -55,11 +56,16 @@ HTML_TEMPLATE = """
             transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1), border-color 0.25s ease;
         }
         .card:hover {
-            box-shadow: var(--v5-shadow-md);
+            transform: translateY(-2px);
+            box-shadow: var(--v5-shadow-lg);
             border-color: var(--v5-border-hover);
         }
         .fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(16px); }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes growBar { from { width: 0; } }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         .delay-1 { animation-delay: 0.1s; }
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
@@ -90,14 +96,14 @@ HTML_TEMPLATE = """
             background: var(--v5-card);
             border: 1px solid var(--v5-border);
             border-radius: var(--v5-radius);
-            padding: 18px 20px;
+            padding: 20px;
             margin-bottom: 10px;
             border-left: 4px solid;
             transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
         }
         .v5-action-card:hover {
             transform: translateY(-2px);
-            box-shadow: var(--v5-shadow-md);
+            box-shadow: var(--v5-shadow-lg);
             border-color: var(--v5-border-hover);
         }
         .v5-dept-tag {
@@ -132,7 +138,7 @@ HTML_TEMPLATE = """
         .hide-scroll::-webkit-scrollbar { display: none; }
 
         @media print {
-            .fade-in { opacity: 1 !important; transform: none !important; animation: none !important; }
+            .fade-in, .v5-action-card { opacity: 1 !important; transform: none !important; animation: none !important; }
             .card {
                 border: 1px solid var(--v5-border);
                 border-radius: var(--v5-radius);
@@ -208,11 +214,11 @@ HTML_TEMPLATE = """
                         {% endfor %}
                     </div>
                 </div>
-                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200">
+                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200" style="border-left: 4px solid #3b82f6;">
                     <h4 class="text-sm font-bold text-blue-600 mb-3 pb-2 border-b border-blue-200">{{ dept.curr_month }} <span class="text-[10px] text-blue-400">(당월)</span></h4>
                     <div class="grid grid-cols-2 gap-3">
                         {% for metric in dept.curr_metrics %}
-                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm" style="animation: scaleIn 0.5s ease forwards; animation-delay: {{ loop.index0 * 0.08 }}s; opacity: 0;">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="text-sm">{{ metric.icon }}</span>
                                 <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
@@ -264,11 +270,11 @@ HTML_TEMPLATE = """
                 </div>
 
                 <!-- Current Month (highlighted) -->
-                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200">
+                <div class="bg-blue-50/50 p-5 rounded-xl border-2 border-blue-200" style="border-left: 4px solid #3b82f6;">
                     <h4 class="text-sm font-bold text-blue-600 mb-3 pb-2 border-b border-blue-200">{{ dept.curr_month }} <span class="text-[10px] text-blue-400">(당월)</span></h4>
                     <div class="grid grid-cols-{% if dept.id == 'blog' %}2{% else %}3{% endif %} gap-3">
                         {% for metric in dept.curr_metrics %}
-                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm" style="animation: scaleIn 0.5s ease forwards; animation-delay: {{ loop.index0 * 0.08 }}s; opacity: 0;">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="text-sm">{{ metric.icon }}</span>
                                 <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
@@ -283,7 +289,7 @@ HTML_TEMPLATE = """
                     {% if dept.id == 'blog' and dept.curr_metrics_row2 %}
                     <div class="grid grid-cols-2 gap-3 mt-3">
                         {% for metric in dept.curr_metrics_row2 %}
-                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
+                        <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm" style="animation: scaleIn 0.5s ease forwards; animation-delay: {{ loop.index0 * 0.08 }}s; opacity: 0;">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="text-sm">{{ metric.icon }}</span>
                                 <span class="text-[10px] font-bold uppercase" style="color: {{ metric.label_color|default('#64748b') }};">{{ metric.label }}</span>
@@ -349,7 +355,7 @@ HTML_TEMPLATE = """
                             {% endif %}
                             <span class="text-xs text-slate-700 flex-1 truncate">{{ item.label }}</span>
                             <div class="w-16 h-2.5 rounded-full overflow-hidden shadow-inner" style="background: {% if section.bar_color == 'red' %}#fee2e2{% elif section.bar_color == 'green' %}#dcfce7{% elif section.bar_color == 'purple' %}#f3e8ff{% elif section.bar_color == 'amber' %}#fef3c7{% else %}#dbeafe{% endif %};">
-                                <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#ef4444{% elif section.bar_color == 'green' %}#22c55e{% elif section.bar_color == 'purple' %}#8b5cf6{% elif section.bar_color == 'amber' %}#f59e0b{% else %}#3b82f6{% endif %};"></div>
+                                <div class="h-full rounded-full" style="width: {{ item.pct }}%; background: {% if section.bar_color == 'red' %}#ef4444{% elif section.bar_color == 'green' %}#22c55e{% elif section.bar_color == 'purple' %}#8b5cf6{% elif section.bar_color == 'amber' %}#f59e0b{% else %}#3b82f6{% endif %}; animation: growBar 0.8s ease forwards; animation-delay: {{ loop.index0 * 0.1 }}s;"></div>
                             </div>
                             <span class="text-[10px] font-bold w-14 text-right" style="color: {% if section.bar_color == 'red' %}#b91c1c{% elif section.bar_color == 'green' %}#15803d{% elif section.bar_color == 'purple' %}#6d28d9{% elif section.bar_color == 'amber' %}#92400e{% else %}#1d4ed8{% endif %};">{{ item.value_display }}</span>
                         </div>
@@ -879,7 +885,7 @@ HTML_TEMPLATE = """
                     {% if not loop.first %}<div style="height:6px;"></div>{% endif %}
                     {% set ns.prev_dept = item.department %}
                     {% endif %}
-                    <div class="v5-action-card" style="border-left-color: {{ color }};">
+                    <div class="v5-action-card" style="border-left-color: {{ color }}; animation: slideInLeft 0.5s ease forwards; animation-delay: {{ loop.index0 * 0.08 }}s; opacity: 0;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div>
                                 <span class="v5-dept-tag" style="background: {{ color }}10; color: {{ color }};">{{ item.department }}</span>

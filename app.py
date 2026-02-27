@@ -58,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v3.5.0"
+APP_VERSION = "v3.6.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -3822,8 +3822,10 @@ _PACKAGE_CARD_CSS = """
 <style>
 .pkg-team-hdr {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; font-size: 13px; font-weight: 800; letter-spacing: -0.3px; padding: 5px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 6px 0;}
 .pkg-grp {font-size: 11px; font-weight: 700; color: #9ca3af; margin: 12px 0 6px 0;}
-.pkg-card {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 12px 14px; margin-bottom: 8px;}
-.pkg-card.sel {border-color: #818cf8; background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);}
+.pkg-card {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 12px 14px; margin-bottom: 8px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);}
+.pkg-card:hover {transform: translateY(-2px); box-shadow: 0 6px 16px -4px rgba(0,0,0,0.08); border-color: #c7d2fe;}
+.pkg-card.sel {border-color: #818cf8; background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%); animation: cardSelect 0.3s ease forwards;}
+@keyframes cardSelect { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 .pkg-card-head {display:flex; justify-content: space-between; align-items: center; margin-bottom: 6px;}
 .pkg-card-title {font-size: 13px; font-weight: 700; color: #1f2937;}
 .pkg-card-price {font-size: 13px; font-weight: 800; color: #6366f1; white-space: nowrap;}
