@@ -58,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v3.7.0"
+APP_VERSION = "v3.8.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -3870,6 +3870,46 @@ def _calculate_carryover_mode_usage(policy_dict: dict, selected_keys: list) -> d
     }
 
 
+_BLOG_UNIT_KRW = 200_000  # 블로그 1건 = 20만원
+
+
+def _gauge_color(ratio: float) -> str:
+    if ratio <= 0.6:
+        return "#22c55e"
+    if ratio <= 0.85:
+        return "#f59e0b"
+    return "#ef4444"
+
+
+def _calc_team_budget(team_key: str, blog_counts: dict) -> dict:
+    config = TEAM_PACKAGE_REGISTRY.get(team_key, {})
+    modes = config.get("modes", {})
+    carryover_count = float(blog_counts.get("carryover_count", 0.0))
+    contract_count = float(blog_counts.get("contract_count", 0.0))
+    carryover_total = carryover_count * 0.5
+    carryover_used = 0.0
+    contract_used = 0.0
+    for mode_key, mode_cfg in modes.items():
+        sel_key = f"{team_key}_{mode_key}_selections"
+        policy_dict = mode_cfg.get("policy", {})
+        is_co = bool(mode_cfg.get("requires_carryover"))
+        for pk in st.session_state.get(sel_key, []):
+            pkg = policy_dict.get(pk)
+            if not pkg:
+                continue
+            price = float(pkg.get("price", 0))
+            if is_co:
+                carryover_used += price / 100_000
+            else:
+                contract_used += price / _BLOG_UNIT_KRW
+    return {
+        "co_total": carryover_total,
+        "co_used": carryover_used,
+        "ct_total": contract_count,
+        "ct_used": contract_used,
+    }
+
+
 _PACKAGE_CARD_CSS = """
 <style>
 .pkg-team-hdr {font-family: "Pretendard Variable","Noto Sans KR",sans-serif; font-size: 13px; font-weight: 800; letter-spacing: -0.3px; padding: 5px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 6px 0;}
@@ -3885,11 +3925,60 @@ _PACKAGE_CARD_CSS = """
 .pkg-card-task {font-size: 11px; color: #6b7280; line-height: 1.5; background: #f3f4f6; padding: 2px 8px; border-radius: 4px;}
 .pkg-card.sel .pkg-card-task {background: #e0e7ff; color: #4338ca;}
 .pkg-done-banner {border: 1.5px solid #22c55e; border-radius: 10px; background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%); padding: 10px 14px; display: flex; align-items: center; gap: 8px;}
+.budget-card {border:1.5px solid #e0e7ff; border-radius:12px; background:linear-gradient(135deg,#f8fafc,#eef2ff); padding:12px 16px; margin-bottom:12px;}
+.budget-row {display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+.budget-row:last-child {margin-bottom:0;}
+.budget-label {font-size:11px; font-weight:700; color:#6b7280; min-width:72px;}
+.budget-bar {flex:1; height:16px; background:#e5e7eb; border-radius:8px; overflow:hidden; position:relative;}
+.budget-fill {height:100%; border-radius:8px; transition:width 0.3s ease;}
+.budget-text {position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#1f2937;}
+.budget-remain {font-size:12px; font-weight:800; min-width:80px; text-align:right;}
 </style>
 """
 
 
-def _render_team_package_cards(team_key: str, mode_key: str, policy_dict: dict, groups: list):
+def _render_budget_gauge(team_key: str, blog_counts: dict, budget: dict):
+    config = TEAM_PACKAGE_REGISTRY.get(team_key, {})
+    has_co = any(m.get("requires_carryover") for m in config.get("modes", {}).values())
+    co_total = budget["co_total"]
+    co_used = budget["co_used"]
+    ct_total = budget["ct_total"]
+    ct_used = budget["ct_used"]
+    rows = ""
+    if has_co and co_total > 0:
+        ratio = min(co_used / co_total, 1.0) if co_total > 0 else 0
+        color = _gauge_color(ratio)
+        remain = max(co_total - co_used, 0)
+        rows += (
+            f'<div class="budget-row">'
+            f'<span class="budget-label">🔄 이월 치환</span>'
+            f'<div class="budget-bar">'
+            f'<div class="budget-fill" style="width:{ratio*100:.0f}%;background:{color};"></div>'
+            f'<div class="budget-text">{co_used:.1f} / {co_total:.1f}건</div>'
+            f'</div>'
+            f'<span class="budget-remain" style="color:{color};">잔여 {remain:.1f}건</span>'
+            f'</div>'
+        )
+    if ct_total > 0:
+        ratio = min(ct_used / ct_total, 1.0) if ct_total > 0 else 0
+        color = _gauge_color(ratio)
+        remain = max(ct_total - ct_used, 0)
+        rows += (
+            f'<div class="budget-row">'
+            f'<span class="budget-label">📋 계약 예산</span>'
+            f'<div class="budget-bar">'
+            f'<div class="budget-fill" style="width:{ratio*100:.0f}%;background:{color};"></div>'
+            f'<div class="budget-text">{ct_used:.1f} / {ct_total:.1f}건</div>'
+            f'</div>'
+            f'<span class="budget-remain" style="color:{color};">잔여 {remain:.1f}건</span>'
+            f'</div>'
+        )
+    if not rows:
+        return
+    st.markdown(f'<div class="budget-card">{rows}</div>', unsafe_allow_html=True)
+
+
+def _render_team_package_cards(team_key: str, mode_key: str, policy_dict: dict, groups: list, mode_cfg: dict = None):
     st.markdown(_PACKAGE_CARD_CSS, unsafe_allow_html=True)
     config = TEAM_PACKAGE_REGISTRY.get(team_key, {})
     team_color = config.get("color", "#6b7280")
@@ -3898,6 +3987,7 @@ def _render_team_package_cards(team_key: str, mode_key: str, policy_dict: dict, 
     sel_key = f"{team_key}_{mode_key}_selections"
     current_sel = list(st.session_state.get(sel_key, []))
     changed = False
+    is_carryover_mode = bool((mode_cfg or {}).get("requires_carryover"))
 
     st.markdown(
         f'<div class="pkg-team-hdr" style="color:{team_color}; background:{team_color}12;">'
@@ -3919,11 +4009,36 @@ def _render_team_package_cards(team_key: str, mode_key: str, policy_dict: dict, 
                 price_str = f"{int(price // 10000)}만원" if isinstance(price, (int, float)) and price > 0 else "-"
                 tasks = pdata.get("tasks", [])
                 task_chips = "".join(f'<span class="pkg-card-task">{t}</span>' for t in tasks)
+                # 카드별 비용 뱃지
+                cost_badge = ""
+                if isinstance(price, (int, float)) and price > 0:
+                    if is_carryover_mode:
+                        units = price / 100_000
+                        cost_badge = (
+                            f'<div style="font-size:10px;color:#92400e;background:#fef3c7;'
+                            f'padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block;">'
+                            f'이월 {units:g}건 사용</div>'
+                        )
+                    else:
+                        badge_text = ""
+                        for t in tasks:
+                            if "건당 대체" in t:
+                                badge_text = t
+                                break
+                        if not badge_text:
+                            units = price / _BLOG_UNIT_KRW
+                            badge_text = f"계약 {units:.2f}건 사용"
+                        cost_badge = (
+                            f'<div style="font-size:10px;color:#1e40af;background:#dbeafe;'
+                            f'padding:2px 8px;border-radius:4px;margin-top:4px;display:inline-block;">'
+                            f'{badge_text}</div>'
+                        )
                 cls = "pkg-card sel" if is_sel else "pkg-card"
                 st.markdown(
                     f'<div class="{cls}">'
                     f'  <div class="pkg-card-head"><span class="pkg-card-title">{pdata["title"]}</span><span class="pkg-card-price">{price_str}</span></div>'
                     f'  <div class="pkg-card-tasks">{task_chips}</div>'
+                    f'  {cost_badge}'
                     f'</div>',
                     unsafe_allow_html=True,
                 )
@@ -4018,6 +4133,10 @@ def _render_team_proposal_flow(team_key: str, filtered_results):
     team_label = config["label"]
     done_key = f"{team_key}_proposal_done"
 
+    # 예산 게이지 — 항상 표시 (선택 완료 여부와 무관)
+    budget = _calc_team_budget(team_key, blog_counts)
+    _render_budget_gauge(team_key, blog_counts, budget)
+
     if st.session_state.get(done_key, False):
         current_items = _normalize_product_items(st.session_state.action_plan_items)
         team_items = current_items.get(team_key, [])
@@ -4054,12 +4173,41 @@ def _render_team_proposal_flow(team_key: str, filtered_results):
             if mode_cfg.get("requires_carryover") and carryover_count <= 0:
                 st.info("이월 데이터가 없으면 이월 기반 제안은 비활성화됩니다.")
                 continue
+            # 모드별 차감 트래커
             if mode_cfg.get("requires_carryover"):
-                st.caption(f"이월 {carryover_count:g}건, 사용 가능량 {carryover_cap_units:g}건(1건=0.5). 기본 10개, 최대 20개.")
-            _render_team_package_cards(team_key, mode_key, mode_cfg.get("policy", {}), groups)
+                co_used = sum(
+                    float((mode_cfg.get("policy", {}).get(pk) or {}).get("price", 0)) / 100_000
+                    for pk in st.session_state.get(sel_key, [])
+                )
+                co_remain = max(carryover_cap_units - co_used, 0)
+                co_color = _gauge_color(co_used / carryover_cap_units if carryover_cap_units > 0 else 0)
+                st.markdown(
+                    f'<div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+                    f'🔄 이월 {carryover_count:g}건 → 치환 {carryover_cap_units:g}건 (1건=0.5) &nbsp;|&nbsp; '
+                    f'<b style="color:{co_color};">사용: {co_used:.1f}건 · 잔여: {co_remain:.1f}건</b></div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                mode_krw = sum(
+                    float((mode_cfg.get("policy", {}).get(pk) or {}).get("price", 0))
+                    for pk in st.session_state.get(sel_key, [])
+                )
+                if mode_krw > 0:
+                    mode_units = mode_krw / _BLOG_UNIT_KRW
+                    st.markdown(
+                        f'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+                        f'📋 선택 합계: {int(mode_krw/10000)}만원 (계약 {mode_units:.1f}건 상당)</div>',
+                        unsafe_allow_html=True,
+                    )
+            _render_team_package_cards(team_key, mode_key, mode_cfg.get("policy", {}), groups, mode_cfg)
 
     total = sum(len(st.session_state.get(f"{team_key}_{mk}_selections", [])) for mk in modes)
-    btn_label = f"Step 2: 선택 완료 ({total}개 선택됨)" if total > 0 else "Step 2: 선택 완료 (상품을 먼저 선택해주세요)"
+    total_krw = 0
+    for mk, mc in modes.items():
+        for pk in st.session_state.get(f"{team_key}_{mk}_selections", []):
+            total_krw += float((mc.get("policy", {}).get(pk) or {}).get("price", 0))
+    price_str = f", {int(total_krw/10000)}만원" if total_krw > 0 else ""
+    btn_label = f"Step 2: 선택 완료 ({total}개 선택{price_str})" if total > 0 else "Step 2: 선택 완료 (상품을 먼저 선택해주세요)"
     if st.button(
         btn_label,
         key=f"pkg_{team_key}_confirm",
