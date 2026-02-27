@@ -2246,6 +2246,7 @@ def _normalize_product_items(raw_items):
                 "source": item.get("source", "manual"),
                 "price": item.get("price", 0),
                 "mode_type": item.get("mode_type", ""),
+                "desc": item.get("desc", ""),
             })
         normalized[dept_key] = out
     return normalized
@@ -4090,6 +4091,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                 "selected": True,
                 "source": "content_carryover_policy",
                 "team": dept_label,
+                "desc": CONTENT_CARRYOVER_POLICY["base_10"].get("desc", ""),
             }
         )
         if include_20:
@@ -4100,6 +4102,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                     "selected": False,
                     "source": "content_carryover_policy",
                     "team": dept_label,
+                    "desc": CONTENT_CARRYOVER_POLICY["exception_20"].get("desc", ""),
                 }
             )
 
@@ -4132,6 +4135,7 @@ def _build_content_policy_items_with_options(results: dict, blog_counts: dict, d
                     "selected": bool(row.get("selected", True)),
                     "source": "content_contract_policy",
                     "team": dept_label,
+                    "desc": row.get("desc", ""),
                 }
             )
 
