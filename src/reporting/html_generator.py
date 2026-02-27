@@ -827,8 +827,17 @@ HTML_TEMPLATE = """
 
                 <!-- Summary Content (AI 요약) -->
                 {% if summary.content %}
-                <div class="p-6 mb-8 text-[15px] font-medium leading-relaxed" style="background: var(--v5-bg); border-radius: var(--v5-radius); border: 1px solid var(--v5-border); color: var(--v5-text-sub); white-space: pre-line;">
-                    {{ summary.content|safe }}
+                <div style="position: relative; background: linear-gradient(135deg, rgba(49,130,246,0.04) 0%, rgba(139,92,246,0.04) 100%); border: 1px solid var(--v5-border); border-left: 4px solid var(--v5-accent); border-radius: 0 var(--v5-radius) var(--v5-radius) 0; padding: 24px 28px; margin-bottom: 24px; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(49,130,246,0.06) 0%, transparent 70%); border-radius: 50%;"></div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; position: relative; z-index: 1;">
+                        <div style="background: var(--v5-accent-bg); border-radius: 10px; padding: 6px;">
+                            <i data-lucide="sparkles" class="w-5 h-5" style="color: var(--v5-accent);"></i>
+                        </div>
+                        <span style="font-size: 14px; font-weight: 700; color: var(--v5-accent);">AI 핵심 인사이트</span>
+                    </div>
+                    <div style="position: relative; z-index: 1; font-size: 15px; font-weight: 500; line-height: 1.8; color: var(--v5-text-sub); white-space: pre-line;">
+                        {{ summary.content|safe }}
+                    </div>
                 </div>
                 {% endif %}
 

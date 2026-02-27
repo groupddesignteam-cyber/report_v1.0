@@ -58,7 +58,7 @@ def load_css():
 load_css()
 
 # App metadata
-APP_VERSION = "v3.6.0"
+APP_VERSION = "v3.7.0"
 APP_TITLE = "주식회사 그룹디 전략 보고서"
 APP_CREATOR = "전략기획팀 이종광팀장"
 
@@ -1405,6 +1405,44 @@ def render_dashboard():
     if 'ai_exec_summary' not in st.session_state:
         st.session_state.ai_exec_summary = None
 
+    # AI 생성 버튼
+    st.markdown("<div style='height: 0.25rem;'></div>", unsafe_allow_html=True)
+    llm_ready = has_llm_client_configured()
+    if not llm_ready:
+        st.info("AI 요약은 Streamlit Secrets에 ANTHROPIC_API_KEY 또는 OPENAI_API_KEY를 등록하면 활성화됩니다.")
+    _ai_col1, _ai_col2, _ai_col3 = st.columns([1, 2, 1])
+    with _ai_col2:
+        if st.button(
+            "✨ 팀장용 1분 AI 3줄 요약 자동생성",
+            use_container_width=True,
+            disabled=not llm_ready,
+            help="ANTHROPIC_API_KEY 또는 OPENAI_API_KEY가 설정되어야 실행됩니다.",
+        ):
+            with st.spinner("전체 데이터를 분석하여 3줄 총평을 생성하는 중입니다..."):
+                st.session_state.ai_exec_summary = generate_executive_summary(filtered_results)
+            st.rerun()
+
+    # AI 요약 편집 영역 (생성된 경우에만 표시)
+    if st.session_state.ai_exec_summary:
+        st.markdown(
+            '<div style="display:flex; align-items:center; gap:8px; margin:12px 0 4px 0;">'
+            '<span style="font-size:18px;">🧠</span>'
+            '<span style="font-size:14px; font-weight:700; color:#3b82f6;">AI 핵심 인사이트</span>'
+            '<span style="font-size:11px; font-weight:600; color:#94a3b8; background:#f1f5f9; padding:2px 8px; border-radius:6px; margin-left:auto;">편집 가능</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        edited_summary = st.text_area(
+            "AI 요약 편집",
+            value=st.session_state.ai_exec_summary,
+            height=120,
+            label_visibility="collapsed",
+            key="ai_summary_editor",
+        )
+        if edited_summary != st.session_state.ai_exec_summary:
+            st.session_state.ai_exec_summary = edited_summary
+            st.rerun()
+
     # Generate HTML report (filtered) with user-edited action plan
     custom_action_plan = get_action_plan_for_report()
     # AI 요약이 있으면 하단 '종합 분석 및 전략' 섹션에 포함
@@ -1421,23 +1459,9 @@ def render_dashboard():
     )
     filename = get_report_filename(settings['clinic_name'])
 
-    # Download button & AI Summary Generation button
-    st.markdown("<div style='height: 0.25rem;'></div>", unsafe_allow_html=True)
-    llm_ready = has_llm_client_configured()
-    if not llm_ready:
-        st.info("AI 요약은 Streamlit Secrets에 ANTHROPIC_API_KEY 또는 OPENAI_API_KEY를 등록하면 활성화됩니다.")
-    col1, col2, col3, col4 = st.columns([1, 2, 2, 1])
-    with col2:
-        if st.button(
-            "✨ 팀장용 1분 AI 3줄 요약 자동생성",
-            use_container_width=True,
-            disabled=not llm_ready,
-            help="ANTHROPIC_API_KEY 또는 OPENAI_API_KEY가 설정되어야 실행됩니다.",
-        ):
-            with st.spinner("전체 데이터를 분석하여 3줄 총평을 생성하는 중입니다..."):
-                st.session_state.ai_exec_summary = generate_executive_summary(filtered_results)
-            st.rerun()
-    with col3:
+    # 다운로드 버튼
+    _dl_col1, _dl_col2, _dl_col3 = st.columns([1, 2, 1])
+    with _dl_col2:
         st.download_button(
             label="보고서 다운로드 (HTML)",
             data=html_report.encode('utf-8'),
@@ -2869,6 +2893,7 @@ DESIGN_CARRYOVER_POLICY = {
             "홈페이지 내 슬라이드 Tap구역 2개 추가",
             "퀵메뉴 연동 (미연동 시)",
         ],
+        "desc": "홈페이지 슬라이드 영역 추가 및 퀵메뉴 연동 이월전환 패키지",
     },
     "homepage_20": {
         "title": "[이월치환-예외] 홈페이지 20만원 패키지",
@@ -2881,6 +2906,7 @@ DESIGN_CARRYOVER_POLICY = {
             "심화 모션 추가",
             "SEO 최적화 (미적용 시)",
         ],
+        "desc": "홈페이지 컨텐츠 구역·DB연동·반응형·모션 등 확장형 이월전환 패키지",
     },
     "draft_10": {
         "title": "[이월치환] 시안 제작 10만원 패키지",
@@ -2892,6 +2918,7 @@ DESIGN_CARRYOVER_POLICY = {
             "X 배너 1종",
             "피켓 2종",
         ],
+        "desc": "사이니지·이벤트 시안·배너 등 기본 인쇄물 이월전환 패키지",
     },
     "draft_20": {
         "title": "[이월치환-예외] 시안 제작 20만원 패키지",
@@ -2902,6 +2929,7 @@ DESIGN_CARRYOVER_POLICY = {
             "X 배너 2종",
             "피켓 4종",
         ],
+        "desc": "사이니지·이벤트 시안·배너·피켓 등 대량 인쇄물 이월전환 패키지",
     },
 }
 
@@ -2914,6 +2942,7 @@ DESIGN_PM_POLICY = {
             "퀵메뉴 연동 (미연동 시)",
             "홈페이지 내 슬라이드 Tap구역 1개 추가",
         ],
+        "desc": "홈페이지 배너 제작 및 슬라이드 영역 추가 기본 PM제안 패키지",
     },
     "homepage_10": {
         "title": "[PM제안] 홈페이지 10만원 패키지",
@@ -2922,6 +2951,7 @@ DESIGN_PM_POLICY = {
             "홈페이지 내 슬라이드 Tap구역 2개 추가",
             "홈페이지 내 슬라이드 배너 제작 2종",
         ],
+        "desc": "홈페이지 슬라이드 영역 2개 + 배너 2종 제작 PM제안 패키지",
     },
     "draft_5": {
         "title": "[PM제안] 시안 5만원 패키지",
@@ -2932,6 +2962,7 @@ DESIGN_PM_POLICY = {
             "네이버 플레이스 시안 1종",
             "홍보성 시안 1종",
         ],
+        "desc": "이벤트·사이니지·플레이스 시안 등 기본 디자인 PM제안 패키지",
     },
     "draft_10": {
         "title": "[PM제안] 시안 10만원 패키지",
@@ -2943,6 +2974,7 @@ DESIGN_PM_POLICY = {
             "인스타 세팅 시안물 3개",
             "인쇄 시안물 (디자인팀 협의: X배너/약력판넬/명함)",
         ],
+        "desc": "사이니지·블로그 스킨·인스타·인쇄물 등 종합 디자인 PM제안 패키지",
     },
 }
 
@@ -2958,50 +2990,50 @@ TEAM_PACKAGE_REGISTRY_CATALOG_TEAMS = {
 # ---------------------------------------------------------------------------
 MARKETING_PM_POLICY = {
     # -- 방문자리뷰 --
-    "review_kakaomap": {"title": "카카오맵 리뷰", "price": 10000, "tasks": ["건당 대체 20건"]},
-    "review_gangnam": {"title": "강남언니 리뷰", "price": 20000, "tasks": ["건당 대체 10건"]},
+    "review_kakaomap": {"title": "카카오맵 리뷰", "price": 10000, "tasks": ["건당 대체 20건"], "desc": "카카오맵에 병원 방문자 리뷰를 등록하여 지도 검색 노출 강화"},
+    "review_gangnam": {"title": "강남언니 리뷰", "price": 20000, "tasks": ["건당 대체 10건"], "desc": "강남언니 앱에 시술 후기를 등록하여 미용 관심 고객 유입"},
     # -- 블로그리뷰 --
-    "blogreview_experience": {"title": "체험단", "price": 200000, "tasks": ["밑작업 2건+후기글 1건+마무리 1건", "건당 대체 1건"]},
-    "blogreview_deploy": {"title": "배포형 게시물", "price": 10000, "tasks": ["건당 대체 20건"]},
+    "blogreview_experience": {"title": "체험단", "price": 200000, "tasks": ["밑작업 2건+후기글 1건+마무리 1건", "건당 대체 1건"], "desc": "블로그 체험단을 모집하여 밑작업+후기+마무리 완성형 포스팅 제작"},
+    "blogreview_deploy": {"title": "배포형 게시물", "price": 10000, "tasks": ["건당 대체 20건"], "desc": "다수 블로그에 병원 소개 게시물을 배포하여 검색 노출 확대"},
     # -- 맘카페 --
-    "momcafe_qa": {"title": "맘카페 (질문형/후기형)", "price": 50000, "tasks": ["김도영 대표측 실행", "건당 대체 4건"]},
+    "momcafe_qa": {"title": "맘카페 (질문형/후기형)", "price": 50000, "tasks": ["김도영 대표측 실행", "건당 대체 4건"], "desc": "맘카페에 질문/후기형 게시글을 작성하여 육아맘 타겟 병원 노출"},
     # -- 지식in --
-    "knowledge_hidoc": {"title": "하이닥-지식인 연동", "price": 50000, "tasks": ["건당 대체 4건"]},
+    "knowledge_hidoc": {"title": "하이닥-지식인 연동", "price": 50000, "tasks": ["건당 대체 4건"], "desc": "하이닥·네이버 지식인에 전문 의료 답변을 게시하여 신뢰도 향상"},
     # -- 네이버 인물등록 --
-    "naverperson_all": {"title": "전 채널 연결 (네이버 인물등록)", "price": 50000, "tasks": ["건당 대체 4건"]},
+    "naverperson_all": {"title": "전 채널 연결 (네이버 인물등록)", "price": 50000, "tasks": ["건당 대체 4건"], "desc": "네이버 인물정보에 원장님을 등록하여 전 채널 검색 노출 연결"},
     # -- 추가 플랫폼 세팅(입점) --
-    "platform_modudoc": {"title": "모두닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_gangnam": {"title": "강남언니 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_babitalk": {"title": "바비톡 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_cashidoc": {"title": "캐시닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_yeoshin": {"title": "여신티켓 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_safedoc": {"title": "세이프닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"]},
-    "platform_danggeun": {"title": "당근 입점", "price": 100000, "tasks": ["광고/추가 컨텐츠 별도", "건당 대체 2건"]},
-    "platform_insta": {"title": "인스타그램 세팅", "price": 100000, "tasks": ["프로필/하이라이트/고정 포스트 3개", "건당 대체 2건"]},
+    "platform_modudoc": {"title": "모두닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "모두닥 플랫폼에 병원을 입점시켜 진료 예약 채널 확보"},
+    "platform_gangnam": {"title": "강남언니 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "강남언니 앱에 병원을 입점시켜 미용 시술 고객 유입"},
+    "platform_babitalk": {"title": "바비톡 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "바비톡 플랫폼에 병원을 입점시켜 성형·미용 고객 유입"},
+    "platform_cashidoc": {"title": "캐시닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "캐시닥 플랫폼에 병원을 입점시켜 할인 예약 고객 유입"},
+    "platform_yeoshin": {"title": "여신티켓 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "여신티켓 플랫폼에 병원을 입점시켜 뷰티·시술 고객 유입"},
+    "platform_safedoc": {"title": "세이프닥 입점", "price": 100000, "tasks": ["상세페이지 별도", "건당 대체 2건"], "desc": "세이프닥 플랫폼에 병원을 입점시켜 안전 진료 이미지 강화"},
+    "platform_danggeun": {"title": "당근 입점", "price": 100000, "tasks": ["광고/추가 컨텐츠 별도", "건당 대체 2건"], "desc": "당근마켓에 병원을 입점시켜 지역 주민 대상 인지도 확보"},
+    "platform_insta": {"title": "인스타그램 세팅", "price": 100000, "tasks": ["프로필/하이라이트/고정 포스트 3개", "건당 대체 2건"], "desc": "인스타그램 프로필·하이라이트·고정 포스트를 세팅하여 SNS 채널 구축"},
     # -- 추가 콘텐츠 --
-    "addcontent_kakao": {"title": "카카오 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"]},
-    "addcontent_danggeun": {"title": "당근 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"]},
+    "addcontent_kakao": {"title": "카카오 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"], "desc": "카카오 채널에 구강 상식·일상 소식글을 발행하여 팔로워 유지"},
+    "addcontent_danggeun": {"title": "당근 소식글", "price": 50000, "tasks": ["일상글 / AI생성 구강상식", "건당 대체 4건"], "desc": "당근마켓에 구강 상식·일상 소식글을 발행하여 지역 주민 소통"},
     # -- 언론배포 --
-    "press_internet": {"title": "인터넷 기사 (언론배포)", "price": 600000, "tasks": ["언론사별 상이", "건당 대체 0.33건"]},
+    "press_internet": {"title": "인터넷 기사 (언론배포)", "price": 600000, "tasks": ["언론사별 상이", "건당 대체 0.33건"], "desc": "인터넷 언론사에 병원 관련 기사를 배포하여 브랜드 공신력 확보"},
     # -- 온라인 광고 --
-    "onlinead_image_powerlink": {"title": "이미지 파워링크", "price": 200000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1건"]},
-    "onlinead_powercontent": {"title": "파워컨텐츠", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
-    "onlinead_brand": {"title": "브랜드광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
-    "onlinead_danggeun": {"title": "당근 광고", "price": 100000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 2건"]},
-    "onlinead_gfa": {"title": "GFA 광고", "price": 150000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1.33건"]},
-    "onlinead_meta": {"title": "Meta 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
-    "onlinead_google": {"title": "구글 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
-    "onlinead_kakao": {"title": "카카오 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"]},
+    "onlinead_image_powerlink": {"title": "이미지 파워링크", "price": 200000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1건"], "desc": "네이버 이미지 파워링크 광고를 세팅하여 검색 상단 이미지 노출"},
+    "onlinead_powercontent": {"title": "파워컨텐츠", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"], "desc": "네이버 파워컨텐츠 광고를 세팅하여 블로그 영역 상단 노출"},
+    "onlinead_brand": {"title": "브랜드광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"], "desc": "네이버 브랜드 검색 광고를 세팅하여 병원명 검색 시 브랜딩 강화"},
+    "onlinead_danggeun": {"title": "당근 광고", "price": 100000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 2건"], "desc": "당근마켓 지역 광고를 세팅하여 인근 주민 대상 병원 노출"},
+    "onlinead_gfa": {"title": "GFA 광고", "price": 150000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 1.33건"], "desc": "네이버 GFA 디스플레이 광고를 세팅하여 배너 영역 노출 확대"},
+    "onlinead_meta": {"title": "Meta 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"], "desc": "Meta(인스타/페이스북) 광고를 세팅하여 SNS 타겟 고객 유입"},
+    "onlinead_google": {"title": "구글 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"], "desc": "구글 검색/디스플레이 광고를 세팅하여 다양한 채널 노출 확보"},
+    "onlinead_kakao": {"title": "카카오 광고", "price": 300000, "tasks": ["심의/세팅 대행, 충전·심의비 별도", "건당 대체 0.67건"], "desc": "카카오 비즈보드 광고를 세팅하여 카카오톡 이용자 대상 노출"},
     # -- 오프라인 광고 --
-    "offlinead_mail": {"title": "생활우편", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_bus": {"title": "버스광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_busstop": {"title": "정류장광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_subway": {"title": "지하철광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_truck": {"title": "탑차광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_elevator": {"title": "엘리베이터광고", "price": 300000, "tasks": ["의료광고 심의 항목", "건당 대체 0.67건"]},
-    "offlinead_mart": {"title": "마트광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
-    "offlinead_cinema": {"title": "영화관광고", "price": 500000, "tasks": ["의료광고 심의 항목", "건당 대체 0.4건"]},
-    "offlinead_flyer": {"title": "전단지", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"]},
+    "offlinead_mail": {"title": "생활우편", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "지역 가정에 병원 홍보 우편물을 배포하여 오프라인 인지도 확보"},
+    "offlinead_bus": {"title": "버스광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "시내버스 외부/내부 광고를 집행하여 유동인구 대상 노출"},
+    "offlinead_busstop": {"title": "정류장광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "버스 정류장 쉘터 광고를 집행하여 지역 유동인구 노출"},
+    "offlinead_subway": {"title": "지하철광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "지하철 역사/차내 광고를 집행하여 대중교통 이용자 노출"},
+    "offlinead_truck": {"title": "탑차광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "이동형 탑차 광고를 집행하여 도심 유동인구 대상 노출"},
+    "offlinead_elevator": {"title": "엘리베이터광고", "price": 300000, "tasks": ["의료광고 심의 항목", "건당 대체 0.67건"], "desc": "아파트/빌딩 엘리베이터 광고를 집행하여 입주민 대상 노출"},
+    "offlinead_mart": {"title": "마트광고", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "대형마트 내 광고를 집행하여 지역 쇼핑 고객 대상 노출"},
+    "offlinead_cinema": {"title": "영화관광고", "price": 500000, "tasks": ["의료광고 심의 항목", "건당 대체 0.4건"], "desc": "영화관 스크린 광고를 집행하여 고집중도 관객 대상 노출"},
+    "offlinead_flyer": {"title": "전단지", "price": 100000, "tasks": ["의료광고 심의 항목", "건당 대체 2건"], "desc": "전단지를 제작·배포하여 병원 인근 지역 홍보"},
 }
 
 
@@ -3020,11 +3052,13 @@ TEAM_PACKAGE_REGISTRY = {
                         "title": DESIGN_CARRYOVER_POLICY["homepage_10"]["title"],
                         "price": DESIGN_CARRYOVER_POLICY["homepage_10"]["price"],
                         "tasks": DESIGN_CARRYOVER_POLICY["homepage_10"]["tasks"],
+                        "desc": DESIGN_CARRYOVER_POLICY["homepage_10"].get("desc", ""),
                     },
                     "draft_10": {
                         "title": DESIGN_CARRYOVER_POLICY["draft_10"]["title"],
                         "price": DESIGN_CARRYOVER_POLICY["draft_10"]["price"],
                         "tasks": DESIGN_CARRYOVER_POLICY["draft_10"]["tasks"],
+                        "desc": DESIGN_CARRYOVER_POLICY["draft_10"].get("desc", ""),
                     },
                 },
                 "source_tag": "design_carryover_policy",
@@ -3039,11 +3073,13 @@ TEAM_PACKAGE_REGISTRY = {
                         "title": DESIGN_PM_POLICY["homepage_5"]["title"],
                         "price": DESIGN_PM_POLICY["homepage_5"]["price"],
                         "tasks": DESIGN_PM_POLICY["homepage_5"]["tasks"],
+                        "desc": DESIGN_PM_POLICY["homepage_5"].get("desc", ""),
                     },
                     "homepage_10": {
                         "title": DESIGN_PM_POLICY["homepage_10"]["title"],
                         "price": DESIGN_PM_POLICY["homepage_10"]["price"],
                         "tasks": DESIGN_PM_POLICY["homepage_10"]["tasks"],
+                        "desc": DESIGN_PM_POLICY["homepage_10"].get("desc", ""),
                     },
                 },
                 "source_tag": "design_pm_policy",
@@ -3634,6 +3670,7 @@ CONTENT_CARRYOVER_POLICY = {
             "이월 1건당 0.5 치환 기준 적용",
             "10만원 범위 내 대체상품 조합 제안",
         ],
+        "desc": "이월 건수 기준 10만원 범위 내 콘텐츠 대체상품 조합 패키지",
     },
     "exception_20": {
         "title": "[이월치환-예외] 콘텐츠 20만원 확장안",
@@ -3642,6 +3679,7 @@ CONTENT_CARRYOVER_POLICY = {
             "부득이한 경우 20만원까지 확장",
             "고단가 상품(임상/전문가형/AEO) 우선 검토",
         ],
+        "desc": "고단가 콘텐츠(임상/전문가형/AEO) 우선 검토 20만원 확장 패키지",
     },
 }
 
@@ -3655,6 +3693,7 @@ CONTENT_CONTRACT_POLICY = [
             "맘카페 입점 비용 별도",
             "노출 보장 없음",
         ],
+        "desc": "기존 블로그 포스팅을 맘카페에 복붙하여 추가 채널 노출 (서비스)",
         "selected": False,
         "is_service": True,
     },
@@ -3666,6 +3705,7 @@ CONTENT_CONTRACT_POLICY = [
             "네이버 지식인 치과 질문 답변",
             "AI 활용 답변",
         ],
+        "desc": "네이버 지식인에 AI 기반 치과 질문 답변을 게시하여 신뢰도 향상",
         "selected": True,
     },
     {
@@ -3677,6 +3717,7 @@ CONTENT_CONTRACT_POLICY = [
             "자문자답 가능",
             "AI 활용 답변",
         ],
+        "desc": "원하는 키워드로 지식인 질문/답변을 작성하여 검색 노출 강화",
         "selected": True,
         "note": "플랫폼 이용료 별도",
     },
@@ -3685,6 +3726,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[75,000원] 커스텀 포스팅-스탠다드 1건",
         "price": 75000,
         "tasks": ["커스텀 포스팅 1건 제작"],
+        "desc": "병원 맞춤형 블로그 포스팅을 기획·작성하여 브랜드 콘텐츠 확보",
         "selected": True,
     },
     {
@@ -3692,6 +3734,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[150,000원] 커스텀 포스팅-프리미엄 1건",
         "price": 150000,
         "tasks": ["커스텀 포스팅 1건 제작(프리미엄)"],
+        "desc": "고퀄리티 프리미엄 블로그 포스팅을 기획·작성하여 전문성 강화",
         "selected": True,
     },
     {
@@ -3699,6 +3742,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[200,000원] 임상 레포트 1건",
         "price": 200000,
         "tasks": ["임상 레포트 1건 제작"],
+        "desc": "임상 케이스 기반 전문 레포트를 제작하여 의료 전문성 어필",
         "selected": True,
     },
     {
@@ -3706,6 +3750,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[200,000원] 정보성(전문가형) 포스팅 1건",
         "price": 200000,
         "tasks": ["전문가형 정보성 포스팅 1건 제작"],
+        "desc": "전문가 관점의 정보성 포스팅을 작성하여 검색 노출 및 신뢰도 향상",
         "selected": True,
     },
     {
@@ -3713,6 +3758,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[200,000원] AEO 의학정보 포스팅 1건",
         "price": 200000,
         "tasks": ["AEO 의학정보 포스팅 1건 제작"],
+        "desc": "AEO(AI 엔진 최적화) 기반 의학정보 포스팅으로 AI 검색 노출 확보",
         "selected": True,
     },
     {
@@ -3720,6 +3766,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[200,000원] 맘카페-스탠다드 1건",
         "price": 200000,
         "tasks": ["맘카페 스탠다드 1건"],
+        "desc": "맘카페에 고퀄리티 스탠다드 게시글을 작성하여 육아맘 타겟 노출",
         "selected": True,
         "note": "맘카페 입점 비용 별도",
     },
@@ -3728,6 +3775,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[300,000원] 다이나믹 포스팅 1건",
         "price": 300000,
         "tasks": ["다이나믹 포스팅 1건 제작"],
+        "desc": "인터랙티브 요소가 포함된 다이나믹 포스팅으로 높은 체류시간 확보",
         "selected": True,
     },
     {
@@ -3735,6 +3783,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[400,000원] 브랜딩 칼럼 포스팅 1건",
         "price": 400000,
         "tasks": ["브랜딩 칼럼 포스팅 1건 제작"],
+        "desc": "병원 브랜드 스토리를 담은 칼럼형 포스팅으로 브랜딩 강화",
         "selected": True,
     },
     {
@@ -3742,6 +3791,7 @@ CONTENT_CONTRACT_POLICY = [
         "title": "[400,000원] AEO 홈페이지 칼럼 1건",
         "price": 400000,
         "tasks": ["AEO 홈페이지 칼럼 1건 제작"],
+        "desc": "AEO 최적화된 홈페이지 칼럼을 제작하여 AI 검색 엔진 노출 강화",
         "selected": True,
     },
 ]
@@ -3914,7 +3964,10 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
             pkg = policy_dict.get(pk)
             if not pkg:
                 continue
-            if mode_cfg.get("requires_carryover"):
+            desc = pkg.get("desc", "")
+            if desc:
+                detail = desc
+            elif mode_cfg.get("requires_carryover"):
                 detail = (
                     f"디자인 이월 {carryover_count:g}건 기준, 사용량 {carryover_units:g}건(1건=0.5). "
                     f"실행: {', '.join(pkg['tasks'])}"
@@ -3924,6 +3977,7 @@ def _confirm_team_package_selection(team_key: str, config: dict, blog_counts: di
             items.append({
                 "title": pkg["title"],
                 "detail": detail,
+                "desc": desc,
                 "selected": True,
                 "source": source_tag,
                 "team": dept_label,
@@ -6138,15 +6192,19 @@ def get_action_plan_for_report():
             title = str(item.get("title", "")).strip()
             if not title:
                 continue
-            # 작업내용(tasks) 목록을 보기 좋게 HTML 포맷
+            # desc가 있으면 상품 설명 사용, 없으면 기존 tasks 파싱
+            desc = str(item.get("desc", "")).strip()
             detail = str(item.get("detail", "")).strip()
-            tasks_html = ""
-            if "실행:" in detail:
-                tasks_part = detail.split("실행:")[-1].strip()
-                task_list = [t.strip() for t in tasks_part.split(",") if t.strip()]
-                if task_list:
-                    tasks_html = " · ".join(task_list)
-            plan_text = tasks_html if tasks_html else detail
+            if desc:
+                plan_text = desc
+            else:
+                tasks_html = ""
+                if "실행:" in detail:
+                    tasks_part = detail.split("실행:")[-1].strip()
+                    task_list = [t.strip() for t in tasks_part.split(",") if t.strip()]
+                    if task_list:
+                        tasks_html = " · ".join(task_list)
+                plan_text = tasks_html if tasks_html else detail
             # 유형 판별: 이월치환=계약포함, PM제안=추가제안
             source = str(item.get("source", "")).strip()
             mode_type = str(item.get("mode_type", "")).strip()
