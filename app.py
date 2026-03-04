@@ -983,10 +983,18 @@ def check_clinic_name_mismatch():
     detected_names = set()
     source_names = {}  # {source: clinic_name}
 
-    # 예약 데이터에서 거래처명 추출
+    # 예약 데이터에서 거래처명 추출 (파일명: {치과명}_예약자관리_*.xlsx)
     if results.get('reservation'):
-        res_data = results['reservation'].get('clean_data', {})
-        # 예약 데이터는 파일명에서 추출하거나 별도 필드에서 가져올 수 있음
+        res_clinic = results['reservation'].get('clean_data', {}).get('clinic_name', '')
+        if not res_clinic:
+            # 파일명에서 추출 시도
+            for lf in st.session_state.get('all_loaded_files', []):
+                if '예약자관리' in getattr(lf, 'name', ''):
+                    res_clinic = lf.name.split('_예약자관리')[0].strip()
+                    break
+        if res_clinic:
+            detected_names.add(res_clinic)
+            source_names['네이버 예약'] = res_clinic
 
     # 블로그 데이터에서 거래처명 추출
     if results.get('blog'):
@@ -1275,7 +1283,7 @@ def render_dashboard():
         if len(design_clinics) > 1:
             # 블로그/유튜브 거래처명과 매칭되는 디자인 거래처 찾기
             other_clinic_name = None
-            for src in ['블로그', '유튜브']:
+            for src in ['블로그', '유튜브', '네이버 예약']:
                 if src in source_names:
                     other_clinic_name = source_names[src]
                     break
