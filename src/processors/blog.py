@@ -443,8 +443,8 @@ def process_work_csv(files: List[LoadedFile]) -> Dict[str, Any]:
             monthly_summary['published_count'] / monthly_summary['contract_count'] * 100,
             0
         )
-        # base_carryover 컬럼 추가 (하위 호환성)
-        monthly_summary['base_carryover'] = monthly_summary['carryover']
+        # base_carryover: "남은 작업 건수" 컬럼 사용
+        monthly_summary['base_carryover'] = monthly_summary['remaining']
         monthly_summary['remaining_count'] = monthly_summary['remaining']
 
     # 포스팅 DataFrame 생성
