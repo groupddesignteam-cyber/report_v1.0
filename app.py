@@ -1421,13 +1421,16 @@ def render_dashboard():
     _ai_col1, _ai_col2, _ai_col3 = st.columns([1, 2, 1])
     with _ai_col2:
         if st.button(
-            "✨ 팀장용 1분 AI 3줄 요약 자동생성",
+            "✨ AI 전략 인사이트 보고서 생성",
             use_container_width=True,
             disabled=not llm_ready,
             help="ANTHROPIC_API_KEY 또는 OPENAI_API_KEY가 설정되어야 실행됩니다.",
         ):
-            with st.spinner("전체 데이터를 분석하여 3줄 총평을 생성하는 중입니다..."):
-                st.session_state.ai_exec_summary = generate_executive_summary(filtered_results)
+            with st.spinner("전체 데이터를 종합 분석 중입니다... (약 10~15초 소요)"):
+                st.session_state.ai_exec_summary = generate_executive_summary(
+                    filtered_results,
+                    clinic_name=settings.get('clinic_name', '')
+                )
             st.rerun()
 
     # AI 요약 편집 영역 (생성된 경우에만 표시)
@@ -1443,7 +1446,7 @@ def render_dashboard():
         edited_summary = st.text_area(
             "AI 요약 편집",
             value=st.session_state.ai_exec_summary,
-            height=120,
+            height=400,
             label_visibility="collapsed",
             key="ai_summary_editor",
         )
